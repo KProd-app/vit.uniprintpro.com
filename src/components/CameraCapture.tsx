@@ -1,0 +1,112 @@
+
+import React, { useRef, useState, useEffect } from 'react';
+
+interface CameraCaptureProps {
+  onCapture: (imageData: string) => void;
+  userName: string;
+  onCancel: () => void;
+}
+
+export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userName, onCancel }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+
+  useEffect(() => {
+    async function setupCamera() {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' }, 
+          audio: false 
+        });
+        setStream(s);
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+        }
+        setHasPermission(true);
+      } catch (err) {
+        console.error(err);
+        setHasPermission(false);
+      }
+    }
+    setupCamera();
+    return () => {
+      stream?.getTracks().forEach(track => track.stop());
+    };
+  }, []);
+
+  const takePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      if (!context) return;
+
+      // Set canvas size to video size
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      // Draw video frame to canvas
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Add Overlay (Black Bar)
+      context.fillStyle = "rgba(0, 0, 0, 0.6)";
+      context.fillRect(0, canvas.height - 60, canvas.width, 60);
+
+      // Add Timestamp and User text
+      const now = new Date();
+      const timestamp = now.toLocaleString('lt-LT');
+      context.fillStyle = "white";
+      context.font = "bold 20px Inter, Arial";
+      context.fillText(`${timestamp} | Op: ${userName}`, 20, canvas.height - 25);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      onCapture(dataUrl);
+      
+      // Stop stream
+      stream?.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  if (hasPermission === false) {
+    return (
+      <div className="p-10 text-center bg-red-50 rounded-2xl border border-red-200">
+        <p className="text-red-600 font-bold">Klaida: Nepavyko pasiekti kameros.</p>
+        <button onClick={onCancel} className="mt-4 text-slate-600 underline">Grįžti</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl">
+      <video 
+        ref={videoRef} 
+        autoPlay 
+        playsInline 
+        className="w-full h-[500px] object-cover"
+      />
+      <canvas ref={canvasRef} className="hidden" />
+      
+      <div className="absolute inset-0 border-4 border-dashed border-white/30 pointer-events-none m-8 rounded-2xl"></div>
+
+      <div className="absolute bottom-0 left-0 right-0 p-8 flex justify-between items-center bg-gradient-to-t from-black/80 to-transparent">
+        <button 
+          onClick={onCancel}
+          className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-bold backdrop-blur-md transition-all"
+        >
+          Atšaukti
+        </button>
+        
+        <button 
+          onClick={takePhoto}
+          className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform group"
+        >
+          <div className="w-16 h-16 border-4 border-slate-900 rounded-full group-hover:bg-slate-100 transition-colors"></div>
+        </button>
+
+        <div className="w-24"></div> {/* Spacer */}
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,7 @@
+{
+  "name": "Printer Start-up Dashboard",
+  "description": "Industrial dashboard for managing printer start-up procedures, including maintenance checks, nozzle tests, and VIT inspection forms.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
