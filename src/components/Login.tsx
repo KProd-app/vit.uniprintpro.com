@@ -36,24 +36,31 @@ export const Login: React.FC<LoginProps> = ({ onLogin, addToast }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 bg-[grid-slate-900/50]">
-      <Card className="w-full max-w-md border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in duration-500">
-        <CardHeader className="space-y-6 text-center pt-10 pb-2">
-          <div className="w-20 h-20 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/5 border border-emerald-500/20">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0012 21a10.003 10.003 0 0010-10V7a2 2 0 00-2-2h-2V4.414a2 2 0 00-.586-1.414L15.414 1a2 2 0 00-1.414-.586H12a2 2 0 00-2 2V3m0 0a2 2 0 00-2 2H6a2 2 0 00-2 2v4a10.003 10.003 0 002 6.09" />
+    <div className="min-h-screen bg-mimaki-dark flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Ambient Background */}
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-mimaki-blue/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Grid Pattern */}
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+
+      <Card className="w-full max-w-md border-white/10 bg-white/5 backdrop-blur-2xl shadow-2xl animate-in fade-in zoom-in duration-500 rounded-[3rem]">
+        <CardHeader className="space-y-6 text-center pt-12 pb-2">
+          <div className="w-24 h-24 bg-mimaki-blue rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-mimaki-blue/30 transform -rotate-6 hover:rotate-0 transition-all duration-300">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A10.003 10.003 0 0012 21a10.003 10.003 0 0010-10V7a2 2 0 00-2-2h-2V4.414a2 2 0 00-.586-1.414L15.414 1a2 2 0 00-1.414-.586H12a2 2 0 00-2 2V3m0 0a2 2 0 00-2 2H6a2 2 0 00-2 2v4a10.003 10.003 0 002 6.09" />
             </svg>
           </div>
           <div>
-            <h1 className="text-3xl font-black text-white tracking-tighter uppercase">UniPrintPro</h1>
-            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.3em] mt-1">VIT Sistema</p>
+            <h1 className="text-3xl font-black text-white tracking-tighter uppercase mt-4">UniPrintPro</h1>
+            <p className="text-mimaki-blue font-bold uppercase text-[10px] tracking-[0.3em] mt-2">VIT Gamybos Stotis</p>
           </div>
         </CardHeader>
 
-        <CardContent className="p-8 pt-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-slate-400 uppercase tracking-wider text-xs font-bold pl-1">
+        <CardContent className="p-10 pt-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="space-y-3">
+              <Label htmlFor="fullName" className="text-slate-400 uppercase tracking-widest text-[10px] font-black pl-4">
                 Identifikacija
               </Label>
               <Input
@@ -63,26 +70,24 @@ export const Login: React.FC<LoginProps> = ({ onLogin, addToast }) => {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Vardas Pavardė"
-                className="h-12 bg-slate-900/50 border-slate-700 text-lg text-white placeholder:text-slate-600 focus:border-emerald-500/50"
+                className="h-16 bg-white/5 border-white/10 text-xl text-white placeholder:text-slate-500 focus:border-mimaki-blue/50 rounded-3xl"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full h-12 bg-white text-slate-900 hover:bg-slate-200 font-black uppercase tracking-widest text-sm"
+              className="w-full h-16 bg-mimaki-blue hover:bg-blue-600 text-white font-black uppercase tracking-widest text-lg rounded-3xl shadow-xl shadow-mimaki-blue/20"
             >
               Prisijungti
-              <ArrowRight className="ml-2 w-4 h-4" />
+              <ArrowRight className="ml-3 w-5 h-5" />
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      {/* Background gradients */}
-      <div className="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[100px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[100px]" />
-      </div>
+      <p className="absolute bottom-6 text-slate-800/40 text-[10px] font-bold uppercase tracking-widest">
+        Mimaki Engineering Co. Style
+      </p>
     </div>
   );
 };
