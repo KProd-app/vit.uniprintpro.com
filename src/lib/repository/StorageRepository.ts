@@ -34,6 +34,7 @@ export interface StorageRepository {
     getUsers(): Promise<User[]>;
     updateUser(id: string, data: Partial<User>): Promise<void>;
     deleteUser(id: string): Promise<void>;
+    createUser(user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }): Promise<void>;
 
     /**
      * Initialize DB with defaults if empty

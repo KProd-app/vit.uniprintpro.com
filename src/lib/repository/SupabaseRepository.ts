@@ -342,13 +342,13 @@ export class SupabaseRepository implements StorageRepository {
         }
     }
 
-    async createUser(user: { name: string; role: 'Admin' | 'Worker'; pin?: string }): Promise<void> {
+    async createUser(user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }): Promise<void> {
         // Import normalizeString locally or duplicate logic if necessary, but better to import
         // Since this file is in lib/repository, we can import from ../../lib/utils
         const { normalizeString } = await import('../../lib/utils'); // Dynaic import to avoid cycles if any, or just top level
 
         const email = `${normalizeString(user.name).replace(/\s+/g, '.')}@vit.uniprintpro.com`;
-        const password = 'uniprint'; // Default password
+        const password = user.password || 'uniprint'; // Use provided password or default
 
         console.log(`Creating user: ${user.name} (${email}) as ${user.role}`);
 

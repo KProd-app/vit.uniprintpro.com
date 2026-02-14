@@ -26,7 +26,7 @@ interface DataContextType {
     getUsers: () => Promise<User[]>;
     updateUser: (id: string, data: Partial<User>) => Promise<void>;
     deleteUser: (id: string) => Promise<void>;
-    createUser: (user: { name: string; role: 'Admin' | 'Worker'; pin?: string }) => Promise<void>;
+    createUser: (user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -165,7 +165,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await repository.deleteUser(id);
     };
 
-    const createUser = async (user: { name: string; role: 'Admin' | 'Worker'; pin?: string }) => {
+    const createUser = async (user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }) => {
         await repository.createUser(user);
     };
 

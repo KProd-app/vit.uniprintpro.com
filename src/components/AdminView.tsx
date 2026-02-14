@@ -28,6 +28,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
   const [logs, setLogs] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [newUserRole, setNewUserRole] = useState<'Admin' | 'Worker'>('Worker'); // Track role for conditional UI
 
   // Load data based on view mode
   useEffect(() => {
@@ -413,21 +414,29 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
               const formData = new FormData(e.currentTarget);
               const name = formData.get('name') as string;
               const role = formData.get('role') as 'Admin' | 'Worker';
+              const password = formData.get('password') as string;
 
               if (!name) return;
 
               try {
-                await createUser({ name, role });
+                await createUser({ name, role, password });
                 setEditingTemplate(undefined);
+                setNewUserRole('Worker'); // Reset
                 getUsers().then(setUsers);
 
                 if (addToast) {
                   addToast(`Vartotojas ${name} sukurtas!`, 'success');
-                  // We can't easily show the complex message in a toast, so simple success is better. 
-                  // Or we can verify logical flow.
-                  alert(`Vartotojas ${name} sukurtas!\nSlaptažodis: uniprint`);
+                  if (role === 'Admin') {
+                    alert(`Admin vartotojas ${name} sukurtas!\nSlaptažodis: ${password}`);
+                  } else {
+                    alert(`Vartotojas ${name} sukurtas!\nSlaptažodis: uniprint`);
+                  }
                 } else {
-                  alert(`Vartotojas ${name} sukurtas!\nSlaptažodis: uniprint`);
+                  if (role === 'Admin') {
+                    alert(`Admin vartotojas ${name} sukurtas!\nSlaptažodis: ${password}`);
+                  } else {
+                    alert(`Vartotojas ${name} sukurtas!\nSlaptažodis: uniprint`);
+                  }
                 }
 
               } catch (error: any) {
@@ -451,12 +460,27 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                 <label className="text-xs font-bold uppercase text-slate-400 tracking-wider ml-1">Rolė</label>
                 <select
                   name="role"
+                  value={newUserRole}
+                  onChange={(e) => setNewUserRole(e.target.value as 'Admin' | 'Worker')}
                   className="w-full h-14 rounded-2xl border-slate-200 bg-slate-50 px-4 font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none"
                 >
                   <option value="Worker">Darbuotojas (Worker)</option>
                   <option value="Admin">Administratorius (Admin)</option>
                 </select>
               </div>
+
+              {newUserRole === 'Admin' && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                  <label className="text-xs font-bold uppercase text-slate-400 tracking-wider ml-1">Slaptažodis</label>
+                  <input
+                    name="password"
+                    type="text" // Visible so they know what they typed
+                    placeholder="Įrašykite slaptažodį"
+                    className="w-full h-14 rounded-2xl border-slate-200 bg-slate-50 px-4 font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    required
+                  />
+                </div>
+              )}
 
               <div className="pt-4 flex gap-3">
                 <Button
