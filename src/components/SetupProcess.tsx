@@ -198,11 +198,13 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
             <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-10 h-10" />
             </div>
-            <CardTitle className="text-3xl font-black uppercase text-mimaki-dark">VIT Šiai pamainai atliktas!</CardTitle>
+            <CardTitle className="text-3xl font-black uppercase text-mimaki-dark">VIT Jau Atliktas!</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <p className="text-slate-500 font-medium text-lg">
-              Priežiūra ir purkštukų patikra šiai ({localPrinter.vit.shift}) pamainai jau užfiksuota.
+              Šios ({localPrinter.vit.shift}) pamainos patikrinimas jau užfiksuotas.
+              <br />
+              Galite tęsti darbą ir registruoti gamybą.
             </p>
             <div className="flex flex-col gap-4">
               <Button
@@ -211,31 +213,17 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                 className="w-full h-16 text-xl font-black uppercase bg-emerald-500 hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 rounded-2xl"
               >
                 <Play className="w-6 h-6 mr-3" />
-                Tęsti Gamybą
+                Tęsti Darbą
               </Button>
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200"></span></div>
-                <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold">Arba</span></div>
-              </div>
+
               <Button
                 variant="ghost"
-                onClick={() => {
-                  // Reset manually
-                  const currentShift = (new Date().getHours() >= 6 && new Date().getHours() < 18) ? 'Ryto' : 'Vakaro';
-                  const resetData = {
-                    maintenanceDone: false,
-                    nozzlePrintDone: false,
-                    nozzleFile: null,
-                    vit: { shift: currentShift, checklist: {}, notes: '', signature: currentUser.name, confirmed: false },
-                    mimakiNozzleFiles: {},
-                  } as Partial<PrinterData>;
-                  setLocalPrinter(prev => ({ ...prev, ...resetData }));
-                  onSave(resetData);
-                }}
-                className="text-slate-400 hover:text-red-500 hover:bg-red-50"
+                onClick={onCancel}
+                className="text-slate-400 hover:bg-slate-100"
               >
-                Pildyti iš naujo
+                Grįžti
               </Button>
+
             </div>
           </CardContent>
         </Card>
