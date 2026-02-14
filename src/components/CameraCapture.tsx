@@ -16,9 +16,9 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
   useEffect(() => {
     async function setupCamera() {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'environment' }, 
-          audio: false 
+        const s = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' },
+          audio: false
         });
         setStream(s);
         if (videoRef.current) {
@@ -63,7 +63,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
       onCapture(dataUrl);
-      
+
       // Stop stream
       stream?.getTracks().forEach(track => track.stop());
     }
@@ -78,27 +78,56 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
     );
   }
 
+  const [flashOn, setFlashOn] = useState(false);
+
+  const toggleFlash = async () => {
+    if (stream) {
+      const track = stream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities(); // Check if torch is supported
+      // @ts-ignore
+      if (capabilities.torch) {
+        try {
+          // @ts-ignore
+          await track.applyConstraints({ advanced: [{ torch: !flashOn }] });
+          setFlashOn(!flashOn);
+        } catch (e) {
+          console.error("Flash error:", e);
+        }
+      }
+    }
+  };
+
   return (
     <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl">
-      <video 
-        ref={videoRef} 
-        autoPlay 
-        playsInline 
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
         className="w-full h-[500px] object-cover"
       />
       <canvas ref={canvasRef} className="hidden" />
-      
+
       <div className="absolute inset-0 border-4 border-dashed border-white/30 pointer-events-none m-8 rounded-2xl"></div>
 
+      {/* Flashlight Button */}
+      <button
+        onClick={toggleFlash}
+        className={`absolute top-8 right-8 p-4 rounded-full backdrop-blur-md transition-all ${flashOn ? 'bg-yellow-400 text-yellow-900' : 'bg-white/10 text-white hover:bg-white/20'}`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </button>
+
       <div className="absolute bottom-0 left-0 right-0 p-8 flex justify-between items-center bg-gradient-to-t from-black/80 to-transparent">
-        <button 
+        <button
           onClick={onCancel}
           className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-bold backdrop-blur-md transition-all"
         >
           Atšaukti
         </button>
-        
-        <button 
+
+        <button
           onClick={takePhoto}
           className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform group"
         >

@@ -100,13 +100,13 @@ const AppContent: React.FC = () => {
         endShiftChecklist: endChecklist,
         productionAmount: production,
         defectsAmount: defects,
-        // Resetting morning checks for the next morning
-        maintenanceDone: false,
-        nozzlePrintDone: false,
-        nozzleFile: null,
-        vit: { shift: '' as any, checklist: {}, notes: '', signature: '', confirmed: false } as any,
-        selectedMimakiUnits: [],
-        mimakiNozzleFiles: {}
+        // Resetting ONLY dynamic state, keeping VIT for next shift check
+        // maintenanceDone: false, // Don't reset
+        // nozzlePrintDone: false, // Don't reset
+        // nozzleFile: null, // Don't reset
+        // vit: ... // Don't reset
+        // selectedMimakiUnits: [], // Keep selection
+        // mimakiNozzleFiles: {} // Keep files
       });
       setView('DASHBOARD');
       setActivePrinterId(null);
@@ -175,7 +175,7 @@ const AppContent: React.FC = () => {
           printer={activePrinter}
           currentUser={user}
           checklistTemplates={checklistTemplates}
-          onSave={(data) => contextUpdatePrinter(activePrinter.id, data)}
+          onSave={(data, silent) => contextUpdatePrinter(activePrinter.id, data, silent)}
           onFinish={handleSetupComplete}
           onCancel={() => { setView('DASHBOARD'); setActivePrinterId(null); }}
           addToast={addToast}

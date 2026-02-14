@@ -9,7 +9,7 @@ interface DataContextType {
     loading: boolean;
     isSyncing: boolean;
     refreshPrinters: () => Promise<void>;
-    updatePrinter: (id: string, data: Partial<PrinterData>) => Promise<void>;
+    updatePrinter: (id: string, data: Partial<PrinterData>, silent?: boolean) => Promise<void>;
     resetPrinter: (id: string) => Promise<void>;
     createPrinter: (name: string) => Promise<void>;
     deletePrinter: (id: string) => Promise<void>;
@@ -114,17 +114,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     };
 
-    const updatePrinter = async (id: string, data: Partial<PrinterData>) => {
+    const updatePrinter = async (id: string, data: Partial<PrinterData>, silent: boolean = false) => {
         // Optimistic update
         setPrinters(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
 
-        setIsSyncing(true);
+        if (!silent) setIsSyncing(true);
         await repository.updatePrinter(id, data);
 
         // Re-fetch to ensure consistency is not strictly required if we trust optimistic update,
         // but useful if there are server-side triggers. 
         // We'll rely on the polling for eventual consistency/other user updates.
-        setIsSyncing(false);
+        if (!silent) setIsSyncing(false);
     };
 
     const resetPrinter = async (id: string) => {

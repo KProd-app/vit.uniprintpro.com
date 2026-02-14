@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Stepper } from './ui/stepper';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
-import { ArrowLeft, ArrowRight, Camera, Check, AlertTriangle, Printer, Info, CheckCircle2, ChevronRight, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Check, AlertTriangle, Printer, Info, CheckCircle2, ChevronRight, X, Play } from 'lucide-react';
 import { cn, base64ToBlob } from '@/lib/utils';
 import { canStartWork } from '@/lib/validation';
 
@@ -15,7 +15,7 @@ interface SetupProcessProps {
   printer: PrinterData;
   currentUser: User;
   checklistTemplates: ChecklistTemplate[];
-  onSave: (data: Partial<PrinterData>) => void;
+  onSave: (data: Partial<PrinterData>, silent?: boolean) => void;
   onFinish: () => void;
   onCancel: () => void;
   addToast: (msg: string, type: 'success' | 'error' | 'info') => void;
@@ -30,25 +30,48 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    // 1. Set Auto Signature
-    if (!localPrinter.vit.signature) {
-      const newVit = { ...localPrinter.vit, signature: currentUser.name };
+    // 1. Detect Shift
+    const currentHour = new Date().getHours();
+    const currentShift = (currentHour >= 6 && currentHour < 18) ? 'Ryto' : 'Vakaro';
+
+    // 2. Check if we need to reset (New shift started)
+    if (localPrinter.vit.shift && localPrinter.vit.shift !== currentShift) {
+      // Auto-reset for new shift
+      const resetData = {
+        maintenanceDone: false,
+        nozzlePrintDone: false,
+        nozzleFile: null,
+        vit: { shift: currentShift, checklist: {}, notes: '', signature: currentUser.name, confirmed: false },
+        mimakiNozzleFiles: {},
+        status: PrinterStatus.NOT_STARTED
+      } as Partial<PrinterData>;
+
+      setLocalPrinter(prev => ({ ...prev, ...resetData }));
+      onSave(resetData); // Sync reset
+    } else if (!localPrinter.vit.shift) {
+      // Initialize if empty
+      const newVit = { ...localPrinter.vit, shift: currentShift, signature: currentUser.name };
       setLocalPrinter(prev => ({ ...prev, vit: newVit }));
+      // onSave not needed yet, will save on first interaction
     }
+  }, []); // Run once on mount
 
-    // 2. Auto-detect Shift (06:00 - 18:00 = Ryto, else Vakaro)
-    if (!localPrinter.vit.shift) {
-      const currentHour = new Date().getHours();
-      const detectedShift = (currentHour >= 6 && currentHour < 18) ? 'Ryto' : 'Vakaro';
+  // Helper functions
+  const updateVIT = (updates: Partial<VITData>) => {
+    const newVit = { ...localPrinter.vit, ...updates };
+    const newData = { vit: newVit };
+    setLocalPrinter(prev => ({ ...prev, ...newData }));
+    onSave(newData);
+  };
 
-      const newVit = { ...localPrinter.vit, shift: detectedShift };
-      setLocalPrinter(prev => ({ ...prev, vit: newVit }));
-      // We don't save immediately to avoid writing to DB before user starts interacting, 
-      // but for state consistency it's fine.
-
-      // Actually, let's just set it in local state.
+  const areNozzlesReady = () => {
+    if (localPrinter.isMimaki) {
+      const selected = localPrinter.selectedMimakiUnits || [];
+      if (selected.length === 0) return false;
+      return selected.every(u => !!localPrinter.mimakiNozzleFiles?.[u]);
     }
-  }, [currentUser, localPrinter.vit.signature, localPrinter.vit.shift]);
+    return localPrinter.nozzleFile !== null;
+  };
 
   const getStepsList = () => {
     const baseSteps = [
@@ -106,13 +129,6 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
     }
   };
 
-  const updateVIT = (updates: Partial<VITData>) => {
-    const newVit = { ...localPrinter.vit, ...updates };
-    const newData = { vit: newVit };
-    setLocalPrinter(prev => ({ ...prev, ...newData }));
-    onSave(newData);
-  };
-
   const toggleVITCheck = (item: string) => {
     const newChecklist = { ...localPrinter.vit.checklist, [item]: !localPrinter.vit.checklist[item] };
     updateVIT({ checklist: newChecklist });
@@ -124,15 +140,6 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
     const newData = { selectedMimakiUnits: next };
     setLocalPrinter(prev => ({ ...prev, ...newData }));
     onSave(newData);
-  };
-
-  const areNozzlesReady = () => {
-    if (localPrinter.isMimaki) {
-      const selected = localPrinter.selectedMimakiUnits || [];
-      if (selected.length === 0) return false;
-      return selected.every(u => !!localPrinter.mimakiNozzleFiles?.[u]);
-    }
-    return localPrinter.nozzleFile !== null;
   };
 
   const canFinish = canStartWork(localPrinter, checklistTemplates);
@@ -153,6 +160,10 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
     }
   };
 
+  // 3. Shortcuts if already done
+  const isShiftDone = localPrinter.vit.confirmed &&
+    (localPrinter.isMimaki ? areNozzlesReady() : localPrinter.nozzleFile);
+
   if (showConfirmModal) {
     return (
       <div className="fixed inset-0 bg-mimaki-dark/80 backdrop-blur-md flex items-center justify-center p-6 z-[100] animate-in fade-in duration-300">
@@ -172,6 +183,60 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
             >
               PRADĖTI GAMYBĄ
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Check if work is already done for this shift
+  if (isShiftDone && localPrinter.vit.shift === ((new Date().getHours() >= 6 && new Date().getHours() < 18) ? 'Ryto' : 'Vakaro')) {
+    return (
+      <div className="fixed inset-0 bg-mimaki-gray flex items-center justify-center p-6 z-[100] animate-in fade-in duration-300">
+        <Card className="max-w-xl w-full text-center shadow-2xl border-white/50 bg-white/80 backdrop-blur-md">
+          <CardHeader>
+            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-10 h-10" />
+            </div>
+            <CardTitle className="text-3xl font-black uppercase text-mimaki-dark">VIT Šiai pamainai atliktas!</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <p className="text-slate-500 font-medium text-lg">
+              Priežiūra ir purkštukų patikra šiai ({localPrinter.vit.shift}) pamainai jau užfiksuota.
+            </p>
+            <div className="flex flex-col gap-4">
+              <Button
+                size="lg"
+                onClick={onFinish}
+                className="w-full h-16 text-xl font-black uppercase bg-emerald-500 hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 rounded-2xl"
+              >
+                <Play className="w-6 h-6 mr-3" />
+                Tęsti Gamybą
+              </Button>
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200"></span></div>
+                <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400 font-bold">Arba</span></div>
+              </div>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  // Reset manually
+                  const currentShift = (new Date().getHours() >= 6 && new Date().getHours() < 18) ? 'Ryto' : 'Vakaro';
+                  const resetData = {
+                    maintenanceDone: false,
+                    nozzlePrintDone: false,
+                    nozzleFile: null,
+                    vit: { shift: currentShift, checklist: {}, notes: '', signature: currentUser.name, confirmed: false },
+                    mimakiNozzleFiles: {},
+                  } as Partial<PrinterData>;
+                  setLocalPrinter(prev => ({ ...prev, ...resetData }));
+                  onSave(resetData);
+                }}
+                className="text-slate-400 hover:text-red-500 hover:bg-red-50"
+              >
+                Pildyti iš naujo
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -303,7 +368,7 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                   onChange={(e) => {
                     const newData = { maintenanceComment: e.target.value };
                     setLocalPrinter(prev => ({ ...prev, ...newData }));
-                    onSave(newData);
+                    onSave(newData, true); // Silent update
                   }}
                   className="w-full p-6 bg-slate-50 border-0 rounded-[2rem] focus:ring-2 focus:ring-mimaki-blue/20 outline-none h-40 font-bold text-slate-700 resize-none transition-all placeholder:text-slate-300"
                   placeholder="Papildomos pastabos apie būklę..."
