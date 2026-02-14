@@ -343,26 +343,23 @@ export class SupabaseRepository implements StorageRepository {
     }
 
     async createUser(user: { name: string; role: 'Admin' | 'Worker'; pin?: string }): Promise<void> {
-        // We need to use a separate client or fetch to avoid logging out the current admin
-        const email = `${user.name.trim().toLowerCase().replace(/\s+/g, '.')}@vit.uniprintpro.com`;
+        // Import normalizeString locally or duplicate logic if necessary, but better to import
+        // Since this file is in lib/repository, we can import from ../../lib/utils
+        const { normalizeString } = await import('../../lib/utils'); // Dynaic import to avoid cycles if any, or just top level
+
+        const email = `${normalizeString(user.name).replace(/\s+/g, '.')}@vit.uniprintpro.com`;
         const password = 'uniprint'; // Default password
 
-        // Using fetch to call Supabase Auth API directly or use a second client instance
-        // Easiest way in client-side app without edge functions is to create a second client instance
-        // but that requires knowning the URL and Key again.
-        // Or we can use the `supabase.auth.admin.createUser` if we were on server side with service role key.
-        // Since we are client side Agmin, we technically can't "create" another user without being that user (signUp logs you in).
-        // WORKAROUND: We will rely on a temporary invisible logout/login OR just warn the admin they will be logged out?
-        // Better: We use a hacky approach - simple `fetch` to Supabase GoTrue API to sign up? No, that returns a session.
+        console.log(`Creating user: ${user.name} (${email}) as ${user.role}`);
 
-        // ACTUALLY: The best way for client-side admin to create users without Edge Functions is to just insert into `profiles`? 
-        // NO, we need the Auth User created.
-
-        // Let's try creating a secondary client instance.
-        // We need to import createClient
+        // Using a secondary client to sign up the user without logging out the admin
         const { createClient } = await import('@supabase/supabase-js');
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error('Supabase URL or Anon Key missing in environment.');
+        }
 
         const tempClient = createClient(supabaseUrl, supabaseKey);
 
@@ -382,7 +379,10 @@ export class SupabaseRepository implements StorageRepository {
             throw authError;
         }
 
-        // Profile should be created automatically by trigger, but we can ensure/update it if needed.
-        // The trigger `handle_new_user` takes metadata name/role and puts it into profiles.
+        if (authData.user && authData.user.identities && authData.user.identities.length === 0) {
+            throw new Error('Vartotojas su tokiu el. paštu jau egzistuoja / User already exists');
+        }
+
+        console.log('User created successfully:', authData.user?.id);
     }
 }

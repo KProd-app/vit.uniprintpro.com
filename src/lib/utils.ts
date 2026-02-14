@@ -16,3 +16,13 @@ export function base64ToBlob(base64: string, mimeType: string = 'image/jpeg'): B
 
     return new Blob([ab], { type: mimeType });
 }
+// Helper to normalize strings for search/comparison (removes accents, handles spaces/dots)
+export const normalizeString = (str: string) => {
+    return str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\./g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+};

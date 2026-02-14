@@ -168,7 +168,7 @@ const AppContent: React.FC = () => {
         />
       )}
 
-      {currentView === 'ADMIN' && <AdminView printers={printers} onBack={() => setView('DASHBOARD')} />}
+      {currentView === 'ADMIN' && <AdminView printers={printers} onBack={() => setView('DASHBOARD')} addToast={addToast} />}
 
       {currentView === 'SETUP' && activePrinter && user && (
         <SetupProcess

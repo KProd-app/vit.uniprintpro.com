@@ -6,22 +6,12 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card } from './ui/card';
 import { ArrowRight, ShieldCheck, User as UserIcon, Lock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, normalizeString } from '@/lib/utils';
 import { User } from '../types';
 
 interface LoginProps {
   addToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
-
-const normalizeString = (str: string) => {
-  return str
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\./g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
 
 export const Login: React.FC<LoginProps> = ({ addToast }) => {
   const { signIn } = useAuth();

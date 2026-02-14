@@ -8,9 +8,10 @@ import { Plus, Settings, Printer, Users, Trash2, Edit } from 'lucide-react';
 interface AdminViewProps {
   printers: PrinterData[];
   onBack: () => void;
+  addToast?: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
-export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack }) => {
+export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast }) => {
   const {
     checklistTemplates,
     saveChecklistTemplate,
@@ -228,9 +229,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack }) => {
         <div className="bg-white rounded-[40px] shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-8 border-b border-slate-100 flex justify-between items-center">
             <h3 className="text-xl font-black text-slate-800">Vartotojų Sąrašas</h3>
-            {/* <Button onClick={() => alert('Pridėjimas kol kas tik per DB')} className="bg-slate-900 text-white rounded-xl h-10 px-4 font-bold uppercase text-xs">
-                    <Plus className="w-4 h-4 mr-2" /> Pridėti Vartotoją
-                </Button> */}
+            <div className="flex gap-4">
+              <Button onClick={() => setEditingTemplate('NEW_USER')} className="bg-slate-900 text-white rounded-xl h-10 px-4 font-bold uppercase text-xs">
+                <Plus className="w-4 h-4 mr-2" /> Pridėti Vartotoją
+              </Button>
+            </div>
             <div className="text-xs text-slate-400 italic">Naujus vartotojus registruokite per prisijungimo langą</div>
           </div>
           <div className="overflow-x-auto">
@@ -417,9 +420,19 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack }) => {
                 await createUser({ name, role });
                 setEditingTemplate(undefined);
                 getUsers().then(setUsers);
-                alert(`Vartotojas ${name} sukurtas!\nSlaptažodis: uniprint\nEl. paštas: ${name.trim().toLowerCase().replace(/\s+/g, '.')}@vit.uniprintpro.com`);
+
+                if (addToast) {
+                  addToast(`Vartotojas ${name} sukurtas!`, 'success');
+                  // We can't easily show the complex message in a toast, so simple success is better. 
+                  // Or we can verify logical flow.
+                  alert(`Vartotojas ${name} sukurtas!\nSlaptažodis: uniprint`);
+                } else {
+                  alert(`Vartotojas ${name} sukurtas!\nSlaptažodis: uniprint`);
+                }
+
               } catch (error: any) {
-                alert('Klaida kuriant vartotoją: ' + error.message);
+                if (addToast) addToast(error.message, 'error');
+                else alert('Klaida kuriant vartotoją: ' + error.message);
               }
             }} className="space-y-6">
               <div className="space-y-2">
