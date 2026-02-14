@@ -1,14 +1,19 @@
 
 import React from 'react';
-import { PrinterData, PrinterStatus } from '../types';
+import { PrinterData, PrinterStatus, ChecklistTemplate } from '../types';
 import { INITIAL_VIT_CHECKLIST } from '../constants';
 
 interface ViewSummaryProps {
   printer: PrinterData;
+  checklistTemplates: ChecklistTemplate[];
   onBack: () => void;
 }
 
-export const ViewSummary: React.FC<ViewSummaryProps> = ({ printer, onBack }) => {
+export const ViewSummary: React.FC<ViewSummaryProps> = ({ printer, checklistTemplates, onBack }) => {
+  // Determine which items to show
+  const assignedTemplate = checklistTemplates.find(t => t.id === printer.checklistTemplateId);
+  const checklistItems = assignedTemplate ? assignedTemplate.items : INITIAL_VIT_CHECKLIST;
+
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto animate-in fade-in duration-500">
       <header className="flex justify-between items-center mb-10">
@@ -32,9 +37,8 @@ export const ViewSummary: React.FC<ViewSummaryProps> = ({ printer, onBack }) => 
               Sistemos Statusas
             </h3>
             <div className="flex items-center space-x-4">
-              <span className={`px-6 py-2 rounded-full font-bold text-lg border ${
-                printer.status === PrinterStatus.READY_TO_WORK ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600'
-              }`}>
+              <span className={`px-6 py-2 rounded-full font-bold text-lg border ${printer.status === PrinterStatus.READY_TO_WORK ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600'
+                }`}>
                 {printer.status}
               </span>
               {printer.status === PrinterStatus.READY_TO_WORK && (
@@ -55,15 +59,15 @@ export const ViewSummary: React.FC<ViewSummaryProps> = ({ printer, onBack }) => 
                   {printer.maintenanceDone ? 'ATLIKTA' : 'neatlikta'}
                 </span>
               </div>
-              
+
               {printer.isMimaki && (
                 <div className="py-3 border-b border-slate-50">
-                   <p className="text-slate-600 mb-2">Pasirinkti Mimaki blokai:</p>
-                   <div className="flex flex-wrap gap-2">
-                     {printer.selectedMimakiUnits?.map(u => (
-                       <span key={u} className="px-3 py-1 bg-slate-900 text-white rounded-lg text-xs font-bold">Blokas {u}</span>
-                     ))}
-                   </div>
+                  <p className="text-slate-600 mb-2">Pasirinkti Mimaki blokai:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {printer.selectedMimakiUnits?.map(u => (
+                      <span key={u} className="px-3 py-1 bg-slate-900 text-white rounded-lg text-xs font-bold">Blokas {u}</span>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -71,15 +75,15 @@ export const ViewSummary: React.FC<ViewSummaryProps> = ({ printer, onBack }) => 
                 <div className="mt-6 space-y-6">
                   {printer.selectedMimakiUnits?.map(u => (
                     <div key={u} className="border border-slate-100 rounded-2xl overflow-hidden bg-slate-50">
-                       <div className="p-3 bg-white border-b border-slate-100 flex justify-between items-center">
-                          <span className="text-sm font-black uppercase">Blokas {u}</span>
-                          <span className="text-[10px] text-slate-400 font-bold">{printer.mimakiNozzleFiles?.[u]?.timestamp || 'Nėra'}</span>
-                       </div>
-                       {printer.mimakiNozzleFiles?.[u] ? (
-                         <img src={printer.mimakiNozzleFiles[u].url} className="w-full h-auto" />
-                       ) : (
-                         <div className="p-10 text-center text-slate-300 font-bold uppercase text-xs">Nuotraukos nėra</div>
-                       )}
+                      <div className="p-3 bg-white border-b border-slate-100 flex justify-between items-center">
+                        <span className="text-sm font-black uppercase">Blokas {u}</span>
+                        <span className="text-[10px] text-slate-400 font-bold">{printer.mimakiNozzleFiles?.[u]?.timestamp || 'Nėra'}</span>
+                      </div>
+                      {printer.mimakiNozzleFiles?.[u] ? (
+                        <img src={printer.mimakiNozzleFiles[u].url} className="w-full h-auto" />
+                      ) : (
+                        <div className="p-10 text-center text-slate-300 font-bold uppercase text-xs">Nuotraukos nėra</div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -112,7 +116,7 @@ export const ViewSummary: React.FC<ViewSummaryProps> = ({ printer, onBack }) => 
             <div>
               <p className="text-sm text-slate-500 uppercase font-bold mb-4">Atlikti veiksmai:</p>
               <div className="grid grid-cols-1 gap-2">
-                {INITIAL_VIT_CHECKLIST.map(item => (
+                {checklistItems.map(item => (
                   <div key={item} className="flex items-center space-x-3">
                     {printer.vit.checklist[item] ? (
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-emerald-500" viewBox="0 0 20 20" fill="currentColor">

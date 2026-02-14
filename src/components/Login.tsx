@@ -1,52 +1,108 @@
-
-import React, { useState } from 'react';
-import { MOCK_USERS } from '../constants';
-import { User, UserRole } from '../types';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { usePrinters } from '../contexts/DataContext';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card } from './ui/card';
-import { ArrowRight, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { ArrowRight, ShieldCheck, User as UserIcon, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { User } from '../types';
 
 interface LoginProps {
-  onLogin: (user: User) => void;
   addToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin, addToast }) => {
-  const [name, setName] = useState('');
-  const [role, setRole] = useState<UserRole>(UserRole.OPERATOR);
+const normalizeString = (str: string) => {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\./g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+export const Login: React.FC<LoginProps> = ({ addToast }) => {
+  const { signIn } = useAuth();
+  const { getUsers } = usePrinters();
+  const [nameInput, setNameInput] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [matchedUser, setMatchedUser] = useState<User | null>(null);
 
-    if (!name.trim()) {
-      addToast('Prašome įvesti vardą ir pavardę', 'error');
+  // Load users for lookup
+  useEffect(() => {
+    getUsers()
+      .then(fetchedUsers => {
+        setUsers(fetchedUsers);
+      })
+      .catch(err => console.error("Failed to load users for login", err));
+  }, [getUsers]);
+
+  // Handle name input changes
+  useEffect(() => {
+    const normalizedInput = nameInput.trim().toLowerCase();
+    if (!normalizedInput) {
+      setMatchedUser(null);
+      setShowPassword(false);
       return;
     }
 
-    // Case-insensitive match against mock users
-    const user = MOCK_USERS.find(u => u.name.toLowerCase() === name.trim().toLowerCase());
+    // Check for match using normalized strings
+    const searchNormalized = normalizeString(nameInput);
+    const user = users.find(u => normalizeString(u.name) === searchNormalized);
 
     if (user) {
-      if (user.role !== role) {
-        addToast(`Vartotojas rastas, bet rolė neatitinka. Bandykite kaip ${user.role}.`, 'info');
-        return;
+      setMatchedUser(user);
+      if (user.role === 'Admin') {
+        setShowPassword(true);
+      } else {
+        setShowPassword(false);
       }
-      addToast(`Sveiki, ${user.name}!`, 'success');
-      onLogin(user);
     } else {
-      // For demo purposes, allow login with any name if not found in MOCK_USERS,
-      // creating a temporary user session
-      const newUser: User = {
-        id: Date.now().toString(),
-        name: name,
-        role: role,
-        preferences: {}
-      };
-      addToast(`Sveiki, ${newUser.name}! (Demo)`, 'success');
-      onLogin(newUser);
+      setMatchedUser(null);
+      setShowPassword(false);
+    }
+  }, [nameInput, users]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!matchedUser) {
+      addToast('Vartotojas nerastas. Patikrinkite vardą.', 'error');
+      return;
+    }
+
+    if (matchedUser.role === 'Admin' && !password.trim()) {
+      addToast('Administratoriui būtinas slaptažodis', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const email = matchedUser.email || `${normalizeString(matchedUser.name).replace(/\s+/g, '.')}@vit.uniprintpro.com`; // Fallback if no email
+      const loginPassword = matchedUser.role === 'Admin' ? password : 'uniprint'; // Default password for workers
+
+      await signIn(email, loginPassword);
+      addToast(`Sveiki, ${matchedUser.name}!`, 'success');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      let msg = error.message;
+      if (msg.includes('Invalid login credentials')) {
+        if (matchedUser.role === 'Worker') {
+          msg = 'Nepavyko prisijungti automatiškai. Kreipkitės į administratorių (slaptažodis turi būti "uniprint")';
+        } else {
+          msg = 'Neteisingas slaptažodis';
+        }
+      } else if (msg.includes('Email not confirmed')) {
+        msg = 'Vartotojas nepatvirtintas';
+      }
+      addToast(`Klaida: ${msg}`, 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -70,33 +126,55 @@ export const Login: React.FC<LoginProps> = ({ onLogin, addToast }) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label className="uppercase text-[10px] tracking-widest text-mimaki-blue font-black pl-4 mb-2 block">Identifikacija</Label>
+            <Label className="uppercase text-[10px] tracking-widest text-mimaki-blue font-black pl-4 mb-2 block">Vardas Pavardė</Label>
             <div className="relative group">
-              <UserIcon className="absolute left-6 top-1/2 transform -translate-y-1/2 text-white/40 w-5 h-5 group-focus-within:text-mimaki-blue transition-colors" />
+              <UserIcon className={`absolute left-6 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors ${matchedUser ? 'text-emerald-500' : 'text-white/40 group-focus-within:text-mimaki-blue'}`} />
               <Input
                 type="text"
                 placeholder="Vardas Pavardė"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="pl-14 pr-6 h-16 w-full bg-black/40 border-white/5 text-white placeholder:text-white/20 focus:ring-mimaki-blue/50 focus:border-mimaki-blue/50 rounded-[2rem] text-lg font-bold backdrop-blur-sm transition-all shadow-inner"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                className={cn(
+                  "pl-14 pr-6 h-16 w-full bg-black/40 border-white/5 text-white placeholder:text-white/20 focus:ring-mimaki-blue/50 focus:border-mimaki-blue/50 rounded-[2rem] text-lg font-bold backdrop-blur-sm transition-all shadow-inner",
+                  matchedUser && "border-emerald-500/50 ring-emerald-500/20"
+                )}
                 autoFocus
                 required
+
+              />
+
+              {matchedUser && (
+                <div className="absolute right-6 top-1/2 transform -translate-y-1/2">
+                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${matchedUser.role === 'Admin' ? 'bg-purple-500/20 text-purple-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                    {matchedUser.role}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={cn("space-y-2 transition-all duration-300 overflow-hidden", showPassword ? "max-h-32 opacity-100" : "max-h-0 opacity-0")}>
+            <Label className="uppercase text-[10px] tracking-widest text-mimaki-blue font-black pl-4 mb-2 block">Slaptažodis (Admin)</Label>
+            <div className="relative group">
+              <Lock className="absolute left-6 top-1/2 transform -translate-y-1/2 text-white/40 w-5 h-5 group-focus-within:text-mimaki-blue transition-colors" />
+              <Input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-14 pr-6 h-16 w-full bg-black/40 border-white/5 text-white placeholder:text-white/20 focus:ring-mimaki-blue/50 focus:border-mimaki-blue/50 rounded-[2rem] text-lg font-bold backdrop-blur-sm transition-all shadow-inner"
+                required={showPassword}
               />
             </div>
           </div>
 
           <Button
             type="submit"
-            className="w-full h-16 bg-mimaki-blue hover:bg-blue-600 text-white text-lg font-black uppercase tracking-widest shadow-[0_0_40px_-10px_rgba(0,91,172,0.5)] hover:shadow-[0_0_60px_-15px_rgba(0,91,172,0.6)] transition-all rounded-[2rem] border border-white/10"
+            disabled={isLoading || !matchedUser}
+            className="w-full h-16 bg-mimaki-blue hover:bg-blue-600 text-white text-lg font-black uppercase tracking-widest shadow-[0_0_40px_-10px_rgba(0,91,172,0.5)] hover:shadow-[0_0_60px_-15px_rgba(0,91,172,0.6)] transition-all rounded-[2rem] border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Prisijungti <ArrowRight className="ml-2 w-5 h-5" />
+            {isLoading ? 'Jungiama...' : (matchedUser?.role === 'Admin' ? 'Prisijungti' : 'Pradėti Darbą')} <ArrowRight className="ml-2 w-5 h-5" />
           </Button>
-
-          {/* Role selector for demo purposes */}
-          <div className="flex justify-center gap-4 mt-8 pt-6 border-t border-white/5">
-            <button type="button" onClick={() => setRole(UserRole.OPERATOR)} className={cn("text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-full transition-all", role === UserRole.OPERATOR ? "bg-white text-mimaki-dark" : "text-white/30 hover:text-white hover:bg-white/5")}>Operatorius</button>
-            <button type="button" onClick={() => setRole(UserRole.ADMIN)} className={cn("text-[10px] font-bold uppercase tracking-widest px-4 py-2 rounded-full transition-all", role === UserRole.ADMIN ? "bg-white text-mimaki-dark" : "text-white/30 hover:text-white hover:bg-white/5")}>Admin</button>
-          </div>
         </form>
       </Card>
 

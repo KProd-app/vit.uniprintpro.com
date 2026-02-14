@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { PrinterData, PrinterStatus, VITData, User, NozzleFile } from '../types';
+import { PrinterData, PrinterStatus, VITData, User, NozzleFile, ChecklistTemplate } from '../types';
 import { INITIAL_VIT_CHECKLIST } from '../constants';
 import { CameraCapture } from './CameraCapture';
 import { Button } from './ui/button';
@@ -9,29 +8,47 @@ import { Stepper } from './ui/stepper';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { ArrowLeft, ArrowRight, Camera, Check, AlertTriangle, Printer, Info, CheckCircle2, ChevronRight, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, base64ToBlob } from '@/lib/utils';
+import { canStartWork } from '@/lib/validation';
 
 interface SetupProcessProps {
   printer: PrinterData;
   currentUser: User;
+  checklistTemplates: ChecklistTemplate[];
   onSave: (data: Partial<PrinterData>) => void;
   onFinish: () => void;
   onCancel: () => void;
   addToast: (msg: string, type: 'success' | 'error' | 'info') => void;
+  uploadFile: (file: Blob, path: string) => Promise<string>;
 }
 
-export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser, onSave, onFinish, onCancel, addToast }) => {
+export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser, checklistTemplates, onSave, onFinish, onCancel, addToast, uploadFile }) => {
   const [step, setStep] = useState(-1);
   const [localPrinter, setLocalPrinter] = useState<PrinterData>(printer);
   const [showCamera, setShowCamera] = useState<number | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
+    // 1. Set Auto Signature
     if (!localPrinter.vit.signature) {
       const newVit = { ...localPrinter.vit, signature: currentUser.name };
       setLocalPrinter(prev => ({ ...prev, vit: newVit }));
     }
-  }, [currentUser, localPrinter.vit.signature]);
+
+    // 2. Auto-detect Shift (06:00 - 18:00 = Ryto, else Vakaro)
+    if (!localPrinter.vit.shift) {
+      const currentHour = new Date().getHours();
+      const detectedShift = (currentHour >= 6 && currentHour < 18) ? 'Ryto' : 'Vakaro';
+
+      const newVit = { ...localPrinter.vit, shift: detectedShift };
+      setLocalPrinter(prev => ({ ...prev, vit: newVit }));
+      // We don't save immediately to avoid writing to DB before user starts interacting, 
+      // but for state consistency it's fine.
+
+      // Actually, let's just set it in local state.
+    }
+  }, [currentUser, localPrinter.vit.signature, localPrinter.vit.shift]);
 
   const getStepsList = () => {
     const baseSteps = [
@@ -56,23 +73,37 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
     }
   };
 
-  const handleCapture = (imageData: string) => {
-    const timestamp = new Date().toLocaleString('lt-LT');
-    const newFile: NozzleFile = { url: imageData, timestamp };
+  const handleCapture = async (imageData: string) => {
+    setIsUploading(true);
+    try {
+      const timestamp = new Date().toLocaleString('lt-LT');
+      const blob = base64ToBlob(imageData);
+      const fileName = `${localPrinter.id}_${Date.now()}.jpg`;
+      const path = `${localPrinter.id}/${fileName}`;
 
-    if (localPrinter.isMimaki && showCamera !== null) {
-      const newMimakiFiles = { ...(localPrinter.mimakiNozzleFiles || {}), [showCamera]: newFile };
-      const newData = { mimakiNozzleFiles: newMimakiFiles, status: PrinterStatus.IN_PROGRESS };
-      setLocalPrinter(prev => ({ ...prev, ...newData }));
-      onSave(newData);
-    } else {
-      const newData = { nozzleFile: newFile, status: PrinterStatus.IN_PROGRESS };
-      setLocalPrinter(prev => ({ ...prev, ...newData }));
-      onSave(newData);
+      const publicUrl = await uploadFile(blob, path);
+
+      const newFile: NozzleFile = { url: publicUrl, timestamp };
+
+      if (localPrinter.isMimaki && showCamera !== null) {
+        const newMimakiFiles = { ...(localPrinter.mimakiNozzleFiles || {}), [showCamera]: newFile };
+        const newData = { mimakiNozzleFiles: newMimakiFiles, status: PrinterStatus.IN_PROGRESS };
+        setLocalPrinter(prev => ({ ...prev, ...newData }));
+        onSave(newData);
+      } else {
+        const newData = { nozzleFile: newFile, status: PrinterStatus.IN_PROGRESS };
+        setLocalPrinter(prev => ({ ...prev, ...newData }));
+        onSave(newData);
+      }
+
+      setShowCamera(null);
+      addToast("Nuotrauka sėkmingai įkelta", "success");
+    } catch (error) {
+      console.error(error);
+      addToast("Nepavyko įkelti nuotraukos", "error");
+    } finally {
+      setIsUploading(false);
     }
-
-    setShowCamera(null);
-    addToast("Nuotrauka užfiksuota su laiko žyma", "success");
   };
 
   const updateVIT = (updates: Partial<VITData>) => {
@@ -104,7 +135,7 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
     return localPrinter.nozzleFile !== null;
   };
 
-  const canFinish = areNozzlesReady() && localPrinter.vit.shift !== '' && localPrinter.vit.confirmed && localPrinter.maintenanceDone;
+  const canFinish = canStartWork(localPrinter, checklistTemplates);
 
   const nextStep = () => {
     if (step === -1) {
@@ -288,23 +319,20 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
               <CardContent className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-8">
-                    <Label className="uppercase tracking-widest text-[10px] font-black text-slate-400 pl-2">Pamaina</Label>
-                    <div className="flex space-x-4">
-                      {['Ryto', 'Vakaro'].map(s => (
-                        <button
-                          key={s}
-                          onClick={() => updateVIT({ shift: s as any })}
-                          className={cn(
-                            "flex-1 py-5 rounded-[2rem] font-black transition-all border-2 text-sm uppercase tracking-widest",
-                            localPrinter.vit.shift === s ? "bg-mimaki-dark border-mimaki-dark text-white shadow-lg" : "bg-white border-slate-100 text-slate-400 hover:border-slate-200"
-                          )}
-                        >
-                          {s}
-                        </button>
-                      ))}
+                    <Label className="uppercase tracking-widest text-[10px] font-black text-slate-400 pl-2">Pamaina (Automatiškai parinkta)</Label>
+                    <div className="p-5 bg-slate-100 rounded-[2rem] border border-slate-200">
+                      <p className="text-xl font-black text-slate-800 uppercase tracking-widest text-center">
+                        {localPrinter.vit.shift || 'Nustatoma...'}
+                      </p>
                     </div>
-                    <div className="space-y-3">
-                      {INITIAL_VIT_CHECKLIST.map(item => (
+                  </div>
+                  <div className="space-y-3">
+                    {(() => {
+                      // Determine which items to show
+                      const assignedTemplate = checklistTemplates.find(t => t.id === localPrinter.checklistTemplateId);
+                      const itemsToShow = assignedTemplate ? assignedTemplate.items : INITIAL_VIT_CHECKLIST;
+
+                      return itemsToShow.map(item => (
                         <label key={item} className={cn(
                           "flex items-center p-5 rounded-3xl border transition-all cursor-pointer",
                           localPrinter.vit.checklist[item] ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50/50 border-transparent hover:border-slate-200"
@@ -317,38 +345,38 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                           />
                           <span className={cn("ml-4 font-bold text-sm", localPrinter.vit.checklist[item] ? "text-emerald-900" : "text-slate-600")}>{item}</span>
                         </label>
-                      ))}
-                    </div>
+                      ));
+                    })()}
                   </div>
-                  <div className="space-y-8">
-                    <Label className="uppercase tracking-widest text-[10px] font-black text-slate-400 pl-2">Patvirtinimas</Label>
-                    <div className="p-8 bg-slate-50/50 rounded-[3rem] border border-slate-100 h-full flex flex-col justify-center shadow-inner">
-                      <Input
-                        type="text"
-                        value={localPrinter.vit.signature}
-                        onChange={(e) => updateVIT({ signature: e.target.value, confirmed: false })}
-                        className="h-16 text-xl font-black border-slate-200 mb-6 text-center bg-white"
-                        placeholder="Vardas Pavardė"
-                      />
-                      <Button
-                        size="lg"
-                        onClick={() => {
-                          if (localPrinter.vit.signature.length < 3) return addToast("Įrašykite pilną vardą", "error");
-                          updateVIT({ confirmed: true });
-                          addToast("Patvirtinta", "success");
-                        }}
-                        className={cn(
-                          "w-full py-8 text-xl font-black uppercase tracking-widest transition-all shadow-xl rounded-[2rem]",
-                          localPrinter.vit.confirmed ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20" : "bg-mimaki-dark text-white hover:bg-black shadow-mimaki-dark/20"
-                        )}
-                      >
-                        {localPrinter.vit.confirmed ? (
-                          <>
-                            <Check className="w-6 h-6 mr-2" /> PATVIRTINTA
-                          </>
-                        ) : 'PATVIRTINTI'}
-                      </Button>
-                    </div>
+                </div>
+                <div className="space-y-8">
+                  <Label className="uppercase tracking-widest text-[10px] font-black text-slate-400 pl-2">Patvirtinimas</Label>
+                  <div className="p-8 bg-slate-50/50 rounded-[3rem] border border-slate-100 h-full flex flex-col justify-center shadow-inner">
+                    <Input
+                      type="text"
+                      value={localPrinter.vit.signature}
+                      onChange={(e) => updateVIT({ signature: e.target.value, confirmed: false })}
+                      className="h-16 text-xl font-black border-slate-200 mb-6 text-center bg-white"
+                      placeholder="Vardas Pavardė"
+                    />
+                    <Button
+                      size="lg"
+                      onClick={() => {
+                        if (localPrinter.vit.signature.length < 3) return addToast("Įrašykite pilną vardą", "error");
+                        updateVIT({ confirmed: true });
+                        addToast("Patvirtinta", "success");
+                      }}
+                      className={cn(
+                        "w-full py-8 text-xl font-black uppercase tracking-widest transition-all shadow-xl rounded-[2rem]",
+                        localPrinter.vit.confirmed ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20" : "bg-mimaki-dark text-white hover:bg-black shadow-mimaki-dark/20"
+                      )}
+                    >
+                      {localPrinter.vit.confirmed ? (
+                        <>
+                          <Check className="w-6 h-6 mr-2" /> PATVIRTINTA
+                        </>
+                      ) : 'PATVIRTINTI'}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -446,7 +474,13 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                     )}
                   </div>
                 ) : (
-                  <div className="border border-slate-200 rounded-[3rem] overflow-hidden bg-black shadow-2xl">
+                  <div className="border border-slate-200 rounded-[3rem] overflow-hidden bg-black shadow-2xl relative">
+                    {isUploading && (
+                      <div className="absolute inset-0 z-50 bg-black/80 flex flex-col items-center justify-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mb-4"></div>
+                        <p className="text-white font-bold uppercase tracking-widest">Keliama nuotrauka...</p>
+                      </div>
+                    )}
                     <CameraCapture
                       userName={`${currentUser.name}${showCamera > 0 ? ` (B${showCamera})` : ''}`}
                       onCapture={handleCapture}
@@ -491,6 +525,7 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                   else {
                     if (!localPrinter.maintenanceDone) addToast("Patvirtinkite priežiūrą!", "error");
                     else if (!localPrinter.vit.confirmed) addToast("Patvirtinkite VIT formą!", "error");
+                    else if (!localPrinter.nozzlePrintDone) addToast("Patvirtinkite purkštukų spausdinimą!", "error");
                     else if (!areNozzlesReady()) addToast("Trūksta purkštukų nuotraukų!", "error");
                   }
                 }}
