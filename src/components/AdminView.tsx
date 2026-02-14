@@ -262,8 +262,17 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                         size="icon"
                         onClick={async () => {
                           if (confirm(`Ar tikrai norite ištrinti vartotoją ${user.name}? Tai panaikins jo prieigą.`)) {
-                            await deleteUser(user.id);
-                            getUsers().then(setUsers);
+                            try {
+                              await deleteUser(user.id);
+                              // await getUsers().then(setUsers); // No need to await promise, just update state
+                              const updatedUsers = await getUsers();
+                              setUsers(updatedUsers);
+                              if (addToast) addToast('Vartotojas ištrintas', 'success');
+                            } catch (e: any) {
+                              console.error(e);
+                              if (addToast) addToast(`Nepavyko ištrinti: ${e.message}`, 'error');
+                              else alert(`Nepavyko ištrinti: ${e.message}`);
+                            }
                           }
                         }}
                         className="text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl"
