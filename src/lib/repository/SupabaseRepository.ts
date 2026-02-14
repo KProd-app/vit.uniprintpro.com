@@ -249,7 +249,7 @@ export class SupabaseRepository implements StorageRepository {
         }
     }
 
-    async getShiftLogs(filters?: { printerId?: string, date?: string }): Promise<PrinterLog[]> {
+    async getShiftLogs(filters?: { printerId?: string, date?: string, shift?: string }): Promise<PrinterLog[]> {
         let query = supabase
             .from('printer_logs')
             .select('*')
@@ -260,6 +260,9 @@ export class SupabaseRepository implements StorageRepository {
         }
         if (filters?.date) {
             query = query.eq('date', filters.date);
+        }
+        if (filters?.shift) {
+            query = query.eq('shift', filters.shift);
         }
 
         const { data, error } = await query;
@@ -384,5 +387,34 @@ export class SupabaseRepository implements StorageRepository {
         }
 
         console.log('User created successfully:', authData.user?.id);
+    }
+    async createPrinter(name: string): Promise<void> {
+        const { error } = await supabase
+            .from('printers')
+            .insert({
+                name,
+                status: PrinterStatus.NOT_STARTED,
+                config: {},
+                state: {},
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            });
+
+        if (error) {
+            console.error('Error creating printer:', error);
+            throw error;
+        }
+    }
+
+    async deletePrinter(id: string): Promise<void> {
+        const { error } = await supabase
+            .from('printers')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting printer:', error);
+            throw error;
+        }
     }
 }

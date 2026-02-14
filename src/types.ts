@@ -39,7 +39,8 @@ export interface PrinterConfig {
   isMimaki?: boolean;
   hasWhiteInk?: boolean; // Future proofing
   hasVarnish?: boolean; // Future proofing
-  checklistTemplateId?: string; // Link to specific checklist
+  checklistTemplateId?: string; // Link to specific START shift checklist
+  endShiftChecklistId?: string; // Link to specific END shift checklist
 }
 
 // Dynamic state that changes during the shift
@@ -83,6 +84,7 @@ export type PrinterData = PrinterConfig & PrinterState;
 export interface ChecklistTemplate {
   id: string;
   name: string;
+  type: 'START' | 'END'; // Distinguish between start/end shift checklists
   items: string[];
 }
 

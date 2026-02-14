@@ -11,6 +11,8 @@ interface DataContextType {
     refreshPrinters: () => Promise<void>;
     updatePrinter: (id: string, data: Partial<PrinterData>) => Promise<void>;
     resetPrinter: (id: string) => Promise<void>;
+    createPrinter: (name: string) => Promise<void>;
+    deletePrinter: (id: string) => Promise<void>;
 
     // Checklists
     checklistTemplates: ChecklistTemplate[];
@@ -22,7 +24,7 @@ interface DataContextType {
 
     // Logs
     saveShiftLog: (log: Omit<PrinterLog, 'id'>) => Promise<void>;
-    getShiftLogs: (filters?: { printerId?: string, date?: string }) => Promise<PrinterLog[]>;
+    getShiftLogs: (filters?: { printerId?: string, date?: string, shift?: string }) => Promise<PrinterLog[]>;
     getUsers: () => Promise<User[]>;
     updateUser: (id: string, data: Partial<User>) => Promise<void>;
     deleteUser: (id: string) => Promise<void>;
@@ -145,6 +147,22 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setIsSyncing(false);
     };
 
+    const createPrinter = async (name: string) => {
+        setIsSyncing(true);
+        await repository.createPrinter(name);
+        const data = await repository.getPrinters();
+        setPrinters(data);
+        setIsSyncing(false);
+    };
+
+    const deletePrinter = async (id: string) => {
+        setIsSyncing(true);
+        await repository.deletePrinter(id);
+        const data = await repository.getPrinters();
+        setPrinters(data);
+        setIsSyncing(false);
+    };
+
     const saveShiftLog = async (log: Omit<PrinterLog, 'id'>) => {
         await repository.saveShiftLog(log);
     };
@@ -177,6 +195,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             refreshPrinters,
             updatePrinter,
             resetPrinter,
+            createPrinter,
+            deletePrinter,
             checklistTemplates,
             saveChecklistTemplate,
             deleteChecklistTemplate,

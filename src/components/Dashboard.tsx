@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card'
 import { Button } from './ui/button';
 import { StatusBadge } from './ui/badge';
 import { LogOut, Settings, RotateCcw, FileText, Play, CheckCircle, Square } from 'lucide-react';
+import { Timer } from './Timer';
 
 interface DashboardProps {
   printers: PrinterData[];
@@ -70,10 +71,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8 pb-20">
           {printers.map((printer) => (
-            <Card key={printer.id} className="overflow-hidden hover:shadow-[0_20px_40px_rgba(0,91,172,0.15)] transition-all duration-300 group border-white hover:border-mimaki-blue/20 bg-white/80 backdrop-blur-sm">
-              <CardHeader className="p-8 pb-4">
+            <Card key={printer.id} className="overflow-hidden hover:shadow-[0_20px_40px_rgba(0,91,172,0.15)] transition-all duration-300 group border-white hover:border-mimaki-blue/20 bg-white/80 backdrop-blur-sm flex flex-col h-full">
+              <CardHeader className="p-6 md:p-8 pb-4 flex-shrink-0">
                 <div className="flex justify-between items-start mb-6">
                   <div className="p-4 bg-mimaki-gray group-hover:bg-mimaki-blue transition-colors duration-300 rounded-2xl group-hover:text-white text-slate-400">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -82,26 +83,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                   <StatusBadge status={printer.status} className="px-3 py-1 text-[10px] uppercase tracking-wider" />
                 </div>
-                <CardTitle className="text-2xl font-black text-mimaki-dark uppercase tracking-tighter">{printer.name}</CardTitle>
+                <CardTitle className="text-2xl font-black text-mimaki-dark uppercase tracking-tighter truncate" title={printer.name}>{printer.name}</CardTitle>
               </CardHeader>
 
-              <CardContent className="p-8 pt-2">
+              <CardContent className="p-6 md:p-8 pt-2 flex-grow flex flex-col">
                 {/* Message from previous operator */}
                 {printer.nextOperatorMessage ? (
-                  <div className="mb-6 p-5 bg-amber-50 rounded-3xl border border-amber-100 text-sm text-amber-900 italic relative">
+                  <div className="mb-6 p-5 bg-amber-50 rounded-3xl border border-amber-100 text-sm text-amber-900 italic relative flex-shrink-0">
                     <span className="absolute -top-3 left-4 bg-amber-100 text-amber-800 text-[9px] font-black uppercase px-2 py-1 rounded-full tracking-widest">Perdavimas</span>
                     "{printer.nextOperatorMessage}"
                   </div>
                 ) : (
-                  <div className="h-4 mb-6"></div> // Spacer
+                  <div className="h-4 mb-6 flex-shrink-0"></div> // Spacer
                 )}
 
-                <div className="space-y-4 mt-2">
+                <div className="space-y-4 mt-auto">
+                  {/* Timer for Working Status */}
+                  {printer.status === PrinterStatus.WORKING && printer.workStartedAt && (
+                    <div className="mb-4 bg-slate-900 text-white rounded-2xl py-4 px-6 shadow-lg shadow-slate-900/20 text-center">
+                      <div className="text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-widest">Gamybos Laikas</div>
+                      <Timer startTime={printer.workStartedAt} className="text-3xl justify-center text-emerald-400" />
+                    </div>
+                  )}
+
                   {/* Phase-based actions */}
                   {printer.status === PrinterStatus.NOT_STARTED || printer.status === PrinterStatus.IN_PROGRESS ? (
                     <Button
                       onClick={() => onStart(printer.id)}
-                      className="w-full h-16 text-lg font-black shadow-lg shadow-mimaki-blue/20 bg-mimaki-dark hover:bg-black"
+                      className="w-full h-16 text-lg font-black shadow-lg shadow-mimaki-blue/20 bg-mimaki-dark hover:bg-black active:scale-95 transition-transform"
                     >
                       <Play className="w-5 h-5 mr-3 text-mimaki-blue" fill="currentColor" />
                       {printer.status === PrinterStatus.IN_PROGRESS ? 'Tęsti Paruošimą' : 'Pradėti Darbą'}
@@ -111,7 +120,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   {printer.status === PrinterStatus.READY_TO_WORK ? (
                     <Button
                       onClick={() => onStart(printer.id)}
-                      className="w-full h-16 text-lg bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 border-transparent"
+                      className="w-full h-16 text-lg bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 border-transparent active:scale-95 transition-transform"
                     >
                       <CheckCircle className="w-5 h-5 mr-3" />
                       Vykdyti Gamybą
@@ -121,7 +130,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   {printer.status === PrinterStatus.WORKING ? (
                     <Button
                       onClick={() => onFinishWork(printer.id)}
-                      className="w-full h-16 text-lg bg-mimaki-blue hover:bg-blue-600 shadow-lg shadow-mimaki-blue/30 border-transparent"
+                      className="w-full h-16 text-lg bg-mimaki-blue hover:bg-blue-600 shadow-lg shadow-mimaki-blue/30 border-transparent active:scale-95 transition-transform"
                     >
                       <Square className="w-5 h-5 mr-3 fill-current" />
                       Baigti Darbą
@@ -130,7 +139,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               </CardContent>
 
-              <CardFooter className="p-8 pt-0 flex gap-3">
+              <CardFooter className="p-6 md:p-8 pt-0 flex gap-3 flex-shrink-0">
                 <Button
                   variant="outline"
                   onClick={() => onView(printer.id)}

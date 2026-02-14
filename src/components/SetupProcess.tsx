@@ -76,7 +76,7 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
   const handleCapture = async (imageData: string) => {
     setIsUploading(true);
     try {
-      const timestamp = new Date().toLocaleString('lt-LT');
+      const timestamp = new Date().toISOString();
       const blob = base64ToBlob(imageData);
       const fileName = `${localPrinter.id}_${Date.now()}.jpg`;
       const path = `${localPrinter.id}/${fileName}`;

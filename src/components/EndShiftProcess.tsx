@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
-import { PrinterData, PrinterStatus, User } from '../types';
-import { END_SHIFT_CHECKLIST } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { PrinterData, PrinterStatus, User, ChecklistTemplate } from '../types';
+import { END_SHIFT_CHECKLIST as DEFAULT_END_SHIFT_CHECKLIST } from '../constants';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Label } from './ui/label';
@@ -11,12 +11,13 @@ import { cn } from '@/lib/utils';
 interface EndShiftProcessProps {
   printer: PrinterData;
   currentUser: User;
+  checklistTemplates: ChecklistTemplate[];
   onFinish: (message: string, checklist: { [key: string]: boolean }, production: number, defects: number) => void;
   onCancel: () => void;
   addToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
-export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, currentUser, onFinish, onCancel, addToast }) => {
+export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, currentUser, checklistTemplates, onFinish, onCancel, addToast }) => {
   const [step, setStep] = useState(1);
   const [checklist, setChecklist] = useState<{ [key: string]: boolean }>({});
   const [message, setMessage] = useState('');
@@ -24,11 +25,20 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
   const [defectsAmount, setDefectsAmount] = useState<string>('');
   const [confirmed, setConfirmed] = useState(false);
 
+  // Determine which checklist items to use
+  const activeChecklistItems = React.useMemo(() => {
+    if (printer.endShiftChecklistId) {
+      const template = checklistTemplates.find(t => t.id === printer.endShiftChecklistId);
+      if (template) return template.items;
+    }
+    return DEFAULT_END_SHIFT_CHECKLIST;
+  }, [printer.endShiftChecklistId, checklistTemplates]);
+
   const toggleCheck = (item: string) => {
     setChecklist(prev => ({ ...prev, [item]: !prev[item] }));
   };
 
-  const allChecked = END_SHIFT_CHECKLIST.every(item => checklist[item]);
+  const allChecked = activeChecklistItems.every(item => checklist[item]);
 
   const handleNext = () => {
     if (!allChecked) {
@@ -83,7 +93,7 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
               <div>
                 <Label className="uppercase tracking-widest mb-6 block text-[10px] font-black text-slate-400 pl-2">Sutvarkymo punktų žymėjimas</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {END_SHIFT_CHECKLIST.map(item => (
+                  {activeChecklistItems.map(item => (
                     <div
                       key={item}
                       onClick={() => toggleCheck(item)}
@@ -107,7 +117,7 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  className="w-full p-6 bg-slate-50 border-0 rounded-[2rem] font-bold focus:ring-2 focus:ring-mimaki-blue/20 outline-none h-32 resize-none placeholder:text-slate-300 transition-all"
+                  className="w-full p-6 bg-white border border-slate-200 rounded-[2rem] font-bold text-slate-900 focus:ring-2 focus:ring-mimaki-blue/20 outline-none h-32 resize-none placeholder:text-slate-400 transition-all shadow-inner"
                   placeholder="Pvz.: Viskas veikia puikiai, palikau pilnas talpas!"
                 />
               </div>

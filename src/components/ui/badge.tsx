@@ -7,6 +7,8 @@ type StatusVariant = "default" | "success" | "warning" | "destructive" | "outlin
 interface StatusBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
     status?: PrinterStatus | string;
     variant?: StatusVariant;
+    className?: string;
+    children?: React.ReactNode;
 }
 
 function getVariantFromStatus(status: PrinterStatus | string): StatusVariant {

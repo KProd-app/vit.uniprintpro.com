@@ -48,7 +48,7 @@ const AppContent: React.FC = () => {
       // Direct start work logic
       await contextUpdatePrinter(id, {
         status: PrinterStatus.WORKING,
-        workStartedAt: new Date().toLocaleString('lt-LT'),
+        workStartedAt: new Date().toISOString(),
       });
       addToast("Darbas pradėtas!", "success");
       return;
@@ -75,7 +75,7 @@ const AppContent: React.FC = () => {
             operatorName: printer.operatorName || user.name,
             date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
             startedAt: printer.workStartedAt || new Date().toISOString(),
-            finishedAt: new Date().toLocaleString('lt-LT'),
+            finishedAt: new Date().toISOString(),
             productionAmount: production,
             defectsAmount: defects,
             vitData: printer.vit,
@@ -95,7 +95,7 @@ const AppContent: React.FC = () => {
 
       await contextUpdatePrinter(activePrinterId, {
         status: PrinterStatus.NOT_STARTED,
-        workFinishedAt: new Date().toLocaleString('lt-LT'),
+        workFinishedAt: new Date().toISOString(),
         nextOperatorMessage: message,
         endShiftChecklist: endChecklist,
         productionAmount: production,
@@ -187,8 +187,9 @@ const AppContent: React.FC = () => {
         <EndShiftProcess
           printer={activePrinter}
           currentUser={user}
+          checklistTemplates={checklistTemplates}
           onFinish={handleCompleteEndShift}
-          onCancel={() => { setView('DASHBOARD'); setActivePrinterId(null); }}
+          onCancel={() => setView('DASHBOARD')}
           addToast={addToast}
         />
       )}

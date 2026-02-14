@@ -13,6 +13,7 @@ interface ChecklistEditorProps {
 
 export const ChecklistEditor: React.FC<ChecklistEditorProps> = ({ template, onSave, onCancel, onDelete }) => {
     const [name, setName] = useState(template?.name || '');
+    const [type, setType] = useState<'START' | 'END'>(template?.type || 'START');
     const [items, setItems] = useState<string[]>(template?.items || ['']);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -40,6 +41,7 @@ export const ChecklistEditor: React.FC<ChecklistEditorProps> = ({ template, onSa
             const data = {
                 ...(template?.id ? { id: template.id } : {}),
                 name,
+                type,
                 items: cleanItems
             };
 
@@ -54,7 +56,7 @@ export const ChecklistEditor: React.FC<ChecklistEditorProps> = ({ template, onSa
     };
 
     return (
-        <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 max-w-2xl w-full mx-auto">
+        <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100 max-w-2xl w-full mx-auto max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-black uppercase text-slate-800">
                     {template ? 'Redaguoti šabloną' : 'Naujas šablonas'}
@@ -80,6 +82,26 @@ export const ChecklistEditor: React.FC<ChecklistEditorProps> = ({ template, onSa
                         placeholder="Pvz: Ryto patikra"
                         className="text-lg font-bold bg-slate-50 border-slate-200 text-slate-900 dark:bg-slate-50 dark:text-slate-900 dark:border-slate-200"
                     />
+                </div>
+
+                <div>
+                    <label className="block text-xs font-black uppercase text-slate-400 mb-2">Tipas</label>
+                    <div className="flex bg-slate-100 p-1 rounded-xl">
+                        <button
+                            type="button"
+                            onClick={() => setType('START')}
+                            className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold uppercase transition-all ${type === 'START' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Pradžios (Start)
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setType('END')}
+                            className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold uppercase transition-all ${type === 'END' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            Pabaigos (End)
+                        </button>
+                    </div>
                 </div>
 
                 <div>

@@ -1,5 +1,5 @@
 import { PrinterData, PrinterStatus, ChecklistTemplate, User } from '../types';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePrinters } from '../contexts/DataContext'; // Import context hooks to get checklists
 import { ChecklistEditor } from './ChecklistEditor';
 import { Button } from './ui/button';
@@ -20,28 +20,32 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
     getShiftLogs,
     getUsers,
     deleteUser,
-    createUser
+    createUser,
+    createPrinter
   } = usePrinters();
   const [selectedImg, setSelectedImg] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS'>('PRINTERS');
-  const [editingTemplate, setEditingTemplate] = useState<ChecklistTemplate | undefined | 'NEW' | 'NEW_USER'>(undefined);
+  const [editingTemplate, setEditingTemplate] = useState<ChecklistTemplate | undefined | 'NEW' | 'NEW_USER' | 'NEW_STATION'>(undefined);
   const [logs, setLogs] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [newUserRole, setNewUserRole] = useState<'Admin' | 'Worker'>('Worker'); // Track role for conditional UI
+  const [shiftFilter, setShiftFilter] = useState<string>('All');
 
   // Load data based on view mode
   useEffect(() => {
     if (viewMode === 'JOURNAL') {
       setLoadingLogs(true);
-      getShiftLogs().then(data => {
+      getShiftLogs({
+        shift: shiftFilter === 'All' ? undefined : shiftFilter
+      }).then(data => {
         setLogs(data);
         setLoadingLogs(false);
       });
     } else if (viewMode === 'USERS') {
       getUsers().then(setUsers);
     }
-  }, [viewMode, getShiftLogs, getUsers]);
+  }, [viewMode, shiftFilter, getShiftLogs, getUsers]);
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto">
@@ -84,7 +88,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
               onClick={() => setViewMode('PRINTERS')}
               className={`px-6 py-3 rounded-xl font-bold uppercase text-sm flex items-center gap-2 transition-all ${viewMode === 'PRINTERS' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
             >
-              <Printer className="w-4 h-4" /> Įrenginiai
+              <Printer className="w-4 h-4" /> Stationai
             </button>
             <button
               onClick={() => setViewMode('CHECKLISTS')}
@@ -153,6 +157,21 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
         </div>
       ) : viewMode === 'JOURNAL' ? (
         <div className="bg-white rounded-[40px] shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <h3 className="text-xl font-black text-slate-800 uppercase">Gamybos Žurnalas</h3>
+            <div className="flex items-center gap-4">
+              <span className="text-xs font-bold uppercase text-slate-400">Pamaina:</span>
+              <select
+                value={shiftFilter}
+                onChange={(e) => setShiftFilter(e.target.value)}
+                className="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-mimaki-blue focus:border-mimaki-blue block p-2.5 font-bold outline-none transition-all hover:border-slate-300"
+              >
+                <option value="All">Visos</option>
+                <option value="Ryto">Ryto (06:00-18:00)</option>
+                <option value="Vakaro">Vakaro (18:00-06:00)</option>
+              </select>
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-slate-50 border-b border-slate-100">
@@ -275,122 +294,144 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-10">
-          {printers.map((printer) => (
-            <div key={printer.id} className="bg-white rounded-[40px] shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row">
-              <div className="flex-1 p-10 border-r border-slate-100">
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">{printer.name}</h3>
-                  <span className={`px-4 py-2 rounded-xl text-xs font-black border uppercase ${printer.status === PrinterStatus.WORKING ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-400'
-                    }`}>
-                    {printer.status}
-                  </span>
+        <div className="space-y-10">
+          <div className="flex justify-between items-center bg-white p-8 rounded-[40px] shadow-sm border border-slate-200">
+            <h3 className="text-xl font-black text-slate-800 uppercase">Stationų Sąrašas</h3>
+            <Button onClick={() => setEditingTemplate('NEW_STATION')} className="bg-slate-900 text-white rounded-xl h-10 px-4 font-bold uppercase text-xs">
+              <Plus className="w-4 h-4 mr-2" /> Pridėti Stationą
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 gap-10">
+            {printers.map((printer) => (
+              <div key={printer.id} className="bg-white rounded-[40px] shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row">
+                <div className="flex-1 p-10 border-r border-slate-100">
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">{printer.name}</h3>
+                    <span className={`px-4 py-2 rounded-xl text-xs font-black border uppercase ${printer.status === PrinterStatus.WORKING ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                      {printer.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-slate-50 p-4 rounded-2xl">
+                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Operatorius</p>
+                      <p className="font-bold text-slate-800 truncate text-sm">{printer.operatorName || '—'}</p>
+                    </div>
+                    <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                      <p className="text-[10px] font-black text-emerald-500 uppercase mb-1">Pagamino</p>
+                      <p className="font-black text-xl text-emerald-700">{printer.productionAmount ?? '0'}</p>
+                    </div>
+                    <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+                      <p className="text-[10px] font-black text-red-500 uppercase mb-1">Brokas</p>
+                      <p className="font-black text-xl text-red-700">{printer.defectsAmount ?? '0'}</p>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-2xl">
+                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Pamaina</p>
+                      <p className="font-bold text-slate-800 text-sm">{printer.vit.shift || '—'}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase">Pradžios Checklistas</label>
+                      <select
+                        className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-mimaki-blue/50"
+                        value={printer.checklistTemplateId || ''}
+                        onChange={(e) => updatePrinter(printer.id, { checklistTemplateId: e.target.value })}
+                      >
+                        <option value="">-- Nėra --</option>
+                        {checklistTemplates.filter(t => !t.type || t.type === 'START').map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="text-[10px] font-black text-slate-400 uppercase">Pabaigos Checklistas</label>
+                      <select
+                        className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-mimaki-blue/50"
+                        value={printer.endShiftChecklistId || ''}
+                        onChange={(e) => updatePrinter(printer.id, { endShiftChecklistId: e.target.value })}
+                      >
+                        <option value="">-- Nėra --</option>
+                        {checklistTemplates.filter(t => t.type === 'END').map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${printer.maintenanceDone ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
+                      <span className="font-bold text-slate-600 text-sm">Priežiūra atlikta</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${printer.vit.confirmed ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
+                      <span className="font-bold text-slate-600 text-sm">VIT Forma patvirtinta</span>
+                    </div>
+                  </div>
+
+                  {printer.nextOperatorMessage && (
+                    <div className="mt-8 p-6 bg-amber-50 rounded-3xl text-amber-800 text-sm italic font-medium border border-amber-100">
+                      <span className="block text-[10px] font-black uppercase mb-1 opacity-50">Žinutė kitai pamainai:</span>
+                      "{printer.nextOperatorMessage}"
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                  <div className="bg-slate-50 p-4 rounded-2xl">
-                    <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Operatorius</p>
-                    <p className="font-bold text-slate-800 truncate text-sm">{printer.operatorName || '—'}</p>
-                  </div>
-                  <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-                    <p className="text-[10px] font-black text-emerald-500 uppercase mb-1">Pagamino</p>
-                    <p className="font-black text-xl text-emerald-700">{printer.productionAmount ?? '0'}</p>
-                  </div>
-                  <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
-                    <p className="text-[10px] font-black text-red-500 uppercase mb-1">Brokas</p>
-                    <p className="font-black text-xl text-red-700">{printer.defectsAmount ?? '0'}</p>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-2xl">
-                    <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Pamaina</p>
-                    <p className="font-bold text-slate-800 text-sm">{printer.vit.shift || '—'}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase">Priskirtas Checklistas</label>
-                    <select
-                      className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-mimaki-blue/50"
-                      value={printer.checklistTemplateId || ''}
-                      onChange={(e) => updatePrinter(printer.id, { checklistTemplateId: e.target.value })}
-                    >
-                      <option value="">-- Nėra --</option>
-                      {checklistTemplates.map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${printer.maintenanceDone ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
-                    <span className="font-bold text-slate-600 text-sm">Priežiūra atlikta</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${printer.vit.confirmed ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
-                    <span className="font-bold text-slate-600 text-sm">VIT Forma patvirtinta</span>
-                  </div>
-                </div>
-
-                {printer.nextOperatorMessage && (
-                  <div className="mt-8 p-6 bg-amber-50 rounded-3xl text-amber-800 text-sm italic font-medium border border-amber-100">
-                    <span className="block text-[10px] font-black uppercase mb-1 opacity-50">Žinutė kitai pamainai:</span>
-                    "{printer.nextOperatorMessage}"
-                  </div>
-                )}
-              </div>
-
-              <div className="w-full md:w-[400px] p-10 bg-slate-50 flex flex-col items-center justify-center">
-                <p className="text-sm font-black text-slate-400 uppercase mb-6 tracking-widest text-center">Nozzle Check Foto</p>
-                {printer.isMimaki ? (
-                  <div className="grid grid-cols-2 gap-4 w-full">
-                    {(printer.selectedMimakiUnits || []).map(unit => (
-                      <div key={unit} className="relative group cursor-zoom-in" onClick={() => setSelectedImg(printer.mimakiNozzleFiles?.[unit]?.url || null)}>
-                        <div className="mb-2 flex justify-between items-center">
-                          <span className="text-[10px] font-black uppercase text-slate-400">Blokas {unit}</span>
+                <div className="w-full md:w-[400px] p-10 bg-slate-50 flex flex-col items-center justify-center">
+                  <p className="text-sm font-black text-slate-400 uppercase mb-6 tracking-widest text-center">Nozzle Check Foto</p>
+                  {printer.isMimaki ? (
+                    <div className="grid grid-cols-2 gap-4 w-full">
+                      {(printer.selectedMimakiUnits || []).map(unit => (
+                        <div key={unit} className="relative group cursor-zoom-in" onClick={() => setSelectedImg(printer.mimakiNozzleFiles?.[unit]?.url || null)}>
+                          <div className="mb-2 flex justify-between items-center">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Blokas {unit}</span>
+                            {printer.mimakiNozzleFiles?.[unit] ? (
+                              <span className="text-[10px] font-bold text-emerald-500">Yra</span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-red-400">Nėra</span>
+                            )}
+                          </div>
                           {printer.mimakiNozzleFiles?.[unit] ? (
-                            <span className="text-[10px] font-bold text-emerald-500">Yra</span>
+                            <img
+                              src={printer.mimakiNozzleFiles[unit].url}
+                              className="rounded-xl shadow-sm border-2 border-white w-full h-24 object-cover transition-transform group-hover:scale-105"
+                              alt={`Nozzle ${unit}`}
+                            />
                           ) : (
-                            <span className="text-[10px] font-bold text-red-400">Nėra</span>
+                            <div className="w-full h-24 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-slate-100">
+                              <span className="text-slate-300 text-[10px] font-bold">---</span>
+                            </div>
                           )}
                         </div>
-                        {printer.mimakiNozzleFiles?.[unit] ? (
-                          <img
-                            src={printer.mimakiNozzleFiles[unit].url}
-                            className="rounded-xl shadow-sm border-2 border-white w-full h-24 object-cover transition-transform group-hover:scale-105"
-                            alt={`Nozzle ${unit}`}
-                          />
-                        ) : (
-                          <div className="w-full h-24 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-slate-100">
-                            <span className="text-slate-300 text-[10px] font-bold">---</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    {(!printer.selectedMimakiUnits || printer.selectedMimakiUnits.length === 0) && (
-                      <div className="col-span-2 text-center py-4 text-slate-400 text-xs italic">Nėra pasirinktų blokų</div>
-                    )}
-                  </div>
-                ) : (
-                  printer.nozzleFile ? (
-                    <div className="relative group cursor-zoom-in w-full text-center" onClick={() => setSelectedImg(printer.nozzleFile?.url || null)}>
-                      <img
-                        src={printer.nozzleFile.url}
-                        className="rounded-3xl shadow-xl border-4 border-white max-h-60 mx-auto transition-transform group-hover:scale-105"
-                        alt="Nozzle"
-                      />
-                      <div className="mt-4">
-                        <p className="text-[10px] font-bold text-slate-500">{printer.nozzleFile.timestamp}</p>
-                      </div>
+                      ))}
+                      {(!printer.selectedMimakiUnits || printer.selectedMimakiUnits.length === 0) && (
+                        <div className="col-span-2 text-center py-4 text-slate-400 text-xs italic">Nėra pasirinktų blokų</div>
+                      )}
                     </div>
                   ) : (
-                    <div className="w-full h-48 border-4 border-dashed border-slate-200 rounded-[32px] flex items-center justify-center">
-                      <span className="text-slate-300 font-bold uppercase text-xs">Nuotraukos nėra</span>
-                    </div>
-                  )
-                )}
+                    printer.nozzleFile ? (
+                      <div className="relative group cursor-zoom-in w-full text-center" onClick={() => setSelectedImg(printer.nozzleFile?.url || null)}>
+                        <img
+                          src={printer.nozzleFile.url}
+                          className="rounded-3xl shadow-xl border-4 border-white max-h-60 mx-auto transition-transform group-hover:scale-105"
+                          alt="Nozzle"
+                        />
+                        <div className="mt-4">
+                          <p className="text-[10px] font-bold text-slate-500">{printer.nozzleFile.timestamp}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-full h-48 border-4 border-dashed border-slate-200 rounded-[32px] flex items-center justify-center">
+                        <span className="text-slate-300 font-bold uppercase text-xs">Nuotraukos nėra</span>
+                      </div>
+                    )
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
       {/* Create User Modal */}
@@ -493,6 +534,55 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                 >
                   Sukurti Vartotoją
                 </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* New Station Modal */}
+      {editingTemplate === 'NEW_STATION' && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-[32px] shadow-xl w-full max-w-md relative animate-in fade-in zoom-in duration-300">
+            <button
+              onClick={() => setEditingTemplate(undefined)}
+              className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 transition-colors"
+              type="button"
+            >
+              <Trash2 className="w-5 h-5 text-slate-400" />
+            </button>
+            <h3 className="text-2xl font-black uppercase text-slate-800 mb-6">Naujas Stationas</h3>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const name = formData.get('name') as string;
+                if (!name) return;
+
+                try {
+                  await createPrinter(name);
+                  setEditingTemplate(undefined);
+                  if (addToast) addToast('Stationas sukurtas sėkmingai', 'success');
+                } catch (e: any) {
+                  console.error(e);
+                  if (addToast) addToast(`Klaida: ${e.message}`, 'error');
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-black uppercase text-slate-400 mb-2">Pavadinimas</label>
+                <input
+                  name="name"
+                  type="text"
+                  required
+                  placeholder="Pvz.: Mimaki JFX200"
+                  className="w-full h-14 rounded-2xl border-slate-200 bg-slate-50 px-4 font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <Button type="button" variant="ghost" onClick={() => setEditingTemplate(undefined)} className="flex-1 h-12 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200">Atšaukti</Button>
+                <Button type="submit" className="flex-1 h-12 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 shadow-lg shadow-slate-900/20">Sukurti</Button>
               </div>
             </form>
           </div>
