@@ -18,11 +18,15 @@ interface EndShiftProcessProps {
 }
 
 export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, currentUser, checklistTemplates, onFinish, onCancel, addToast }) => {
-  const [step, setStep] = useState(1);
-  const [checklist, setChecklist] = useState<{ [key: string]: boolean }>({});
-  const [message, setMessage] = useState('');
-  const [productionAmount, setProductionAmount] = useState<string>('');
-  const [defectsAmount, setDefectsAmount] = useState<string>('');
+  // If checklist exists, skip to step 2
+  const [step, setStep] = useState(() => {
+    return (printer.endShiftChecklist && Object.keys(printer.endShiftChecklist).length > 0) ? 2 : 1;
+  });
+
+  const [checklist, setChecklist] = useState<{ [key: string]: boolean }>(printer.endShiftChecklist || {});
+  const [message, setMessage] = useState(printer.nextOperatorMessage || '');
+  const [productionAmount, setProductionAmount] = useState<string>(printer.productionAmount?.toString() || '');
+  const [defectsAmount, setDefectsAmount] = useState<string>(printer.defectsAmount?.toString() || '');
   const [confirmed, setConfirmed] = useState(false);
 
   // Determine which checklist items to use
