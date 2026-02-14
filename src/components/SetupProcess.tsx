@@ -205,8 +205,8 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
         </div>
       </nav>
 
-      <main className="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full flex flex-col justify-center">
-        <Card className="shadow-2xl shadow-slate-200/50 border-white/50 overflow-hidden bg-white/80 backdrop-blur-sm">
+      <main className="flex-1 p-0 md:p-8 max-w-5xl mx-auto w-full flex flex-col justify-center">
+        <Card className="shadow-none md:shadow-2xl border-0 md:border md:border-white/50 bg-white/80 backdrop-blur-sm rounded-none md:rounded-xl overflow-hidden min-h-[calc(100vh-130px)] md:min-h-0">
 
           {/* STEP -1: Handover Messages */}
           {step === -1 && (

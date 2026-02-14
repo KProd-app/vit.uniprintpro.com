@@ -69,8 +69,8 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
   };
 
   return (
-    <div className="min-h-screen bg-mimaki-dark/95 backdrop-blur-xl flex items-center justify-center p-6 z-[100] animate-in fade-in duration-300">
-      <Card className="w-full max-w-3xl border-0 shadow-2xl flex flex-col max-h-[90vh] bg-white rounded-[3rem] overflow-hidden">
+    <div className="min-h-screen bg-mimaki-dark/95 backdrop-blur-xl flex items-center justify-center p-0 md:p-6 z-[100] animate-in fade-in duration-300">
+      <Card className="w-full max-w-3xl border-0 shadow-none md:shadow-2xl flex flex-col h-full min-h-screen md:min-h-0 md:max-h-[90vh] bg-white rounded-none md:rounded-[3rem] overflow-hidden">
         <div className="p-10 border-b border-slate-100 flex justify-between items-center flex-shrink-0 bg-white/50 backdrop-blur-md">
           <div>
             <h2 className="text-3xl font-black text-mimaki-dark tracking-tighter uppercase relative">
