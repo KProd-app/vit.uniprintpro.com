@@ -40,6 +40,41 @@ export class LocalStorageRepository implements StorageRepository {
         // No-op
     }
 
+    async createPrinter(printer: Omit<PrinterData, 'id'>): Promise<string> {
+        const printers = await this.getPrinters();
+        const newId = `printer-${Date.now()}`;
+        const newPrinter: PrinterData = {
+            id: newId,
+            name: printer.name,
+            status: PrinterStatus.NOT_STARTED,
+            isMimaki: printer.isMimaki,
+            hasWhiteInk: printer.hasWhiteInk,
+            hasVarnish: printer.hasVarnish,
+            checklistTemplateId: printer.checklistTemplateId,
+            maintenanceDone: false,
+            maintenanceComment: '',
+            nozzlePrintDone: false,
+            nozzleFile: null,
+            vit: { shift: '' as any, checklist: {}, notes: '', signature: '', confirmed: false } as any,
+            selectedMimakiUnits: [],
+            mimakiNozzleFiles: {}
+        };
+
+        printers.push(newPrinter);
+        this.savePrinters(printers);
+        return newId;
+    }
+
+    async deletePrinter(id: string): Promise<void> {
+        const printers = await this.getPrinters();
+        const filtered = printers.filter(p => p.id !== id);
+        this.savePrinters(filtered);
+    }
+
+    private savePrinters(printers: PrinterData[]) {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(printers));
+    }
+
     async getPrinters(): Promise<PrinterData[]> {
         return new Promise((resolve) => {
             const data = localStorage.getItem(this.STORAGE_KEY);

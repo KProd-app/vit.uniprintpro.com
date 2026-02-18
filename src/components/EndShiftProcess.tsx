@@ -12,7 +12,7 @@ interface EndShiftProcessProps {
   printer: PrinterData;
   currentUser: User;
   checklistTemplates: ChecklistTemplate[];
-  onFinish: (message: string, checklist: { [key: string]: boolean }, production: number, defects: number) => void;
+  onFinish: (message: string, checklist: { [key: string]: boolean }, production: number, defects: number, remaining: number, robotDefects?: number, printDefects?: number) => void;
   onCancel: () => void;
   addToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
@@ -25,9 +25,19 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
 
   const [checklist, setChecklist] = useState<{ [key: string]: boolean }>(printer.endShiftChecklist || {});
   const [message, setMessage] = useState(printer.nextOperatorMessage || '');
+
+  // Standard inputs
   const [productionAmount, setProductionAmount] = useState<string>(printer.productionAmount?.toString() || '');
   const [defectsAmount, setDefectsAmount] = useState<string>(printer.defectsAmount?.toString() || '');
+  const [remainingAmount, setRemainingAmount] = useState<string>(printer.remainingAmount?.toString() || '');
+
+  // Packing specific inputs
+  const [robotDefects, setRobotDefects] = useState<string>(printer.robotDefects?.toString() || '');
+  const [printingDefects, setPrintingDefects] = useState<string>(printer.printingDefects?.toString() || '');
+
   const [confirmed, setConfirmed] = useState(false);
+
+  const isPackingStation = printer.name.toLowerCase().includes('pakavimas');
 
   // Determine which checklist items to use
   const activeChecklistItems = React.useMemo(() => {
@@ -57,19 +67,61 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
   };
 
   const handleComplete = () => {
-    const prod = parseFloat(productionAmount);
-    const def = parseFloat(defectsAmount);
+    let prod = 0;
+    let def = 0;
+    let robotDef = 0;
+    let printDef = 0;
 
-    if (isNaN(prod) || prod < 0) {
-      addToast("Įveskite korektišką pagamintą kiekį!", "error");
-      return;
-    }
-    if (isNaN(def) || def < 0) {
-      addToast("Įveskite korektišką brokų kiekį!", "error");
-      return;
+    if (isPackingStation) {
+      robotDef = parseFloat(robotDefects);
+      printDef = parseFloat(printingDefects);
+
+      if (isNaN(robotDef) || robotDef < 0) {
+        addToast("Įveskite korektišką roboto brokų kiekį!", "error");
+        return;
+      }
+      if (isNaN(printDef) || printDef < 0) {
+        addToast("Įveskite korektišką spaudos brokų kiekį!", "error");
+        return;
+      }
+      // For packing, production might not be relevant or calculated differently?
+      // User asked "vietoj kiek pagaminta", so we might just send 0 or sum of defects if implies total processed?
+      // Let's assume production is 0 or user ignores it.
+      // The interface requires production/defects. We can pass 0 for production, and sum for defects?
+      // Or better, pass extended data. We need to update the onFinish signature in the parent too.
+    } else {
+      prod = parseFloat(productionAmount);
+      def = parseFloat(defectsAmount);
+      const rem = parseFloat(remainingAmount);
+
+      if (isNaN(prod) || prod < 0) {
+        addToast("Įveskite korektišką pagamintą kiekį!", "error");
+        return;
+      }
+      if (!isPackingStation && (isNaN(rem) || rem < 0)) {
+        // remaining is optional? or required? User said "ask". let's make it required or 0 default.
+        // Let's make it required for better data.
+        addToast("Įveskite korektišką likusį kiekį!", "error");
+        return;
+      }
+      if (isNaN(def) || def < 0) {
+        addToast("Įveskite korektišką brokų kiekį!", "error");
+        return;
+      }
     }
 
-    onFinish(message, checklist, prod, def);
+    const remFinal = parseFloat(remainingAmount) || 0;
+
+    // We need to cast or update the interface. simpler to pass object or just extra args
+    // onFinish signature in props: (message: string, checklist: any, production: number, defects: number) => void;
+    // We should piggyback or update App.tsx to handle this.
+    // For now I will assume I can pass extra args if checking types, but typescript will complain.
+    // I need to update the interface in this file first.
+
+    // Actually, I can update the prop interface right here in the replacement.
+    // But I need to update App.tsx too.
+    // But I need to update App.tsx too.
+    onFinish(message, checklist, prod, def, remFinal, robotDef, printDef);
   };
 
   return (
@@ -155,38 +207,87 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
                 <p className="text-slate-500 mt-3 font-medium text-lg">Suveskite šiandienos gamybos duomenis</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Production Amount */}
-                <div className="bg-emerald-50/50 p-10 rounded-[3rem] border border-emerald-100 flex flex-col focus-within:ring-4 focus-within:ring-emerald-500/20 transition-all shadow-inner">
-                  <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Pagamintas kiekis</h3>
-                  <div className="flex items-center justify-center">
-                    <input
-                      type="number"
-                      autoFocus
-                      value={productionAmount}
-                      onChange={(e) => setProductionAmount(e.target.value)}
-                      placeholder="0"
-                      className="w-full bg-transparent border-none p-0 font-black text-6xl text-emerald-900 focus:ring-0 outline-none text-center placeholder-emerald-900/20"
-                    />
+              {isPackingStation ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Robot Defects */}
+                  <div className="bg-amber-50/50 p-10 rounded-[3rem] border border-amber-100 flex flex-col focus-within:ring-4 focus-within:ring-amber-500/20 transition-all shadow-inner">
+                    <h3 className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-4">Roboto Brokas</h3>
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="number"
+                        autoFocus
+                        value={robotDefects}
+                        onChange={(e) => setRobotDefects(e.target.value)}
+                        placeholder="0"
+                        className="w-full bg-transparent border-none p-0 font-black text-6xl text-amber-900 focus:ring-0 outline-none text-center placeholder-amber-900/20"
+                      />
+                    </div>
+                    <p className="text-amber-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt.</p>
                   </div>
-                  <p className="text-emerald-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt. / m²</p>
-                </div>
 
-                {/* Defects Amount */}
-                <div className="bg-red-50/50 p-10 rounded-[3rem] border border-red-100 flex flex-col focus-within:ring-4 focus-within:ring-red-500/20 transition-all shadow-inner">
-                  <h3 className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-4">Broko kiekis</h3>
-                  <div className="flex items-center justify-center">
-                    <input
-                      type="number"
-                      value={defectsAmount}
-                      onChange={(e) => setDefectsAmount(e.target.value)}
-                      placeholder="0"
-                      className="w-full bg-transparent border-none p-0 font-black text-6xl text-red-900 focus:ring-0 outline-none text-center placeholder-red-900/20"
-                    />
+                  {/* Printing Defects */}
+                  <div className="bg-red-50/50 p-10 rounded-[3rem] border border-red-100 flex flex-col focus-within:ring-4 focus-within:ring-red-500/20 transition-all shadow-inner">
+                    <h3 className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-4">Spaudos Brokas</h3>
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={printingDefects}
+                        onChange={(e) => setPrintingDefects(e.target.value)}
+                        placeholder="0"
+                        className="w-full bg-transparent border-none p-0 font-black text-6xl text-red-900 focus:ring-0 outline-none text-center placeholder-red-900/20"
+                      />
+                    </div>
+                    <p className="text-red-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt.</p>
                   </div>
-                  <p className="text-red-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt. / m²</p>
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {/* Production Amount */}
+                  <div className="bg-emerald-50/50 p-6 rounded-[3rem] border border-emerald-100 flex flex-col focus-within:ring-4 focus-within:ring-emerald-500/20 transition-all shadow-inner">
+                    <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Pagaminta</h3>
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={productionAmount}
+                        onChange={(e) => setProductionAmount(e.target.value)}
+                        placeholder="0"
+                        className="w-full bg-transparent border-none p-0 font-black text-6xl text-emerald-900 focus:ring-0 outline-none text-center placeholder-emerald-900/20"
+                      />
+                    </div>
+                    <p className="text-emerald-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt. / m²</p>
+                  </div>
+
+                  {/* Remaining Amount */}
+                  <div className="bg-blue-50/50 p-6 rounded-[3rem] border border-blue-100 flex flex-col focus-within:ring-4 focus-within:ring-blue-500/20 transition-all shadow-inner">
+                    <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Liko gaminti</h3>
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={remainingAmount}
+                        onChange={(e) => setRemainingAmount(e.target.value)}
+                        placeholder="0"
+                        className="w-full bg-transparent border-none p-0 font-black text-6xl text-blue-900 focus:ring-0 outline-none text-center placeholder-blue-900/20"
+                      />
+                    </div>
+                    <p className="text-blue-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt. / m²</p>
+                  </div>
+
+                  {/* Defects Amount */}
+                  <div className="bg-red-50/50 p-6 rounded-[3rem] border border-red-100 flex flex-col focus-within:ring-4 focus-within:ring-red-500/20 transition-all shadow-inner">
+                    <h3 className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-4">Brokas</h3>
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={defectsAmount}
+                        onChange={(e) => setDefectsAmount(e.target.value)}
+                        placeholder="0"
+                        className="w-full bg-transparent border-none p-0 font-black text-6xl text-red-900 focus:ring-0 outline-none text-center placeholder-red-900/20"
+                      />
+                    </div>
+                    <p className="text-red-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt. / m²</p>
+                  </div>
+                </div>
+              )}
 
               <div className="bg-blue-50/50 p-6 rounded-3xl text-center text-blue-700 text-sm font-medium border border-blue-100">
                 Svarbu: Suvedus duomenis jie bus automatiškai išsaugoti administratoriaus ataskaitoje.
@@ -214,8 +315,8 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
               <Button
                 size="lg"
                 onClick={handleComplete}
-                disabled={productionAmount === '' || defectsAmount === ''}
-                className="flex-[2] uppercase tracking-widest font-black text-lg bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-500/30 rounded-3xl h-16"
+                disabled={isPackingStation ? (robotDefects === '' || printingDefects === '') : (productionAmount === '' || defectsAmount === '' || remainingAmount === '')}
+                className="flex-[2] uppercase tracking-widest font-black text-lg bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-500/30 rounded-3xl h-auto py-4 whitespace-normal"
               >
                 BAIGTI PAMAINĄ
               </Button>

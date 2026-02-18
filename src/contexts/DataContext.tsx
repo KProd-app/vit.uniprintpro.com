@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, PrinterStatus, User } from '../types';
+import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, PrinterStatus, User, Feedback, Station } from '../types';
+import { supabase } from '../lib/supabase';
 import { StorageRepository } from '../lib/repository/StorageRepository';
 import { SupabaseRepository } from '../lib/repository/SupabaseRepository';
-import { MOCK_PRINTERS } from '../constants';
+import { MOCK_PRINTERS, DEFAULT_TEMPLATES } from '../constants';
 
 interface DataContextType {
     printers: PrinterData[];
@@ -11,7 +12,7 @@ interface DataContextType {
     refreshPrinters: () => Promise<void>;
     updatePrinter: (id: string, data: Partial<PrinterData>, silent?: boolean) => Promise<void>;
     resetPrinter: (id: string) => Promise<void>;
-    createPrinter: (name: string) => Promise<void>;
+    createPrinter: (data: Partial<PrinterConfig>) => Promise<void>;
     deletePrinter: (id: string) => Promise<void>;
 
     // Checklists
@@ -29,6 +30,17 @@ interface DataContextType {
     updateUser: (id: string, data: Partial<User>) => Promise<void>;
     deleteUser: (id: string) => Promise<void>;
     createUser: (user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }) => Promise<void>;
+    // Stations
+    stations: Station[];
+    assignPrinterToStation: (printerId: string, stationId: string | null) => Promise<void>;
+    createStation: (station: Partial<Station>) => Promise<string>;
+    updateStation: (id: string, updates: Partial<Station>) => Promise<void>;
+    deleteStation: (id: string) => Promise<void>;
+
+    // Feedback
+    saveFeedback: (feedback: Omit<Feedback, 'id' | 'createdAt'>) => Promise<void>;
+    getFeedback: () => Promise<Feedback[]>;
+    clearAllData: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -42,6 +54,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isSyncing, setIsSyncing] = useState(false);
 
     const [checklistTemplates, setChecklistTemplates] = useState<ChecklistTemplate[]>([]);
+    const [stations, setStations] = useState<Station[]>([]);
 
     // Initial load
     useEffect(() => {
@@ -51,33 +64,193 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // MOCK_PRINTERS are used as defaults if DB is empty
             await repository.initialize(MOCK_PRINTERS);
 
-            const [printersData, checklistsData] = await Promise.all([
+            const [printersData, checklistsData, stationsData] = await Promise.all([
                 repository.getPrinters(),
-                repository.getChecklistTemplates()
+                repository.getChecklistTemplates(),
+                repository.getStations()
             ]);
 
+            // Seed default checklists if missing
+            const existingNames = new Set(checklistsData.map(c => c.name));
+            const newTemplates = DEFAULT_TEMPLATES.filter(t => !existingNames.has(t.name));
+
+            let finalChecklists = checklistsData;
+
+            if (newTemplates.length > 0) {
+                console.log(`Seeding ${newTemplates.length} default checklists...`);
+                // Run sequentially or parallel? Parallel is fine for Supabase usually, but let's be safe
+                for (const t of newTemplates) {
+                    await repository.saveChecklistTemplate(t as any);
+                }
+                finalChecklists = await repository.getChecklistTemplates();
+            }
+
             setPrinters(printersData);
-            setChecklistTemplates(checklistsData);
+            setChecklistTemplates(finalChecklists);
             setLoading(false);
         };
         init();
 
-        // Set up polling for basic real-time feel
-        const interval = setInterval(async () => {
-            // Only poll if tab is visible to save resources
-            if (!document.hidden) {
-                const data = await repository.getPrinters();
-                setPrinters(data);
+        // Shift Rotation Logic
+        const checkShiftRotation = async () => {
+            const now = new Date();
+            const currentHour = now.getHours();
+            // Determine current shift based on time
+            // 06:00 - 18:00 = Dieninė
+            // 18:00 - 06:00 = Naktinė
+            const isDayShift = currentHour >= 6 && currentHour < 18;
+            const currentShiftName = isDayShift ? 'Dieninė' : 'Naktinė';
 
-                // Also poll checklists just in case another admin changed them
-                // In high traffic app, maybe not needed so often, but here it's fine
-                // const checklists = await repository.getChecklistTemplates();
-                // setChecklistTemplates(checklists); 
-                // Commented out to save requests, admin updates are rare.
+            // Construct a "Shift ID" or timestamp that represents the START of the current shift window
+            // e.g. if now is 14:00, shift start was today 06:00.
+            // if now is 20:00, shift start was today 18:00.
+            // if now is 02:00, shift start was yesterday 18:00.
+
+            let shiftStart = new Date(now);
+            shiftStart.setMinutes(0, 0, 0);
+
+            if (isDayShift) {
+                shiftStart.setHours(6);
+            } else {
+                if (currentHour < 6) {
+                    // It is night shift, but effectively the shift started yesterday 18:00
+                    shiftStart.setDate(shiftStart.getDate() - 1);
+                    shiftStart.setHours(18);
+                } else {
+                    // It is night shift, started today 18:00
+                    shiftStart.setHours(18);
+                }
             }
-        }, 5000); // Poll every 5 seconds
 
-        return () => clearInterval(interval);
+            const shiftStartIso = shiftStart.toISOString();
+
+            const printers = await repository.getPrinters();
+
+            let updatesMade = false;
+
+            const updatedPrinters = await Promise.all(printers.map(async (p) => {
+                // Check if we need to reset for this new shift window
+                // If lastShiftReset is missing, or is before the current shift start, we reset.
+                const lastReset = p.lastShiftReset ? new Date(p.lastShiftReset) : new Date(0);
+
+                // We add a small buffer (e.g., 1 min) to avoid double resetting if logic runs exactly at 06:00:00
+                // But simply comparing if lastReset < shiftStart is sufficient.
+
+                if (lastReset < shiftStart) {
+                    console.log(`Resetting shift for ${p.name}. Current time: ${now.toLocaleTimeString()}, Shift Start: ${shiftStart.toLocaleTimeString()}`);
+
+                    // 1. Auto-Log if active or has data
+                    if (p.productionAmount || p.defectsAmount || p.status === PrinterStatus.WORKING) {
+                        const previousShift = isDayShift ? 'Naktinė' : 'Dieninė';
+
+                        try {
+                            await repository.saveShiftLog({
+                                printerId: p.id,
+                                printerName: p.name,
+                                shift: p.vit.shift || previousShift,
+                                operatorName: p.operatorName || 'Sistema (Auto)',
+                                date: new Date().toISOString().split('T')[0],
+                                startedAt: p.workStartedAt || new Date().toISOString(),
+                                finishedAt: new Date().toISOString(),
+                                productionAmount: p.productionAmount || 0,
+                                defectsAmount: p.defectsAmount || 0,
+                                robotDefects: p.robotDefects || 0,
+                                printingDefects: p.printingDefects || 0,
+                                vitData: p.vit,
+                                nozzleData: {
+                                    url: p.nozzleFile?.url,
+                                    mimakiFiles: p.mimakiNozzleFiles
+                                },
+                                nextOperatorMessage: "Automatinis uždarymas: VIT pabaiga neužpildyta",
+                            });
+                        } catch (e) {
+                            console.error("Failed to auto-save log on shift change", e);
+                        }
+                    }
+
+                    // 2. Full Reset for Next Shift
+                    const newState: Partial<PrinterData> = {
+                        lastShiftReset: new Date().toISOString(),
+
+                        // Reset Status and Operator
+                        status: PrinterStatus.NOT_STARTED,
+                        operatorName: null as any,
+                        handoverVerified: false, // Require next operator to verify
+
+                        // Reset Times
+                        workStartedAt: undefined,
+                        workFinishedAt: undefined,
+
+                        // Reset VIT
+                        vit: { ...p.vit, shift: currentShiftName, confirmed: false, signature: '', checklist: {}, notes: '' },
+
+                        // Reset Process Flags
+                        maintenanceDone: false,
+                        nozzlePrintDone: false,
+                        nozzleFile: null,
+                        mimakiNozzleFiles: {},
+                        selectedMimakiUnits: [],
+
+                        // Reset Counts
+                        productionAmount: 0,
+                        defectsAmount: 0,
+                        robotDefects: 0,
+                        printingDefects: 0,
+
+                        // Default remainingAmount to 0 if undefined, but ideally we KEEP it if it exists. 
+                        // However, wait, if shift rotates, remaining amount is still remaining right? YES.
+                        // So we do NOT reset remainingAmount.
+                        // We also KEEP nextOperatorMessage.
+
+                        // Reset Checklists
+                        startShiftChecklist: {},
+                        endShiftChecklist: {},
+
+                        // Clear Message - NO, keep it for handover
+                        // nextOperatorMessage: "" 
+                    };
+
+                    await repository.updatePrinter(p.id, newState);
+                    updatesMade = true;
+                    return { ...p, ...newState };
+                }
+                return p;
+            }));
+
+            if (updatesMade) {
+                setPrinters(updatedPrinters);
+            }
+        };
+
+        // Run shift check immediately on load, then every minute
+        checkShiftRotation();
+        const shiftInterval = setInterval(checkShiftRotation, 60000);
+
+        // Subscripbe to Realtime updates
+        const channel = supabase
+            .channel('public:printers')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'printers' }, (payload) => {
+                console.log('Realtime update received:', payload);
+                // Refresh data on any change
+                // We could be more granular but full refresh is safest and easy
+                refreshPrinters();
+            })
+            .subscribe();
+
+        // Set up polling as fallback (faster interval for "Live" feel)
+        const interval = setInterval(async () => {
+            // Always poll, even if hidden, to ensure background tabs (like on a TV that might switch inputs) stay fresh
+            // Reduced to 2s for better responsiveness if realtime fails
+            const data = await repository.getPrinters();
+            setPrinters(data);
+            checkShiftRotation();
+        }, 2000);
+
+        return () => {
+            clearInterval(interval);
+            clearInterval(shiftInterval);
+            supabase.removeChannel(channel);
+        };
     }, []);
 
     const refreshPrinters = async () => {
@@ -122,7 +295,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await repository.updatePrinter(id, data);
 
         // Re-fetch to ensure consistency is not strictly required if we trust optimistic update,
-        // but useful if there are server-side triggers. 
+        // but useful if there are server-side triggers.
         // We'll rely on the polling for eventual consistency/other user updates.
         if (!silent) setIsSyncing(false);
     };
@@ -136,6 +309,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 ...p,
                 status: PrinterStatus.NOT_STARTED,
                 maintenanceDone: false,
+                handoverVerified: false,
                 vit: { ...p.vit, confirmed: false, signature: '' } // Partial reset visual
             };
         }));
@@ -147,12 +321,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setIsSyncing(false);
     };
 
-    const createPrinter = async (name: string) => {
+    const createPrinter = async (data: Partial<PrinterConfig>) => {
         setIsSyncing(true);
-        await repository.createPrinter(name);
-        const data = await repository.getPrinters();
-        setPrinters(data);
-        setIsSyncing(false);
+        try {
+            await repository.createPrinter(data as any);
+            const printers = await repository.getPrinters();
+            setPrinters(printers);
+        } catch (e) {
+            console.error("Error in createPrinter:", e);
+            throw e;
+        } finally {
+            setIsSyncing(false);
+        }
     };
 
     const deletePrinter = async (id: string) => {
@@ -187,6 +367,64 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await repository.createUser(user);
     };
 
+    const saveFeedback = async (feedback: Omit<Feedback, 'id' | 'createdAt'>) => {
+        await repository.saveFeedback(feedback);
+    };
+
+    const getFeedback = async () => {
+        return await repository.getFeedback();
+    };
+
+    const assignPrinterToStation = async (printerId: string, stationId: string | null) => {
+        setIsSyncing(true);
+        await repository.assignPrinterToStation(printerId, stationId);
+        // Refresh printers to update the local state
+        const data = await repository.getPrinters();
+        setPrinters(data);
+        setIsSyncing(false);
+    };
+
+    const createStation = async (station: Partial<Station>) => {
+        setIsSyncing(true);
+        const id = await repository.createStation(station);
+        const data = await repository.getStations();
+        setStations(data);
+        setIsSyncing(false);
+        return id;
+    };
+
+    const updateStation = async (id: string, updates: Partial<Station>) => {
+        setIsSyncing(true);
+        await repository.updateStation(id, updates);
+        const data = await repository.getStations();
+        setStations(data);
+        setIsSyncing(false);
+    };
+
+    const deleteStation = async (id: string) => {
+        setIsSyncing(true);
+        await repository.deleteStation(id);
+        const data = await repository.getStations();
+        setStations(data);
+        // Also refresh printers as they might be unassigned
+        const printersData = await repository.getPrinters();
+        setPrinters(printersData);
+        setIsSyncing(false);
+    };
+
+    const clearAllData = async () => {
+        setIsSyncing(true);
+        try {
+            await repository.clearAllData();
+            await refreshPrinters(); // Refresh local state
+        } catch (e) {
+            console.error("Error clearing all data:", e);
+            throw e;
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     return (
         <DataContext.Provider value={{
             printers,
@@ -206,7 +444,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             getUsers,
             updateUser,
             deleteUser,
-            createUser
+            createUser,
+            saveFeedback,
+            getFeedback,
+            clearAllData,
+            stations,
+            assignPrinterToStation,
+            createStation,
+            updateStation,
+            deleteStation
         }}>
             {children}
         </DataContext.Provider>

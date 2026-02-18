@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="lt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#020617">
+    <link rel="manifest" href="/tv-manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Gamybos Skydas (TV Lite)</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #020617;
+            /* slate-950 */
+            color: white;
+            padding: 16px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(15, 23, 42, 0.5);
+            /* slate-900/50 */
+            padding: 12px 24px;
+            border-radius: 16px;
+            border: 1px solid #1e293b;
+            /* slate-800 */
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 900;
+            color: #60a5fa;
+            /* blue-400 */
+            text-transform: uppercase;
+            letter-spacing: -0.05em;
+        }
+
+        .clock {
+            background-color: rgba(30, 41, 59, 0.5);
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            font-family: monospace;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* Grid */
+        #grid {
+            display: grid;
+            gap: 16px;
+            flex: 1;
+            /* Default to 1 col */
+            grid-template-columns: repeat(1, 1fr);
+        }
+
+        /* Card */
+        .card {
+            background-color: rgba(15, 23, 42, 0.8);
+            border: 1px solid #334155;
+            /* slate-700 */
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .card-name {
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1.1;
+        }
+
+        .card-operator {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: 1px solid currentColor;
+            white-space: nowrap;
+        }
+
+        /* Metrics */
+        .metrics-row {
+            display: grid;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .row-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .row-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .metric-box {
+            background-color: rgba(30, 41, 59, 0.5);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: bold;
+            opacity: 0.7;
+            margin-bottom: 2px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        /* Status Colors */
+        .status-WORKING {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #34d399;
+        }
+
+        .status-READY_TO_WORK {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+        }
+
+        .status-IN_PROGRESS {
+            background-color: rgba(234, 179, 8, 0.1);
+            border-color: rgba(234, 179, 8, 0.3);
+            color: #facc15;
+        }
+
+        .status-ENDING_SHIFT {
+            background-color: rgba(168, 85, 247, 0.1);
+            border-color: rgba(168, 85, 247, 0.3);
+            color: #c084fc;
+        }
+
+        .status-NOT_STARTED {
+            background-color: rgba(30, 41, 59, 1);
+            border-color: #334155;
+            color: #94a3b8;
+        }
+
+        .text-green {
+            color: #34d399;
+        }
+
+        .text-yellow {
+            color: #facc15;
+        }
+
+        .text-red {
+            color: #f87171;
+        }
+
+        .text-blue {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Gamybos Skydas</h1>
+        <div class="clock" id="clock">00:00</div>
+    </header>
+
+    <div id="grid">Loading...</div>
+
+    <!-- Fullscreen Overlay -->
+    <div id="start-overlay"
+        style="position: fixed; inset: 0; background: rgba(2, 6, 23, 0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+        <h1 style="font-size: 48px; margin-bottom: 24px;">UniPrintPro TV</h1>
+        <button onclick="enterFullscreen()"
+            style="padding: 16px 32px; font-size: 24px; font-weight: bold; background: #2563eb; color: white; border: none; border-radius: 12px; cursor: pointer;">
+            START FULLSCREEN
+        </button>
+        <p style="margin-top: 16px; opacity: 0.6;">Tap anywhere to start</p>
+    </div>
+
+    <script>
+        // FULLSCREEN LOGIC
+        function enterFullscreen() {
+            var elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => console.log(err));
+            } else if (elem.webkitRequestFullscreen) { /* Safari */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE11 */
+                elem.msRequestFullscreen();
+            }
+
+            // Hide overlay
+            document.getElementById('start-overlay').style.display = 'none';
+        }
+
+        // Auto-hide overlay if already fullscreen (e.g. strict kiosk)
+        if (window.matchMedia('(display-mode: fullscreen)').matches) {
+            document.getElementById('start-overlay').style.display = 'none';
+        }
+
+        // Tap on overlay body also triggers it
+        document.getElementById('start-overlay').addEventListener('click', enterFullscreen);
+
+        // CONFIG
+        var SUPABASE_URL = 'https://hljqmgmwjrtowpfsnokr.supabase.co';
+        var SUPABASE_KEY = 'sb_publishable_8JLf1MPUFX2c06nab_aWvQ_dlpeCmpI';
+
+        // UTILS
+        function updateClock() {
+            var now = new Date();
+            var hours = String(now.getHours()).padStart(2, '0');
+            var minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('clock').textContent = hours + ':' + minutes;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function getStatusClass(status) {
+            switch (status) {
+                case 'WORKING': return 'status-WORKING';
+                case 'READY_TO_WORK': return 'status-READY_TO_WORK';
+                case 'IN_PROGRESS': return 'status-IN_PROGRESS';
+                case 'ENDING_SHIFT': return 'status-ENDING_SHIFT';
+                default: return 'status-NOT_STARTED';
+            }
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 'NOT_STARTED': return 'LAUKIA';
+                default: return status;
+            }
+        }
+
+        // FETCH
+        function fetchData() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', SUPABASE_URL + '/rest/v1/printers?select=*&order=name.asc', true);
+            xhr.setRequestHeader('apikey', SUPABASE_KEY);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + SUPABASE_KEY);
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            render(data);
+                        } catch (e) {
+                            console.error('Parse error', e);
+                            document.getElementById('grid').innerHTML = 'Error parsing data';
+                        }
+                    } else {
+                        console.error('Fetch error', xhr.status, xhr.responseText);
+                        document.getElementById('grid').innerHTML = 'Error loading data: ' + xhr.status;
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        function render(printers) {
+            var grid = document.getElementById('grid');
+            var cols = 1;
+            var count = printers.length;
+
+            if (count <= 3) cols = count;
+            else if (count <= 4) cols = 2;
+            else if (count <= 6) cols = 3;
+            else if (count <= 8) cols = 4;
+            else if (count <= 12) cols = 4;
+            else cols = 5;
+
+            grid.style.gridTemplateColumns = 'repeat(' + cols + ', minmax(0, 1fr))';
+            grid.style.gridAutoRows = 'minmax(0, 1fr)';
+
+            var html = '';
+            for (var i = 0; i < count; i++) {
+                var p = printers[i];
+                var statusClass = getStatusClass(p.status);
+                var operator = p.state && (p.state.operatorName || (p.state.vit && p.state.vit.signature)) ? (p.state.operatorName || p.state.vit.signature) : 'Nėra operatoriaus';
+
+                // Maint calculations
+                var maintDone = p.state && p.state.vit && p.state.vit.confirmed;
+                var checklistActive = p.state && p.state.vit && p.state.vit.checklist && Object.keys(p.state.vit.checklist).length > 0;
+                var maintText = maintDone ? 'ATLIKTA' : (checklistActive ? 'VYKDOMAS' : 'NEATLIKTA');
+                var maintColor = maintDone ? 'text-green' : (checklistActive ? 'text-yellow' : 'text-red');
+
+                // Nozzle
+                var nozzleUrl = p.state && p.state.nozzleFile && p.state.nozzleFile.url;
+                var nozzleText = nozzleUrl ? 'ATLIKTAS' : 'NEATLIKTAS';
+                var nozzleColor = nozzleUrl ? 'text-blue' : 'text-red';
+
+                // Stats
+                var production = (p.state && p.state.productionAmount) || 0;
+                var remaining = (p.state && p.state.remainingAmount) || 0;
+                var defects = (p.state && p.state.defectsAmount) || 0;
+                var defectRate = production > 0 ? ((defects / production) * 100).toFixed(1) + '%' : defects;
+                var defectColor = production > 0 && ((defects / production) * 100) > 5 ? 'text-red' : 'text-green';
+
+                html += '<div class="card ' + statusClass + '">';
+
+                // Header
+                html += '<div class="card-header">';
+                html += '<div>';
+                html += '<div class="card-name">' + p.name + '</div>';
+                html += '<div class="card-operator">' + operator + '</div>';
+                html += '</div>';
+                html += '<div class="status-badge ' + statusClass + '">' + getStatusText(p.status) + '</div>';
+                html += '</div>';
+
+                // Body
+                html += '<div class="card-body">';
+
+                // Row 1
+                html += '<div class="metrics-row row-2">';
+                html += '<div class="metric-box"><div class="metric-label">Valymas</div><div class="metric-value ' + maintColor + '">' + maintText + '</div></div>';
+                html += '<div class="metric-box"><div class="metric-label">Nozzle</div><div class="metric-value ' + nozzleColor + '">' + nozzleText + '</div></div>';
+                html += '</div>';
+
+                // Row 2
+                html += '<div class="metrics-row row-3">';
+                html += '<div class="metric-box"><div class="metric-label">Pagaminta</div><div class="metric-value">' + production + '</div></div>';
+                html += '<div class="metric-box"><div class="metric-label">Liko</div><div class="metric-value text-blue">' + remaining + '</div></div>';
+                html += '<div class="metric-box"><div class="metric-label">Brokas</div><div class="metric-value ' + defectColor + '">' + defectRate + '</div></div>';
+                html += '</div>';
+
+                html += '</div>'; // End body
+                html += '</div>'; // End card
+            }
+            grid.innerHTML = html;
+        }
+
+        fetchData();
+        setInterval(fetchData, 5000);
+    </script>
+</body>
+
+</html>

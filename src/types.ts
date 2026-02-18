@@ -12,15 +12,26 @@ export enum UserRole {
   ADMIN = "Admin"
 }
 
+export interface Feedback {
+  id: string;
+  userId: string;
+  userName: string;
+  type: 'BUG' | 'FEATURE' | 'OTHER';
+  message: string;
+  url?: string;
+  createdAt: string;
+  userAgent?: string;
+}
+
 export interface User {
   id: string;
   name: string;
   role: UserRole;
-  pin: string;
+  pin?: string;
 }
 
 export interface VITData {
-  shift: 'Ryto' | 'Vakaro' | '';
+  shift: 'Dieninė' | 'Naktinė' | '';
   checklist: { [key: string]: boolean };
   notes: string;
   signature: string;
@@ -39,8 +50,17 @@ export interface PrinterConfig {
   isMimaki?: boolean;
   hasWhiteInk?: boolean; // Future proofing
   hasVarnish?: boolean; // Future proofing
+  hasNozzleCheck?: boolean; // Controls if nozzle check step is required
   checklistTemplateId?: string; // Link to specific START shift checklist
   endShiftChecklistId?: string; // Link to specific END shift checklist
+  qrCode?: string; // Optional custom QR code value (defaults to ID if not set)
+  stationId?: string; // Link to the station this printer belongs to
+}
+
+export interface Station {
+  id: string;
+  name: string;
+  stationQrLink?: string;
 }
 
 // Dynamic state that changes during the shift
@@ -50,6 +70,7 @@ export interface PrinterState {
 
   // Start of Shift / Maintenance
   maintenanceDone: boolean;
+  handoverVerified?: boolean;
   maintenanceComment: string;
   nozzlePrintDone: boolean;
   nozzleFile: NozzleFile | null;
@@ -70,11 +91,15 @@ export interface PrinterState {
 
   // End of Shift
   productionAmount?: number;
+  remainingAmount?: number;
   defectsAmount?: number;
+  robotDefects?: number;
+  printingDefects?: number;
   nextOperatorMessage?: string;
   endShiftChecklist?: { [key: string]: boolean };
 
   lastSync?: string;
+  lastShiftReset?: string;
 }
 
 // Combined type for backward compatibility and ease of use in UI
@@ -88,7 +113,8 @@ export interface ChecklistTemplate {
   items: string[];
 }
 
-export type ViewType = 'LOGIN' | 'DASHBOARD' | 'SETUP' | 'SUMMARY' | 'ADMIN' | 'END_SHIFT';
+export type ViewType = 'LOGIN' | 'DASHBOARD' | 'SETUP' | 'SUMMARY' | 'ADMIN' | 'END_SHIFT' | 'LIVE' | 'START_VERIFICATION' | 'LIVE_MOBILE' | 'LIVE_DESKTOP';
+
 
 export interface PrinterLog {
   id: string;
@@ -101,6 +127,8 @@ export interface PrinterLog {
   finishedAt: string;
   productionAmount: number;
   defectsAmount: number;
+  robotDefects?: number;
+  printingDefects?: number;
   vitData: VITData;
   nozzleData: {
     url?: string;

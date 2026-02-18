@@ -1,10 +1,19 @@
-import { PrinterData, ChecklistTemplate, PrinterLog, User } from '../../types';
+import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, User, Feedback, Station } from '../../types';
 
 export interface StorageRepository {
     /**
      * Get all printers
      */
+    createPrinter(printer: Partial<PrinterConfig>): Promise<string>;
+    deletePrinter(id: string): Promise<void>;
     getPrinters(): Promise<PrinterData[]>;
+
+    // Stations
+    getStations(): Promise<Station[]>;
+    assignPrinterToStation(printerId: string, stationId: string | null): Promise<void>;
+    createStation(station: Partial<Station>): Promise<string>;
+    updateStation(id: string, updates: Partial<Station>): Promise<void>;
+    deleteStation(id: string): Promise<void>;
 
     /**
      * Update specific printer
@@ -36,9 +45,14 @@ export interface StorageRepository {
     deleteUser(id: string): Promise<void>;
     createUser(user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }): Promise<void>;
 
-    // Printers
-    createPrinter(name: string): Promise<void>;
-    deletePrinter(id: string): Promise<void>;
+    // Feedback
+    saveFeedback(feedback: Omit<Feedback, 'id' | 'createdAt'>): Promise<void>;
+    getFeedback(): Promise<Feedback[]>;
+
+    /**
+     * Clear all data (Admin only)
+     */
+    clearAllData(): Promise<void>;
 
     /**
      * Initialize DB with defaults if empty

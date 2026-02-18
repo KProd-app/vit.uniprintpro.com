@@ -47,7 +47,8 @@ export const isVITChecklistComplete = (printer: PrinterData, checklistTemplates?
 export const canStartWork = (printer: PrinterData, checklistTemplates?: ChecklistTemplate[]): boolean => {
     if (printer.status === PrinterStatus.WORKING) return false;
 
-    return isMaintenanceDone(printer) &&
-        areNozzlesReady(printer) &&
+    const nozzleCheckRequired = printer.hasNozzleCheck !== false;
+
+    return (!nozzleCheckRequired || areNozzlesReady(printer)) &&
         isVITChecklistComplete(printer, checklistTemplates);
 };

@@ -1,8 +1,54 @@
 import { StorageRepository } from './StorageRepository';
-import { PrinterData, PrinterConfig, PrinterStatus, PrinterState, ChecklistTemplate, PrinterLog, User, UserRole } from '../../types';
+import { PrinterData, PrinterConfig, PrinterStatus, PrinterState, ChecklistTemplate, PrinterLog, User, UserRole, Feedback, Station } from '../../types';
 import { supabase } from '../supabase';
 
 export class SupabaseRepository implements StorageRepository {
+
+    async createPrinter(printer: Partial<PrinterConfig>): Promise<string> {
+        const { data, error } = await supabase
+            .from('printers')
+            .insert([{
+                name: printer.name,
+                type: printer.isMimaki ? 'MIMAKI' : 'VIT',
+                status: PrinterStatus.NOT_STARTED, // Default
+                config: {
+                    isMimaki: !!printer.isMimaki,
+                    hasWhiteInk: !!printer.hasWhiteInk,
+                    hasVarnish: !!printer.hasVarnish,
+                    has_nozzle_check: !!printer.hasNozzleCheck,
+                    checklist_template_id: printer.checklistTemplateId || null,
+                    end_shift_checklist_id: printer.endShiftChecklistId || null,
+                    qr_code: printer.qrCode || null,
+                },
+                state: {
+                    // Initial empty state
+                    vit: { shift: '', checklist: {}, notes: '', signature: '', confirmed: false },
+                    selectedMimakiUnits: [],
+                    mimakiNozzleFiles: {}
+                }
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating printer:', error);
+            throw error;
+        }
+
+        return data.id;
+    }
+
+    async deletePrinter(id: string): Promise<void> {
+        const { error } = await supabase
+            .from('printers')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting printer:', error);
+            throw error;
+        }
+    }
 
     async getPrinters(): Promise<PrinterData[]> {
         const { data, error } = await supabase
@@ -30,11 +76,112 @@ export class SupabaseRepository implements StorageRepository {
         return data.map((row: any) => ({
             id: row.id,
             name: row.name,
-            status: row.status as PrinterStatus,
+            status: this.normalizeStatus(row.status),
             ...defaultState, // 1. Apply defaults
             ...row.config,   // 2. config overrides (if any name collision, though unlikely)
+            stationId: row.station_id, // Map database column to domain model
             ...row.state     // 3. DB state overrides defaults
         }));
+    }
+
+    async getStations(): Promise<Station[]> {
+        const { data, error } = await supabase
+            .from('stations')
+            .select('*')
+            .order('name');
+
+        if (error) {
+            console.error('Error fetching stations:', error);
+            return [];
+        }
+
+        return data.map((row: any) => ({
+            id: row.id,
+            name: row.name,
+            stationQrLink: row.station_qr_link
+        }));
+    }
+
+    async assignPrinterToStation(printerId: string, stationId: string | null): Promise<void> {
+        const { error } = await supabase
+            .from('printers')
+            .update({ station_id: stationId })
+            .eq('id', printerId);
+
+        if (error) {
+            console.error('Error assigning printer to station:', error);
+            throw error;
+        }
+    }
+
+    async createStation(station: Partial<Station>): Promise<string> {
+        const { data, error } = await supabase
+            .from('stations')
+            .insert([{
+                name: station.name,
+                station_qr_link: station.stationQrLink
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error creating station:', error);
+            throw error;
+        }
+
+        return data.id;
+    }
+
+    async updateStation(id: string, updates: Partial<Station>): Promise<void> {
+        const dbUpdates: any = {};
+        if (updates.name) dbUpdates.name = updates.name;
+        if (updates.stationQrLink !== undefined) dbUpdates.station_qr_link = updates.stationQrLink;
+
+        const { error } = await supabase
+            .from('stations')
+            .update(dbUpdates)
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error updating station:', error);
+            throw error;
+        }
+    }
+
+    async deleteStation(id: string): Promise<void> {
+        // First unassign all printers
+        const { error: unassignError } = await supabase
+            .from('printers')
+            .update({ station_id: null })
+            .eq('station_id', id);
+
+        if (unassignError) {
+            console.error('Error unassigning printers before deleting station:', unassignError);
+            throw unassignError;
+        }
+
+        const { error } = await supabase
+            .from('stations')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting station:', error);
+            throw error;
+        }
+    }
+
+
+
+    private normalizeStatus(status: string): PrinterStatus {
+        switch (status) {
+            case 'NOT_STARTED': return PrinterStatus.NOT_STARTED;
+            case 'IN_PROGRESS': return PrinterStatus.IN_PROGRESS;
+            case 'READY_TO_WORK': return PrinterStatus.READY_TO_WORK;
+            case 'WORKING': return PrinterStatus.WORKING;
+            case 'ENDING_SHIFT': return PrinterStatus.ENDING_SHIFT;
+            default: return status as PrinterStatus;
+        }
     }
 
     async updatePrinter(id: string, updates: Partial<PrinterData>): Promise<void> {
@@ -55,7 +202,7 @@ export class SupabaseRepository implements StorageRepository {
         const configUpdates: any = { ...current.config };
         const stateUpdates: any = { ...current.state };
 
-        const configKeys = ['isMimaki', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId'];
+        const configKeys = ['isMimaki', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'hasNozzleCheck'];
         const topLevelKeys = ['name', 'status', 'type'];
 
         Object.entries(updates).forEach(([key, value]) => {
@@ -89,7 +236,19 @@ export class SupabaseRepository implements StorageRepository {
     }
 
     async resetPrinter(id: string): Promise<void> {
-        // Reset to initial state for the day
+        // Fetch current state first to preserve critical handover data
+        const { data: current, error: fetchError } = await supabase
+            .from('printers')
+            .select('state')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !current) {
+            console.error('Error fetching printer for reset:', fetchError);
+            return;
+        }
+
+        // Reset to initial state for the day, but preserve handover info
         const defaultState: Partial<PrinterState> = {
             maintenanceDone: false,
             maintenanceComment: '',
@@ -97,9 +256,16 @@ export class SupabaseRepository implements StorageRepository {
             nozzleFile: null,
             workStartedAt: undefined,
             workFinishedAt: undefined,
-            productionAmount: undefined,
-            defectsAmount: undefined,
-            nextOperatorMessage: '',
+            productionAmount: 0, // Reset to 0
+            defectsAmount: 0, // Reset to 0
+
+            // PRESERVE Handover Data
+            nextOperatorMessage: current.state.nextOperatorMessage || '',
+            remainingAmount: current.state.remainingAmount,
+
+            // Require verification again
+            handoverVerified: false,
+
             endShiftChecklist: undefined,
             vit: { shift: '' as any, checklist: {}, notes: '', signature: '', confirmed: false } as any,
             // Keep persistent things if any (none for now)
@@ -181,13 +347,27 @@ export class SupabaseRepository implements StorageRepository {
     }
 
     async saveChecklistTemplate(template: ChecklistTemplate | Omit<ChecklistTemplate, 'id'>): Promise<void> {
-        const { error } = await supabase
-            .from('checklist_templates')
-            .upsert(template);
+        if ('id' in template && template.id) {
+            // Update
+            const { error } = await supabase
+                .from('checklist_templates')
+                .update(template)
+                .eq('id', template.id);
 
-        if (error) {
-            console.error('Error saving checklist:', error);
-            throw error;
+            if (error) {
+                console.error('Error updating checklist:', error);
+                throw error;
+            }
+        } else {
+            // Insert
+            const { error } = await supabase
+                .from('checklist_templates')
+                .insert(template);
+
+            if (error) {
+                console.error('Error creating checklist:', error);
+                throw error;
+            }
         }
     }
 
@@ -388,33 +568,131 @@ export class SupabaseRepository implements StorageRepository {
 
         console.log('User created successfully:', authData.user?.id);
     }
-    async createPrinter(name: string): Promise<void> {
+
+    async saveFeedback(feedback: Omit<Feedback, 'id' | 'createdAt'>): Promise<void> {
         const { error } = await supabase
-            .from('printers')
+            .from('feedback')
             .insert({
-                name,
-                status: PrinterStatus.NOT_STARTED,
-                config: {},
-                state: {},
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+                user_id: feedback.userId,
+                user_name: feedback.userName,
+                type: feedback.type,
+                message: feedback.message,
+                url: feedback.url,
+                user_agent: feedback.userAgent
             });
 
         if (error) {
-            console.error('Error creating printer:', error);
+            console.error('Error saving feedback:', error);
             throw error;
         }
     }
 
-    async deletePrinter(id: string): Promise<void> {
-        const { error } = await supabase
-            .from('printers')
-            .delete()
-            .eq('id', id);
+    async getFeedback(): Promise<Feedback[]> {
+        const { data, error } = await supabase
+            .from('feedback')
+            .select('*')
+            .order('created_at', { ascending: false });
 
         if (error) {
-            console.error('Error deleting printer:', error);
-            throw error;
+            console.error('Error fetching feedback:', error);
+            return [];
+        }
+
+        return data.map((row: any) => ({
+            id: row.id,
+            userId: row.user_id,
+            userName: row.user_name,
+            type: row.type as any,
+            message: row.message,
+            url: row.url,
+            createdAt: row.created_at,
+            userAgent: row.user_agent
+        }));
+    }
+
+    async clearAllData(): Promise<void> {
+        console.log("Starting Factory Reset...");
+
+        // 1. Delete all logs
+        // Using 'not.is.null' on ID is the standard way to bypass "delete without filter" protection
+        const { error: logsError, count } = await supabase
+            .from('printer_logs')
+            .delete({ count: 'exact' })
+            .not('id', 'is', null);
+
+        if (logsError) {
+            console.error('Error clearing logs:', logsError);
+            throw logsError;
+        }
+        console.log(`Deleted ${count} log entries.`);
+
+        // 2. Clear Storage (Nozzle Check Images)
+        // We need to list files first, then delete them
+        try {
+            const { data: files, error: listError } = await supabase
+                .storage
+                .from('nozzle-checks')
+                .list();
+
+            if (listError) {
+                console.error("Error listing files:", listError);
+            } else if (files && files.length > 0) {
+                const filesToRemove = files.map(x => x.name);
+                const { error: removeError } = await supabase
+                    .storage
+                    .from('nozzle-checks')
+                    .remove(filesToRemove);
+
+                if (removeError) console.error("Error removing files:", removeError);
+                else console.log(`Deleted ${files.length} nozzle check files.`);
+            }
+        } catch (e) {
+            console.error("Storage cleanup failed (non-critical):", e);
+        }
+
+        // 3. Reset all printers to default state
+        const { data: printers, error: fetchError } = await supabase
+            .from('printers')
+            .select('id');
+
+        if (fetchError) {
+            console.error('Error fetching printers for reset:', fetchError);
+            throw fetchError;
+        }
+
+        if (printers) {
+            const defaultState: any = {
+                maintenanceDone: false,
+                maintenanceComment: '',
+                nozzlePrintDone: false,
+                nozzleFile: null,
+                workStartedAt: undefined,
+                workFinishedAt: undefined,
+                productionAmount: 0,
+                defectsAmount: 0,
+                nextOperatorMessage: '',
+                remainingAmount: 0,
+                handoverVerified: false,
+                endShiftChecklist: undefined,
+                vit: { shift: '', checklist: {}, notes: '', signature: '', confirmed: false },
+                selectedMimakiUnits: [],
+                mimakiNozzleFiles: {}
+            };
+
+            for (const printer of printers) {
+                const { error: updateError } = await supabase
+                    .from('printers')
+                    .update({
+                        status: PrinterStatus.NOT_STARTED,
+                        state: defaultState,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', printer.id);
+
+                if (updateError) {
+                    console.error(`Error resetting printer ${printer.id}:`, updateError);
+                }
+            }
         }
     }
 }

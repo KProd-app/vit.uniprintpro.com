@@ -23,38 +23,35 @@ interface SetupProcessProps {
 }
 
 export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser, checklistTemplates, onSave, onFinish, onCancel, addToast, uploadFile }) => {
-  const [step, setStep] = useState(-1);
+  const [step, setStep] = useState(0); // Start at 0 (Intro)
   const [localPrinter, setLocalPrinter] = useState<PrinterData>(printer);
   const [showCamera, setShowCamera] = useState<number | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    // 1. Detect Shift
+    // Only initialize defaults if missing. Shift rotation is handled globally in DataContext.
     const currentHour = new Date().getHours();
-    const currentShift = (currentHour >= 6 && currentHour < 18) ? 'Ryto' : 'Vakaro';
+    const currentShift: 'Dieninė' | 'Naktinė' = (currentHour >= 6 && currentHour < 18) ? 'Dieninė' : 'Naktinė';
 
-    // 2. Check if we need to reset (New shift started)
-    if (localPrinter.vit.shift && localPrinter.vit.shift !== currentShift) {
-      // Auto-reset for new shift
-      const resetData = {
-        maintenanceDone: false,
-        nozzlePrintDone: false,
-        nozzleFile: null,
-        vit: { shift: currentShift, checklist: {}, notes: '', signature: currentUser.name, confirmed: false },
-        mimakiNozzleFiles: {},
-        status: PrinterStatus.NOT_STARTED
-      } as Partial<PrinterData>;
+    const needsShiftInit = !localPrinter.vit.shift;
+    const needsSignatureInit = !localPrinter.vit.signature;
 
-      setLocalPrinter(prev => ({ ...prev, ...resetData }));
-      onSave(resetData); // Sync reset
-    } else if (!localPrinter.vit.shift) {
-      // Initialize if empty
-      const newVit = { ...localPrinter.vit, shift: currentShift, signature: currentUser.name };
-      setLocalPrinter(prev => ({ ...prev, vit: newVit }));
-      // onSave not needed yet, will save on first interaction
+    if (needsShiftInit || needsSignatureInit) {
+      const currentHour = new Date().getHours();
+      const currentShift: 'Dieninė' | 'Naktinė' = (currentHour >= 6 && currentHour < 18) ? 'Dieninė' : 'Naktinė';
+
+      const newVit = {
+        ...localPrinter.vit,
+        shift: localPrinter.vit.shift || currentShift,
+        signature: localPrinter.vit.signature || currentUser.name
+      };
+
+      const newData = { vit: newVit };
+      setLocalPrinter(prev => ({ ...prev, ...newData }));
+      onSave(newData);
     }
-  }, []); // Run once on mount
+  }, []);
 
   // Helper functions
   const updateVIT = (updates: Partial<VITData>) => {
@@ -74,27 +71,29 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
   };
 
   const getStepsList = () => {
-    const baseSteps = [
-      { label: 'Priminimai', description: 'Perdavimas' },
-      ...(localPrinter.isMimaki ? [{ label: 'Blokai', description: 'Pasirinkimas' }] : []),
-      { label: 'Priežiūra', description: 'Checklist' },
-      { label: 'VIT Forma', description: 'Valymas' },
-      { label: 'Spausdinimas', description: 'Nozzle Check' },
-      { label: 'Nuotrauka', description: 'Užfiksavimas' }
+    const steps = [
+      { id: 'intro', label: 'Priminimai', description: 'Perdavimas' },
     ];
-    return baseSteps;
+
+    if (localPrinter.isMimaki) {
+      steps.push({ id: 'mimaki-select', label: 'Blokai', description: 'Pasirinkimas' });
+    }
+
+    steps.push({ id: 'vit', label: 'VIT Forma', description: 'Valymas' });
+
+    // Conditional Nozzle Check and Photo
+    if (localPrinter.hasNozzleCheck !== false) {
+      steps.push({ id: 'nozzle', label: 'Spausdinimas', description: 'Nozzle Check' });
+      steps.push({ id: 'photo', label: 'Nuotrauka', description: 'Užfiksavimas' });
+    }
+
+    return steps;
   };
 
   const stepsList = getStepsList();
+  const currentStepId = stepsList[step]?.id;
 
-  const getCurrentStepIndex = () => {
-    if (step === -1) return 0;
-    if (localPrinter.isMimaki) {
-      return step + 1;
-    } else {
-      return step === -1 ? 0 : step;
-    }
-  };
+  const getCurrentStepIndex = () => step;
 
   const handleCapture = async (imageData: string) => {
     setIsUploading(true);
@@ -145,24 +144,16 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
   const canFinish = canStartWork(localPrinter, checklistTemplates);
 
   const nextStep = () => {
-    if (step === -1) {
-      setStep(localPrinter.isMimaki ? 0 : 1);
-    } else {
-      setStep(prev => prev + 1);
-    }
+    setStep(prev => Math.min(prev + 1, stepsList.length - 1));
   };
 
   const prevStep = () => {
-    if (step === (localPrinter.isMimaki ? 0 : 1)) {
-      setStep(-1);
-    } else {
-      setStep(prev => prev - 1);
-    }
+    setStep(prev => Math.max(prev - 1, 0));
   };
 
   // 3. Shortcuts if already done
   const isShiftDone = localPrinter.vit.confirmed &&
-    (localPrinter.isMimaki ? areNozzlesReady() : localPrinter.nozzleFile);
+    (localPrinter.hasNozzleCheck === false ? true : (localPrinter.isMimaki ? areNozzlesReady() : localPrinter.nozzleFile));
 
   if (showConfirmModal) {
     return (
@@ -190,7 +181,7 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
   }
 
   // Check if work is already done for this shift
-  if (isShiftDone && localPrinter.vit.shift === ((new Date().getHours() >= 6 && new Date().getHours() < 18) ? 'Ryto' : 'Vakaro')) {
+  if (isShiftDone && localPrinter.vit.shift === ((new Date().getHours() >= 6 && new Date().getHours() < 18) ? 'Dieninė' : 'Naktinė')) {
     return (
       <div className="fixed inset-0 bg-mimaki-gray flex items-center justify-center p-6 z-[100] animate-in fade-in duration-300">
         <Card className="max-w-xl w-full text-center shadow-2xl border-white/50 bg-white/80 backdrop-blur-md">
@@ -261,8 +252,8 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
       <main className="flex-1 p-0 md:p-8 max-w-5xl mx-auto w-full flex flex-col justify-center">
         <Card className="shadow-none md:shadow-2xl border-0 md:border md:border-white/50 bg-white/80 backdrop-blur-sm rounded-none md:rounded-xl overflow-hidden min-h-[calc(100vh-130px)] md:min-h-0">
 
-          {/* STEP -1: Handover Messages */}
-          {step === -1 && (
+          {/* STEP: Handover Messages (Intro) */}
+          {currentStepId === 'intro' && (
             <div className="animate-in slide-in-from-right-8 duration-300">
               <CardHeader className="p-8 pb-0">
                 <div className="flex items-center space-x-4 mb-2">
@@ -301,8 +292,8 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
             </div>
           )}
 
-          {/* STEP 0: Mimaki Unit Selection */}
-          {localPrinter.isMimaki && step === 0 && (
+          {/* STEP: Mimaki Unit Selection */}
+          {currentStepId === 'mimaki-select' && (
             <div className="animate-in slide-in-from-right-8 duration-300">
               <CardHeader className="p-8 pb-0"><CardTitle className="text-3xl">Pasirinkite Mimaki blokus</CardTitle></CardHeader>
               <CardContent className="p-8">
@@ -327,46 +318,10 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
             </div>
           )}
 
-          {/* STEP 1: Maintenance */}
-          {step === 1 && (
-            <div className="animate-in slide-in-from-right-8 duration-300">
-              <CardHeader className="p-8 pb-0"><CardTitle className="text-3xl">1. Priežiūra</CardTitle></CardHeader>
-              <CardContent className="p-8">
-                <label className={cn(
-                  "flex items-center p-8 rounded-[2.5rem] border-2 transition-all cursor-pointer mb-8 shadow-sm",
-                  localPrinter.maintenanceDone ? "bg-emerald-50/50 border-emerald-500" : "bg-slate-50 border-transparent hover:border-slate-200"
-                )}>
-                  <input
-                    type="checkbox"
-                    checked={localPrinter.maintenanceDone}
-                    onChange={(e) => {
-                      const newData = { maintenanceDone: e.target.checked, status: PrinterStatus.IN_PROGRESS };
-                      setLocalPrinter(prev => ({ ...prev, ...newData }));
-                      onSave(newData);
-                    }}
-                    className="w-8 h-8 rounded-xl border-slate-300 text-mimaki-dark focus:ring-mimaki-dark accent-mimaki-dark"
-                  />
-                  <span className={cn("ml-6 text-xl font-black tracking-tight", localPrinter.maintenanceDone ? "text-mimaki-dark" : "text-slate-500")}>
-                    Profilaktinė priežiūra atlikta
-                  </span>
-                </label>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-4">Komentaras (Nebūtina)</label>
-                <textarea
-                  value={localPrinter.maintenanceComment}
-                  onChange={(e) => {
-                    const newData = { maintenanceComment: e.target.value };
-                    setLocalPrinter(prev => ({ ...prev, ...newData }));
-                    onSave(newData, true); // Silent update
-                  }}
-                  className="w-full p-6 bg-slate-50 border-0 rounded-[2rem] focus:ring-2 focus:ring-mimaki-blue/20 outline-none h-40 font-bold text-slate-700 resize-none transition-all placeholder:text-slate-300"
-                  placeholder="Papildomos pastabos apie būklę..."
-                />
-              </CardContent>
-            </div>
-          )}
 
-          {/* STEP 2: VIT FORM */}
-          {step === 2 && (
+
+          {/* STEP: VIT FORM */}
+          {currentStepId === 'vit' && (
             <div className="animate-in slide-in-from-right-8 duration-300">
               <CardHeader className="p-8 pb-0"><CardTitle className="text-3xl">2. VIT Forma</CardTitle></CardHeader>
               <CardContent className="p-8">
@@ -436,8 +391,8 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
             </div>
           )}
 
-          {/* STEP 3: Nozzle Print */}
-          {step === 3 && (
+          {/* STEP: Nozzle Print */}
+          {currentStepId === 'nozzle' && (
             <div className="animate-in slide-in-from-right-8 duration-300 text-center">
               <CardHeader className="p-8 pb-0"><CardTitle className="text-3xl">3. Nozzle Check</CardTitle></CardHeader>
               <CardContent className="p-8 flex flex-col items-center">
@@ -470,8 +425,8 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
             </div>
           )}
 
-          {/* STEP 4: Nozzle Photo */}
-          {step === 4 && (
+          {/* STEP: Nozzle Photo */}
+          {currentStepId === 'photo' && (
             <div className="animate-in slide-in-from-right-8 duration-300">
               <CardHeader className="p-8 pb-0"><CardTitle className="text-3xl">4. Nuotrauka (Privaloma)</CardTitle></CardHeader>
               <CardContent className="p-8">
@@ -576,9 +531,8 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                 onClick={() => {
                   if (canFinish) setShowConfirmModal(true);
                   else {
-                    if (!localPrinter.maintenanceDone) addToast("Patvirtinkite priežiūrą!", "error");
-                    else if (!localPrinter.vit.confirmed) addToast("Patvirtinkite VIT formą!", "error");
-                    else if (!localPrinter.nozzlePrintDone) addToast("Patvirtinkite purkštukų spausdinimą!", "error");
+                    if (!localPrinter.vit.confirmed) addToast("Patvirtinkite VIT formą!", "error");
+                    else if (localPrinter.hasNozzleCheck !== false && !localPrinter.nozzlePrintDone) addToast("Patvirtinkite purkštukų spausdinimą!", "error");
                     else if (!areNozzlesReady()) addToast("Trūksta purkštukų nuotraukų!", "error");
                   }
                 }}

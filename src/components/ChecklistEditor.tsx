@@ -79,7 +79,7 @@ export const ChecklistEditor: React.FC<ChecklistEditorProps> = ({ template, onSa
                     <Input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="Pvz: Ryto patikra"
+                        placeholder="Pvz: Dieninė patikra"
                         className="text-lg font-bold bg-slate-50 border-slate-200 text-slate-900 dark:bg-slate-50 dark:text-slate-900 dark:border-slate-200"
                     />
                 </div>

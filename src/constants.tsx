@@ -35,17 +35,295 @@ export const MOCK_PRINTERS: PrinterData[] = [
   { id: 'dacen-thumbler', name: 'Dacen(Thumbler)', status: PrinterStatus.NOT_STARTED, maintenanceDone: false, maintenanceComment: '', nozzlePrintDone: false, nozzleFile: null, vit: { shift: '', checklist: {}, notes: '', signature: '', confirmed: false } },
   { id: 'dacen-bottle', name: 'Dacen(Bottle)', status: PrinterStatus.NOT_STARTED, maintenanceDone: false, maintenanceComment: '', nozzlePrintDone: false, nozzleFile: null, vit: { shift: '', checklist: {}, notes: '', signature: '', confirmed: false } },
   { id: 'amica', name: 'Amica', status: PrinterStatus.NOT_STARTED, maintenanceDone: false, maintenanceComment: '', nozzlePrintDone: false, nozzleFile: null, vit: { shift: '', checklist: {}, notes: '', signature: '', confirmed: false } },
-  { 
-    id: 'mimaki', 
-    name: 'Mimaki', 
-    status: PrinterStatus.NOT_STARTED, 
+  {
+    id: 'mimaki',
+    name: 'Mimaki',
+    status: PrinterStatus.NOT_STARTED,
     isMimaki: true,
     selectedMimakiUnits: [],
     mimakiNozzleFiles: {},
-    maintenanceDone: false, 
-    maintenanceComment: '', 
-    nozzlePrintDone: false, 
-    nozzleFile: null, 
-    vit: { shift: '', checklist: {}, notes: '', signature: '', confirmed: false } 
+    maintenanceDone: false,
+    maintenanceComment: '',
+    nozzlePrintDone: false,
+    nozzleFile: null,
+    vit: { shift: '', checklist: {}, notes: '', signature: '', confirmed: false }
   },
+];
+export const DEFAULT_TEMPLATES = [
+  // UV Pakavimas
+  {
+    name: "UV pakavimas (Pradžia)",
+    type: "START",
+    items: [
+      "Patikrinti darbo vietos švarą",
+      "Papildyti apsaugines darbo priemones",
+      "Susipažinti su dokumentacija darbo vietoje",
+      "Įjungti ventiliaciją",
+      "Papildyti pirmines pakuotes",
+      "Papildyti antrines pakuotes",
+      "Papildyti oro pagalvėles",
+      "Papildyti pagalbinėmis priemonėmis",
+      "Perklijuoti stalo plėvelę (mėnesio pradžioje)"
+    ]
+  },
+  {
+    name: "UV pakavimas (Pabaiga)",
+    type: "END",
+    items: [
+      "Nuvalyti darbo stalą",
+      "Iššluoti grindis",
+      "Išnešti šiukšles",
+      "Išnešti broką",
+      "Chemines atliekas išnešti į konteinerį",
+      "Sudėti priemones į vietas",
+      "Papildyti pakuočių dėžutes"
+    ]
+  },
+
+  // UV Lakavimas
+  {
+    name: "UV lakavimas (Pradžia)",
+    type: "START",
+    items: [
+      "Patikrinti darbo vietos švarą",
+      "Papildyti apsaugines priemones",
+      "Susipažinti su dokumentacija",
+      "Įjungti ventiliaciją",
+      "Patikrinti lako kiekį",
+      "Paruošti darbo priemones"
+    ]
+  },
+  {
+    name: "UV lakavimas (Pabaiga)",
+    type: "END",
+    items: [
+      "Nuvalyti darbo paviršius",
+      "Nepalikti lako indelyje",
+      "Išvalyti darbo vietą",
+      "Išnešti atliekas",
+      "Sudėti priemones į vietas"
+    ]
+  },
+
+  // FLORA1
+  {
+    name: "FLORA1 (Pradžia)",
+    type: "START",
+    items: [
+      "Patikrinti dažų kiekį bakeliuose",
+      "Nuvalyti spausdinimo galvą",
+      "Nusivalyti UV lempas",
+      "Patikrinti enkoderio juostą",
+      "Patikrinti apsaugos barjerus",
+      "Atlikti nozzle check",
+      "Patikrinti temperatūrą",
+      "Patikrinti UV nustatymus",
+      "Nuvalyti optinius daviklius",
+      "Atlikti testinį spausdinimą"
+    ]
+  },
+  {
+    name: "FLORA1 (Pabaiga)",
+    type: "END",
+    items: [
+      "Pašalinti susikaupusį rašalą",
+      "Nusivalyti UV lempas",
+      "Išvalyti įrenginio vidų IPA",
+      "Ištuštinti atliekų bakelį",
+      "Nuvalyti galvos dalis",
+      "Nuvalyti rėmus",
+      "Užpildyti žurnalą"
+    ]
+  },
+
+  // FLORA2 (Identical to Flora1)
+  {
+    name: "FLORA2 (Pradžia)",
+    type: "START",
+    items: [
+      "Patikrinti dažų kiekį",
+      "Nuvalyti spausdinimo galvą",
+      "Nusivalyti UV lempas",
+      "Patikrinti enkoderį",
+      "Nozzle check",
+      "Testinis spausdinimas"
+    ]
+  },
+  {
+    name: "FLORA2 (Pabaiga)",
+    type: "END",
+    items: [
+      "Pašalinti rašalą",
+      "Išvalyti vidų IPA",
+      "Ištuštinti atliekų bakelį",
+      "Nuvalyti galvos dalis",
+      "Užpildyti žurnalą"
+    ]
+  },
+
+  // KINGT
+  {
+    name: "KINGT (Pradžia)",
+    type: "START",
+    items: [
+      "Patikrinti dažus",
+      "Nuvalyti galvą",
+      "Patikrinti UV lempas",
+      "Nozzle check",
+      "Patikrinti temperatūrą",
+      "Patikrinti atstumus",
+      "Atlikti test print"
+    ]
+  },
+  {
+    name: "KINGT (Pabaiga)",
+    type: "END",
+    items: [
+      "Nuvalyti UV lempas",
+      "Išvalyti įrenginio vidų",
+      "Nuleisti galvą",
+      "Išvalyti galvos dalis",
+      "Užpildyti žurnalą"
+    ]
+  },
+
+  // DLICAN FLATBED
+  {
+    name: "DLICAN FLATBED (Pradžia)",
+    type: "START",
+    items: [
+      "Patikrinti dažų lygį",
+      "Nuvalyti galvą",
+      "Nozzle check",
+      "Patikrinti vandens lygį",
+      "Nuvalyti jig’us"
+    ]
+  },
+  {
+    name: "DLICAN FLATBED (Pabaiga)",
+    type: "END",
+    items: [
+      "Išvalyti įrenginio vidų",
+      "Ištuštinti atliekų bakelį",
+      "Nuvalyti galvos dalis"
+    ]
+  },
+
+  // DACEN tumbler
+  {
+    name: "DACEN tumbler (Pradžia)",
+    type: "START",
+    items: [
+      "Patikrinti darbo vietos švarą",
+      "Patikrinti įrenginio būklę",
+      "Paruošti jig’us"
+    ]
+  },
+  {
+    name: "DACEN tumbler (Pabaiga)",
+    type: "END",
+    items: [
+      "Nuvalyti įrenginį",
+      "Išvalyti darbo zoną",
+      "Sudėti priemones"
+    ]
+  },
+
+  // Amika
+  {
+    name: "Amika (Pradžia)",
+    type: "START",
+    items: [
+      "Patikrinti darbo vietą",
+      "Patikrinti įrenginio būklę"
+    ]
+  },
+  {
+    name: "Amika (Pabaiga)",
+    type: "END",
+    items: [
+      "Nuvalyti įrenginį",
+      "Išvalyti darbo zoną"
+    ]
+  },
+
+  // DLICAN 360
+  {
+    name: "DLICAN 360 (Pradžia)",
+    type: "START",
+    items: [
+      "Patikrinti dažus",
+      "Nuvalyti galvą",
+      "Nozzle check",
+      "Patikrinti atstumus"
+    ]
+  },
+  {
+    name: "DLICAN 360 (Pabaiga)",
+    type: "END",
+    items: [
+      "Išvalyti įrenginį",
+      "Nuvalyti galvos dalis"
+    ]
+  },
+
+  // Klijų robotas
+  {
+    name: "Klijų robotas (Pradžia)",
+    type: "START",
+    items: [
+      "Patikrinti dispenserio slėgį",
+      "Pakeisti klijų adatą",
+      "Nuvalyti padelius",
+      "Patikrinti nustatymus"
+    ]
+  },
+  {
+    name: "Klijų robotas (Pabaiga)",
+    type: "END",
+    items: [
+      "Roboto vidų nuvalyti",
+      "Sudėti padelius į vietą"
+    ]
+  },
+
+  // Suvirinimo robotas
+  {
+    name: "Suvirinimo robotas (Pradžia)",
+    type: "START",
+    items: [
+      "Nuvalyti elektrodus",
+      "Nuvalyti džigą",
+      "Patikrinti nustatymus"
+    ]
+  },
+  {
+    name: "Suvirinimo robotas (Pabaiga)",
+    type: "END",
+    items: [
+      "Roboto vidų nuvalyti",
+      "Pakeisti filtrus"
+    ]
+  },
+
+  // Mimaki bendra
+  {
+    name: "Mimaki bendra (Pradžia)",
+    type: "START",
+    items: [
+      "Patikrinti dažus",
+      "Nozzle check",
+      "Nusivalyti UV lempas",
+      "Autocleaning"
+    ]
+  },
+  {
+    name: "Mimaki bendra (Pabaiga)",
+    type: "END",
+    items: [
+      "Nuvalyti UV lempas",
+      "Išvalyti vidų",
+      "Užpildyti žurnalą"
+    ]
+  }
 ];

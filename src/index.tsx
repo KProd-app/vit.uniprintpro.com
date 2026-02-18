@@ -1,4 +1,8 @@
 
+import 'core-js/stable';
+import 'regenerator-runtime/runtime';
+import 'whatwg-fetch';
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
