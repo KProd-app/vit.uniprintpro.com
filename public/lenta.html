@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="lt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#020617">
+    <title>Gamybos Fakto sekimas (TV)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #020617;
+            /* slate-950 */
+            color: white;
+            padding: 1vw;
+            /* Responsive padding */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            /* No scrolling for TV */
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(15, 23, 42, 0.8);
+            padding: 1vh 2vw;
+            border-radius: 1vw;
+            border: 1px solid #1e293b;
+            margin-bottom: 2vh;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            font-size: 2.5vh;
+            font-weight: 900;
+            color: #60a5fa;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 1vw;
+        }
+
+        .pulse {
+            width: 1.5vh;
+            height: 1.5vh;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .5;
+            }
+        }
+
+        .clock {
+            background-color: rgba(30, 41, 59, 0.8);
+            padding: 1vh 1.5vw;
+            border-radius: 0.8vw;
+            border: 1px solid #334155;
+            font-family: monospace;
+            font-size: 3vh;
+            font-weight: bold;
+            color: white;
+        }
+
+        #board {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(15, 23, 42, 0.5);
+            border-radius: 1vw;
+            border: 1px solid #1e293b;
+            overflow: hidden;
+            /* To ensure rounding works */
+        }
+
+        .row-header {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;
+            gap: 0.5vw;
+            background-color: #0f172a;
+            padding: 1.5vh 1vw;
+            border-bottom: 1px solid #1e293b;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 1.2vh;
+            color: #94a3b8;
+        }
+
+        .row-header>div {
+            text-align: center;
+            background-color: rgba(30, 41, 59, 0.5);
+            padding: 0.5vh 0;
+            border-radius: 0.5vw;
+        }
+
+        .row-header>div:first-child {
+            text-align: left;
+            background: transparent;
+            padding: 0;
+        }
+
+        #list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .printer-row {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;
+            gap: 0.5vw;
+            padding: 0.8vh 1vw;
+            align-items: center;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+            flex: 1;
+            /* Stretch rows to fit height perfectly */
+        }
+
+        .col-live {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .p-name {
+            font-size: 2vh;
+            font-weight: 900;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .badges {
+            display: flex;
+            gap: 0.5vw;
+            margin-top: 0.5vh;
+        }
+
+        .badge {
+            padding: 0.2vh 0.4vw;
+            border-radius: 0.3vw;
+            font-size: 1vh;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .bg-wait {
+            background: rgba(30, 41, 59, 1);
+            color: #94a3b8;
+        }
+
+        .bg-work {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        .bg-ready {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+
+        .bg-prog {
+            background: rgba(234, 179, 8, 0.2);
+            color: #facc15;
+        }
+
+        .bg-end {
+            background: rgba(168, 85, 247, 0.2);
+            color: #c084fc;
+        }
+
+        .b-maint-ok {
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border: 1px solid currentColor;
+        }
+
+        .b-maint-bad {
+            background: rgba(248, 113, 113, 0.1);
+            color: #f87171;
+            border: 1px solid currentColor;
+        }
+
+        .b-nozzle-ok {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border: 1px solid currentColor;
+        }
+
+        .b-nozzle-bad {
+            background: rgba(248, 113, 113, 0.1);
+            color: #f87171;
+            border: 1px solid currentColor;
+        }
+
+        .log-col {
+            background-color: rgba(30, 41, 59, 0.4);
+            border-radius: 0.5vw;
+            padding: 0.8vh;
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            justify-content: space-between;
+        }
+
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            padding-bottom: 0.4vh;
+            margin-bottom: 0.4vh;
+        }
+
+        .log-date {
+            font-size: 1.4vh;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .log-shift {
+            font-size: 1.2vh;
+            font-weight: 900;
+            text-transform: uppercase;
+            background: rgba(15, 23, 42, 0.5);
+            padding: 0.1vh 0.4vw;
+            border-radius: 0.2vw;
+        }
+
+        .shift-day {
+            color: #fbbf24;
+        }
+
+        .shift-night {
+            color: #60a5fa;
+        }
+
+        .log-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            text-align: center;
+        }
+
+        .metrics-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .metric-label {
+            font-size: 1vh;
+            color: #64748b;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .metric-val {
+            font-size: 1.8vh;
+            font-weight: 900;
+        }
+
+        .c-green {
+            color: #34d399;
+        }
+
+        .c-red {
+            color: #f87171;
+        }
+
+        .c-gray {
+            color: #cbd5e1;
+        }
+
+        .empty-log {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(15, 23, 42, 0.4);
+            border: 1px solid rgba(30, 41, 59, 0.8);
+            border-radius: 0.5vw;
+            color: #475569;
+            font-size: 1.5vh;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        #start-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.95);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        /* Added for split screen */
+        #main-content {
+            display: flex;
+            flex: 1;
+            gap: 1.5vw;
+            overflow: hidden;
+        }
+
+        #right-panel {
+            flex: 1;
+            display: grid;
+            grid-template-rows: 3.5fr 2fr 2fr 1.5fr;
+            gap: 1.5vw;
+            overflow: hidden;
+        }
+
+        .panel-box {
+            background-color: rgba(15, 23, 42, 0.5);
+            border-radius: 1vw;
+            border: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            background-color: transparent;
+            padding: 1.5vh 1.5vw;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 1.5vh;
+            color: #94a3b8;
+        }
+
+        .panel-content {
+            flex: 1;
+            padding: 1.5vh 1.5vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .qr-box {
+            background-color: white;
+            color: black;
+            font-weight: bold;
+            font-size: 2vh;
+            width: 7vh;
+            height: 7vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5vw;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>
+            <div class="pulse"></div> Gamybos Fakto sekimas
+        </h1>
+        <div class="clock" id="clock">00:00</div>
+    </header>
+
+    <div id="main-content">
+        <div id="board">
+            <div class="row-header" id="row-header">
+                <div>Įrenginys & Statusas</div>
+                <div>Kraunama...</div>
+                <div>Kraunama...</div>
+                <div>Kraunama...</div>
+                <div>Kraunama...</div>
+            </div>
+            <div id="list">Kraunama...</div>
+        </div>
+
+        <div id="right-panel">
+            <!-- Problemos -->
+            <div class="panel-box">
+                <div class="panel-header"
+                    style="justify-content: space-between; border-bottom: none; padding-bottom: 0;">
+                    <div style="flex: 1;">DATA:</div>
+                    <div style="flex: 2; text-align: center;">PROBLEMOS</div>
+                    <div style="flex: 2; text-align: center;">SPRENDIMAI</div>
+                    <div style="flex: 1; text-align: center;">ATSAKINGAS<br>Terminas</div>
+                </div>
+                <div class="panel-content" id="tv-problems"
+                    style="position: relative; display: flex; flex-direction: column; padding-top: 1vh; gap: 1vh; overflow: hidden;">
+                    <!-- Problems will be injected here -->
+                </div>
+                <!-- Fixed QR code for problems -->
+                <div class="qr-box" style="position: absolute; right: 2.5vw; top: 15vh; transform: translateY(-50%);">QR
+                </div>
+            </div>
+
+            <!-- Sandėlis & Pasiūlymai -->
+            <div style="display: flex; gap: 1.5vw;">
+                <div class="panel-box" style="flex: 1.5;">
+                    <div class="panel-header" style="justify-content: center; border-bottom: none; padding-bottom: 0;">
+                        SANDĖLIO PERVEŽIMAS</div>
+                    <div class="panel-content"
+                        style="flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div id="tv-transfers"
+                            style="display: flex; gap: 0.8vw; opacity: 0.8; font-size: 1.4vh; color: #94a3b8; align-items: center;">
+                            <!-- Transfers injected here -->
+                        </div>
+                        <div class="qr-box">QR</div>
+                    </div>
+                </div>
+                <div class="panel-box" style="flex: 1;">
+                    <div class="panel-header" style="justify-content: center; border-bottom: none; padding-bottom: 0;">
+                        PASIŪLYMAI</div>
+                    <div class="panel-content"
+                        style="flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div id="tv-proposals"
+                            style="opacity: 0.8; font-size: 1.5vh; color: #94a3b8; display: flex; flex-direction: column; gap: 0.5vh;">
+                            <!-- Proposals injected here -->
+                        </div>
+                        <div class="qr-box">QR</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Brokai & Gedimai -->
+            <div style="display: flex; gap: 1.5vw;">
+                <div class="panel-box" style="flex: 1.5;">
+                    <div class="panel-header" style="justify-content: center; border-bottom: none;">BROKAI</div>
+                    <div class="panel-content" style="align-items: center; justify-content: center;">
+                        <span id="tv-metric-defects"
+                            style="font-size: 5vh; color: #94a3b8; font-weight: bold; opacity: 0.8;">0</span>
+                    </div>
+                </div>
+                <div class="panel-box" style="flex: 1;">
+                    <div class="panel-header"
+                        style="justify-content: space-around; border-bottom: none; padding-bottom: 0;">
+                        <span>GEDIMAI</span>
+                        <span style="border-left: 1px solid rgba(51,65,85,0.5); padding-left: 1vw;">ŽALIAVŲ
+                            TRŪKUMAS</span>
+                    </div>
+                    <div class="panel-content" style="align-items: center; justify-content: center;">
+                        <span id="tv-metric-breakdowns"
+                            style="font-size: 5vh; color: #94a3b8; font-weight: bold; opacity: 0.8;">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kokybės skyriaus informacija -->
+            <div class="panel-box">
+                <div class="panel-content" id="tv-metric-quality"
+                    style="font-size: 4vh; color: #1e293b; font-weight: 900; align-items: flex-start; justify-content: center; padding-left: 3vw;">
+                    KOKYBĖS SKYRIAUS INFORMACIJA NĖRA.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Overlay -->
+    <div id="start-overlay">
+        <h1 style="font-size: 8vh; margin-bottom: 4vh; color: white;">Gamybos Fakto sekimas TV</h1>
+        <button onclick="enterFullscreen()"
+            style="padding: 2vh 4vw; font-size: 4vh; font-weight: bold; background: #2563eb; color: white; border: none; border-radius: 1vw; cursor: pointer;">
+            PALEISTI PER VISĄ EKRANĄ
+        </button>
+        <p style="margin-top: 3vh; opacity: 0.6; font-size: 2vh;">Bakstelėkite bet kur, kad pradėtumėte</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // FULLSCREEN
+        function enterFullscreen() {
+            var elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => console.log(err));
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
+            }
+            document.getElementById('start-overlay').style.display = 'none';
+        }
+
+        if (window.matchMedia('(display-mode: fullscreen)').matches) {
+            document.getElementById('start-overlay').style.display = 'none';
+        }
+        document.getElementById('start-overlay').addEventListener('click', enterFullscreen);
+
+        // CLOCK
+        function updateClock() {
+            var now = new Date();
+            var h = String(now.getHours()).padStart(2, '0');
+            var m = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('clock').textContent = h + ':' + m;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // CONFIG
+        var SUPABASE_URL = 'https://hljqmgmwjrtowpfsnokr.supabase.co';
+        var SUPABASE_KEY = 'sb_publishable_8JLf1MPUFX2c06nab_aWvQ_dlpeCmpI';
+
+        // STATE
+        var printers = [];
+        var logs = [];
+
+        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function fetchData() {
+            try {
+                // Fetch printers
+                var { data: pData, error: pErr } = await supabaseClient
+                    .from('printers')
+                    .select('*')
+                    .order('name', { ascending: true });
+
+                if (pErr) {
+                    console.error("Error fetching printers:", pErr);
+                    return;
+                }
+                if (pData) printers = pData;
+
+                // Fetch logs
+                var { data: lData, error: lErr } = await supabaseClient
+                    .from('printer_logs')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .limit(150);
+
+                if (lErr) {
+                    console.error("Error fetching logs:", lErr);
+                    return;
+                }
+                if (lData) logs = lData;
+
+                render();
+            } catch (err) {
+                console.error("Unexpected error fetching data:", err);
+            }
+        }
+
+        function formatStatus(status) {
+            if (status === 'NOT_STARTED') return { text: 'LAUKIA', css: 'bg-wait' };
+            if (status === 'WORKING') return { text: 'DIRBA', css: 'bg-work' };
+            if (status === 'READY_TO_WORK') return { text: 'PARUOŠTA', css: 'bg-ready' };
+            if (status === 'ENDING_SHIFT') return { text: 'BAIGIA', css: 'bg-end' };
+            return { text: 'RUOŠIAMA', css: 'bg-prog' };
+        }
+
+        function formatDate(iso) {
+            var d = new Date(iso);
+            var months = ['Sausio', 'Vasario', 'Kovo', 'Balandžio', 'Gegužės', 'Birželio', 'Liepos', 'Rugpjūčio', 'Rugsėjo', 'Spalio', 'Lapkričio', 'Gruodžio'];
+            return d.getDate() + ' d. ' + months[d.getMonth()];
+        }
+
+        function getShiftId(log) {
+            return log.date + '_' + log.shift;
+        }
+
+        function formatTimeDate(iso) {
+            var d = new Date(iso);
+            var dd = String(d.getDate()).padStart(2, '0');
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var hh = String(d.getHours()).padStart(2, '0');
+            var mn = String(d.getMinutes()).padStart(2, '0');
+            return { date: dd + '-' + mm, time: hh + ':' + mn };
+        }
+
+        function render() {
+            renderLeftBoard();
+            renderRightPanels();
+        }
+
+        function renderLeftBoard() {
+            var list = document.getElementById('list');
+            var headerEl = document.getElementById('row-header');
+            var html = '';
+
+            // Group logs by printer
+            var groupedLogs = {};
+            for (var i = 0; i < logs.length; i++) {
+                var l = logs[i];
+                if (!groupedLogs[l.printer_id]) groupedLogs[l.printer_id] = [];
+                groupedLogs[l.printer_id].push(l);
+            }
+
+            // Ensure they are sorted by finished_at descending
+            for (var pid in groupedLogs) {
+                groupedLogs[pid].sort(function (a, b) {
+                    return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime();
+                });
+            }
+
+            // EXTRACT GLOBAL TIMELINE (Last 4 unique shifts across all logs)
+            var uniqueShifts = [];
+            var seen = {};
+            // Sort ALL logs by date desc to get chronological keys
+            var sortedAll = [].concat(logs).sort(function (a, b) {
+                return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime();
+            });
+            for (var i = 0; i < sortedAll.length; i++) {
+                var id = getShiftId(sortedAll[i]);
+                if (!seen[id]) {
+                    seen[id] = true;
+                    uniqueShifts.push({
+                        id: id,
+                        dateStr: formatDate(sortedAll[i].finished_at),
+                        shiftStr: sortedAll[i].shift
+                    });
+                    if (uniqueShifts.length === 4) break;
+                }
+            }
+
+            // Pad if less than 4
+            while (uniqueShifts.length < 4) {
+                uniqueShifts.push({ id: 'empty', dateStr: '-', shiftStr: '-' });
+            }
+
+            // Render Header
+            var headerHtml = '<div>Įrenginys & Statusas</div>';
+            for (var i = 0; i < 4; i++) {
+                var s = uniqueShifts[i];
+                if (s.id === 'empty') headerHtml += '<div>-</div>';
+                else {
+                    var color = s.shiftStr === 'Dieninė' ? '#fbbf24' : '#60a5fa'; // amber / blue
+                    headerHtml += '<div>' + s.dateStr + ' <span style="color:' + color + '">(' + s.shiftStr.substring(0, 4) + '.)</span></div>';
+                }
+            }
+            headerEl.innerHTML = headerHtml;
+
+            // Render Printers
+            for (var i = 0; i < printers.length; i++) {
+                var p = printers[i];
+                var pLogs = groupedLogs[p.id] || [];
+
+                // Map printer logs by their shift ID so we can match the global columns
+                var mappedPLogs = {};
+                for (var j = 0; j < pLogs.length; j++) {
+                    mappedPLogs[getShiftId(pLogs[j])] = pLogs[j];
+                }
+
+                var st = formatStatus(p.status);
+                var maintDone = p.state && p.state.vit && p.state.vit.confirmed;
+                var nozzleDone = p.state && p.state.nozzleFile && p.state.nozzleFile.url;
+
+                html += '<div class="printer-row">';
+
+                // Col 1: Live info
+                html += '<div class="col-live">';
+                html += '<div class="p-name">' + p.name + '</div>';
+                html += '<div class="badges">';
+                html += '<div class="badge ' + st.css + '">' + st.text + '</div>';
+                html += '<div class="badge ' + (maintDone ? 'b-maint-ok' : 'b-maint-bad') + '">' + (maintDone ? '✓ VALYMAS' : '✕ VALYMAS') + '</div>';
+                html += '<div class="badge ' + (nozzleDone ? 'b-nozzle-ok' : 'b-nozzle-bad') + '">' + (nozzleDone ? '✓ NOZZLE' : '✕ NOZZLE') + '</div>';
+                html += '</div></div>';
+
+                // Col 2 to 5: Match the global timeline columns
+                for (var j = 0; j < 4; j++) {
+                    var shiftRef = uniqueShifts[j];
+                    var log = mappedPLogs[shiftRef.id];
+
+                    if (!log) {
+                        html += '<div class="empty-log">NEDIRBO</div>';
+                    } else {
+                        var shiftCss = log.shift === 'Dieninė' ? 'shift-day' : 'shift-night';
+                        var remain = log.remaining_amount !== null && log.remaining_amount !== undefined ? log.remaining_amount : '-';
+
+                        html += '<div class="log-col">';
+                        html += '<div class="log-header" style="justify-content: center;">';
+                        html += '<span class="log-shift ' + shiftCss + '" style="font-size: 1.4vh;">' + log.shift + ' Pamaina</span>';
+                        html += '</div>';
+
+                        html += '<div class="log-metrics metrics-3">';
+                        html += '<div><div class="metric-label">Pagam.</div><div class="metric-val c-green">' + log.production_amount + '</div></div>';
+
+                        var defectRate = log.production_amount > 0 ? ((log.defects_amount / log.production_amount) * 100).toFixed(1) + '%' : '0%';
+                        var defectClass = log.production_amount > 0 && ((log.defects_amount / log.production_amount) * 100) > 5 ? 'c-red' : 'c-green';
+                        html += '<div><div class="metric-label">Brokas</div><div class="metric-val ' + defectClass + '">' + defectRate + '</div></div>';
+
+                        html += '<div><div class="metric-label">Liko</div><div class="metric-val c-gray">' + remain + '</div></div>';
+                        html += '</div>';
+                        html += '</div>'; // End log-col
+                    }
+                }
+
+                html += '</div>'; // End printer-row
+            }
+
+            list.innerHTML = html;
+        }
+
+        function renderRightPanels() {
+            // 1. Problemos
+            var probHtml = '';
+            sideData.problems.forEach(p => {
+                var dt = p.date_reported || formatTimeDate(p.created_at).date;
+                probHtml += '<div style="display: flex; flex-direction: row; border-bottom: 1px solid rgba(51, 65, 85, 0.4); padding-bottom: 0.5vh; font-size: 1.4vh; color: white;">';
+                probHtml += '  <div style="flex: 1; opacity: 0.8;">' + dt + '</div>';
+                probHtml += '  <div style="flex: 2; color: #f87171;">' + (p.problem || '') + '</div>';
+                probHtml += '  <div style="flex: 2; color: #34d399;">' + (p.solution || '') + '</div>';
+                probHtml += '  <div style="flex: 1; text-align: right; opacity: 0.8;">' + (p.responsible || '') + '</div>';
+                probHtml += '</div>';
+            });
+            if (!probHtml) probHtml = '<div style="opacity:0.3; text-align:center; margin-top: 2vh;">Nėra atvirų problemų.</div>';
+            document.getElementById('tv-problems').innerHTML = probHtml;
+
+            // 2. Transfers
+            var transHtml = '';
+            sideData.transfers.forEach((t, i) => {
+                var dt = formatTimeDate(t.created_at);
+                transHtml += '<div style="text-align: center;">' + dt.date + '<br><span style="color:white; font-weight:bold;">' + dt.time + '</span></div>';
+                if (i < sideData.transfers.length - 1) {
+                    transHtml += '<div style="height: 3vh; border-left: 1px solid rgba(51,65,85,0.5);"></div>';
+                }
+            });
+            if (!transHtml) transHtml = '<div style="opacity:0.3;">Nėra duomenų</div>';
+            document.getElementById('tv-transfers').innerHTML = transHtml;
+
+            // 3. Proposals
+            var propHtml = '';
+            sideData.proposals.forEach(p => {
+                var dt = formatTimeDate(p.created_at);
+                propHtml += '<div>' + dt.date + ' ' + dt.time + '</div>';
+            });
+            if (!propHtml) propHtml = '<div style="opacity:0.3;">Nėra pasiūlymų</div>';
+            document.getElementById('tv-proposals').innerHTML = propHtml;
+
+            // 4. Metrics
+            var breakdownsCount = sideData.metrics['breakdowns_count'] || '0';
+            var defectsCount = sideData.metrics['defects_count'] || '0';
+            var qualityText = sideData.metrics['quality_info'] || 'KOKYBĖS SKYRIAUS INFORMACIJA NĖRA.';
+
+            var bcEl = document.getElementById('tv-metric-breakdowns');
+            bcEl.textContent = breakdownsCount;
+            bcEl.style.color = parseInt(breakdownsCount) > 0 ? '#f87171' : '#94a3b8'; // Red if > 0
+
+            var defEl = document.getElementById('tv-metric-defects');
+            defEl.textContent = defectsCount;
+            defEl.style.color = parseInt(defectsCount) > 0 ? '#fbbf24' : '#94a3b8'; // Amber if > 0
+
+            var qEl = document.getElementById('tv-metric-quality');
+            qEl.textContent = qualityText;
+            qEl.style.color = qualityText.includes('NĖRA') ? '#1e293b' : '#34d399';
+        }
+
+        fetchData();
+        setInterval(fetchData, 5000); // Poll every 5 seconds since TV
+    </script>
+</body>
+
+</html>
