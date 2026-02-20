@@ -4,9 +4,10 @@ import { usePrinters } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ChecklistEditor } from './ChecklistEditor';
 import { StationEditor } from './StationEditor';
-import { PrinterEditor } from './PrinterEditor';
+import { InstructionGenerator } from './InstructionGenerator';
+import { AdminTVPanel } from './AdminTVPanel';
 import { Button } from './ui/button';
-import { Plus, Settings, Printer, Users, Trash2, Edit, RotateCcw, MessageSquare, ExternalLink, X } from 'lucide-react';
+import { Plus, Settings, Printer, Users, Trash2, Edit, RotateCcw, MessageSquare, ExternalLink, X, QrCode, Monitor } from 'lucide-react';
 
 // ... (existing code)
 
@@ -31,18 +32,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
     deletePrinter,
     resetPrinter,
     getFeedback,
-    clearAllData,
-    assignPrinterToStation,
-    createStation,
-    updateStation,
-    deleteStation,
-    stations
+    clearAllData
   } = usePrinters();
 
   // ... (existing state)
   const [editingTemplate, setEditingTemplate] = useState<ChecklistTemplate | PrinterData | undefined | 'NEW' | 'NEW_USER' | 'NEW_STATION'>(undefined);
+  const [selectedInstructionPrinter, setSelectedInstructionPrinter] = useState<PrinterData | null>(null);
 
-  const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS' | 'MESSAGES'>('PRINTERS');
+  const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS' | 'MESSAGES' | 'TV'>('PRINTERS');
   const [users, setUsers] = useState<User[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
@@ -106,40 +103,18 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
       {editingTemplate && (
         <div className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-4">
           {/* Logic to choose editor based on type */}
-          {editingTemplate === 'NEW_STATION' || (typeof editingTemplate === 'object' && 'stationQrLink' in editingTemplate) ? (
+          {editingTemplate === 'NEW_STATION' || (typeof editingTemplate === 'object' && 'isMimaki' in editingTemplate) ? (
             <StationEditor
-              station={editingTemplate === 'NEW_STATION' ? undefined : (editingTemplate as any)}
-              allPrinters={printers}
-              onSave={async (data, assignedPrinterIds) => {
+              station={editingTemplate === 'NEW_STATION' ? undefined : (editingTemplate as PrinterData)}
+              onSave={async (data) => {
                 try {
-                  let stationId = (editingTemplate as any)?.id;
-
                   if (editingTemplate === 'NEW_STATION') {
-                    // Create
-                    stationId = await createStation(data);
+                    await createPrinter(data as any);
                     addToast?.("Stationas sukurtas", "success");
                   } else {
-                    // Update
-                    await updateStation(stationId, data);
+                    await updatePrinter((editingTemplate as PrinterData).id, data);
                     addToast?.("Stationas atnaujintas", "success");
                   }
-
-                  // Handle Printer Assignments
-                  // We get existing assigned to this station
-                  // But since we are in Admin, we can just fetch all printers again to be sure?
-                  // Or rely on `printers` prop.
-
-                  const currentAssignedIds = printers.filter(p => p.stationId === stationId).map(p => p.id);
-                  const newAssignedIds = assignedPrinterIds;
-
-                  const toUnassign = currentAssignedIds.filter(id => !newAssignedIds.includes(id));
-                  const toAssign = newAssignedIds.filter(id => !currentAssignedIds.includes(id));
-
-                  await Promise.all([
-                    ...toUnassign.map(id => assignPrinterToStation(id, null)),
-                    ...toAssign.map(id => assignPrinterToStation(id, stationId))
-                  ]);
-
                   setEditingTemplate(undefined);
                 } catch (e) {
                   console.error(e);
@@ -147,55 +122,23 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                 }
               }}
               onDelete={async (id) => {
-                if (confirm('Ar tikrai norite ištrinti šį stationą?')) {
-                  try {
-                    await deleteStation(id);
-                    addToast?.("Stationas ištrintas", "success");
-                    setEditingTemplate(undefined);
-                  } catch (e) {
-                    console.error(e);
-                    addToast?.("Klaida trinant stationą", "error");
-                  }
-                }
-              }}
-              onCancel={() => setEditingTemplate(undefined)}
-            />
-          ) : editingTemplate === 'NEW_USER' ? (
-            // User creation is handled below in a separate block? 
-            // Actually currently 'NEW_USER' is handled in the main render flow at line 688
-            // So here we should probably NOT render anything if it conflicts, 
-            // OR move the user creation modal here.
-            // Looking at existing code, line 688 handles NEW_USER.
-            // So here we just return null or empty?
-            // But 'editingTemplate' IS 'NEW_USER', so this block renders.
-            // The existing code at line 671 checks `editingTemplate === 'NEW_USER'` independently.
-            // So I should exclude NEW_USER from THIS block.
-            null
-          ) : (typeof editingTemplate === 'object' && 'isMimaki' in editingTemplate) ? (
-            <PrinterEditor
-              printer={editingTemplate as PrinterData}
-              onSave={async (data) => {
-                try {
-                  await updatePrinter((editingTemplate as PrinterData).id, data);
-                  addToast?.("Įrenginys atnaujintas", "success");
-                  setEditingTemplate(undefined);
-                } catch (e) {
-                  console.error(e);
-                  addToast?.("Klaida saugant įrenginį", "error");
-                }
-              }}
-              onDelete={async (id) => {
                 try {
                   await deletePrinter(id);
-                  addToast?.("Įrenginys ištrintas", "success");
+                  addToast?.("Stationas ištrintas", "success");
                   setEditingTemplate(undefined);
                 } catch (e) {
                   console.error(e);
-                  addToast?.("Klaida trinant įrenginį", "error");
+                  addToast?.("Klaida trinant stationą", "error");
                 }
               }}
               onCancel={() => setEditingTemplate(undefined)}
             />
+          ) : (editingTemplate === 'NEW_USER' ? (
+            // Placeholder for User Editor if needed, or keeping existing logic separate
+            <div className="bg-white p-8 rounded-2xl">
+              <p>Vartotojų kūrimas/redagavimas dar kuriamas.</p>
+              <Button onClick={() => setEditingTemplate(undefined)}>Uždaryti</Button>
+            </div>
           ) : (
             <ChecklistEditor
               template={editingTemplate === 'NEW' ? undefined : (editingTemplate as ChecklistTemplate)}
@@ -203,8 +146,16 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
               onDelete={deleteChecklistTemplate}
               onCancel={() => setEditingTemplate(undefined)}
             />
-          )}
+          ))}
         </div>
+      )}
+
+      {/* Instruction Modal Overlay */}
+      {selectedInstructionPrinter && (
+        <InstructionGenerator
+          printer={selectedInstructionPrinter}
+          onClose={() => setSelectedInstructionPrinter(null)}
+        />
       )}
 
       <header className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
@@ -215,7 +166,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
               viewMode === 'CHECKLISTS' ? 'Checklist Šablonų Valdymas' :
                 viewMode === 'JOURNAL' ? 'Pamainų Istorija' :
                   viewMode === 'MESSAGES' ? 'Vartotojų Pranešimai' :
-                    'Vartotojų Valdymas'}
+                    viewMode === 'TV' ? 'TV Ekrano Duomenų Istorija' :
+                      'Vartotojų Valdymas'}
           </p>
         </div>
 
@@ -246,14 +198,22 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
               <Users className="w-4 h-4" /> Vartotojai
             </button>
 
-            {/* Super User Tab */}
+            {/* Super User Tabs */}
             {isSuperUser && (
-              <button
-                onClick={() => setViewMode('MESSAGES')}
-                className={`px-6 py-3 rounded-xl font-bold uppercase text-sm flex items-center gap-2 transition-all ${viewMode === 'MESSAGES' ? 'bg-mimaki-blue text-white shadow-md' : 'text-mimaki-blue hover:text-blue-600 hover:bg-blue-50'}`}
-              >
-                <MessageSquare className="w-4 h-4" /> Pranešimai
-              </button>
+              <>
+                <button
+                  onClick={() => setViewMode('MESSAGES')}
+                  className={`px-6 py-3 rounded-xl font-bold uppercase text-sm flex items-center gap-2 transition-all ${viewMode === 'MESSAGES' ? 'bg-mimaki-blue text-white shadow-md' : 'text-mimaki-blue hover:text-blue-600 hover:bg-blue-50'}`}
+                >
+                  <MessageSquare className="w-4 h-4" /> Pranešimai
+                </button>
+                <button
+                  onClick={() => setViewMode('TV')}
+                  className={`px-6 py-3 rounded-xl font-bold uppercase text-sm flex items-center gap-2 transition-all ${viewMode === 'TV' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50'}`}
+                >
+                  <Monitor className="w-4 h-4" /> TV Ekranas
+                </button>
+              </>
             )}
           </div>
 
@@ -322,6 +282,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
             </table>
           </div>
         </div>
+      ) : viewMode === 'TV' && isSuperUser ? (
+        <AdminTVPanel />
       ) : viewMode === 'CHECKLISTS' ? (
         <div className="space-y-8">
           <div className="flex justify-end">
@@ -535,174 +497,205 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
             </table>
           </div>
         </div>
-      ) : viewMode === 'PRINTERS' ? (
+      ) : (
         <div className="space-y-10">
-          {/* Stations List */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {/* Add Station Card */}
-            <div
-              className="bg-slate-100 border-4 border-slate-200 border-dashed rounded-[40px] p-8 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-200 hover:border-slate-300 transition-all min-h-[300px]"
-              onClick={() => setEditingTemplate('NEW_STATION')}
-            >
-              <div className="bg-white p-4 rounded-full shadow-sm mb-4">
-                <Plus className="w-8 h-8 text-slate-400" />
-              </div>
-              <h3 className="text-xl font-black text-slate-500 uppercase">Naujas Stationas</h3>
-            </div>
+          <div className="flex justify-between items-center bg-white p-8 rounded-[40px] shadow-sm border border-slate-200">
+            <h3 className="text-xl font-black text-slate-800 uppercase">Stationų Sąrašas</h3>
+            <Button onClick={() => setEditingTemplate('NEW_STATION')} className="bg-slate-900 text-white rounded-xl h-10 px-4 font-bold uppercase text-xs">
+              <Plus className="w-4 h-4 mr-2" /> Pridėti Stationą
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 gap-10">
+            {printers.map((printer) => (
+              <div key={printer.id} className="bg-white rounded-[40px] shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row relative group">
 
-            {stations.map(station => {
-              const assignedPrinters = printers.filter(p => p.stationId === station.id);
-              const isMimaki = station.name.toLowerCase().includes('mimaki');
+                {/* Edit Button */}
+                {/* Action Buttons */}
+                <div className="absolute top-6 right-6 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="bg-white shadow-sm hover:bg-slate-100 rounded-full h-10 w-10 text-slate-400 hover:text-red-500"
+                    title="Nunulinti (Reset)"
+                    onClick={async () => {
+                      if (confirm(`Ar tikrai norite pilnai nunulinti ${printer.name}? Tai ištrins visą šios pamainos progresą.`)) {
+                        try {
+                          await resetPrinter(printer.id);
+                          addToast?.("Stationas sėkmingai nunulintas", "success");
+                        } catch (e) {
+                          console.error(e);
+                          addToast?.("Klaida nunulinant", "error");
+                        }
+                      }
+                    }}
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="bg-white shadow-sm hover:bg-slate-100 rounded-full h-10 w-10 text-slate-400 hover:text-mimaki-blue"
+                    title="Atsisiųsti Instrukciją (QR)"
+                    onClick={() => setSelectedInstructionPrinter(printer)}
+                  >
+                    <QrCode className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="bg-white shadow-sm hover:bg-slate-100 rounded-full h-10 w-10 text-slate-400 hover:text-mimaki-blue"
+                    onClick={() => setEditingTemplate(printer as any)}
+                  >
+                    <Edit className="w-5 h-5" />
+                  </Button>
+                </div>
 
-              return (
-                <div key={station.id} className="bg-white rounded-[40px] shadow-sm border border-slate-200 overflow-hidden flex flex-col hover:shadow-md transition-all group relative">
-                  <div className={`p-8 ${isMimaki ? 'bg-mimaki-blue/5' : 'bg-slate-50'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-tight pointer-events-none">
-                        {station.name}
-                      </h3>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="bg-white shadow-sm hover:bg-slate-100 rounded-full h-10 w-10 text-slate-400 hover:text-mimaki-blue"
-                        onClick={() => setEditingTemplate(station as any)}
-                      >
-                        <Edit className="w-5 h-5" />
-                      </Button>
-                    </div>
-                    {station.stationQrLink && (
-                      <a href={station.stationQrLink} target="_blank" rel="noreferrer" className="text-xs font-bold text-mimaki-blue hover:underline flex items-center gap-1">
-                        <ExternalLink className="w-3 h-3" /> Instrukcijos Link
-                      </a>
-                    )}
+                <div className="flex-1 p-10 border-r border-slate-100">
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">{printer.name}</h3>
+                    <span className={`px-4 py-2 rounded-xl text-xs font-black border uppercase ${printer.status === PrinterStatus.WORKING ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                      {printer.status}
+                    </span>
                   </div>
 
-                  <div className="p-8 flex-1">
-                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Priskirti Įrenginiai</h4>
-                    {assignedPrinters.length > 0 ? (
-                      <div className="space-y-3">
-                        {assignedPrinters.map(printer => (
-                          <div
-                            key={printer.id}
-                            className="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 cursor-pointer transition-colors group/printer"
-                            onClick={() => setEditingTemplate(printer)}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-2 h-2 rounded-full ${printer.status === PrinterStatus.WORKING ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                              <span className="font-bold text-slate-700 text-sm">{printer.name}</span>
-                            </div>
-                            <Edit className="w-3 h-3 text-slate-300 group-hover/printer:text-mimaki-blue transition-colors" />
-                          </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-slate-50 p-4 rounded-2xl">
+                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Operatorius</p>
+                      <p className="font-bold text-slate-800 truncate text-sm">{printer.operatorName || '—'}</p>
+                    </div>
+                    {printer.name.toLowerCase().includes('pakavimas') ? (
+                      <>
+                        <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                          <p className="text-[10px] font-black text-amber-500 uppercase mb-1">Roboto Brokas</p>
+                          <p className="font-black text-xl text-amber-700">{printer.robotDefects ?? '0'}</p>
+                        </div>
+                        <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+                          <p className="text-[10px] font-black text-red-500 uppercase mb-1">Spaudos Brokas</p>
+                          <p className="font-black text-xl text-red-700">{printer.printingDefects ?? '0'}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                          <p className="text-[10px] font-black text-emerald-500 uppercase mb-1">Pagamino</p>
+                          <p className="font-black text-xl text-emerald-700">{printer.productionAmount ?? '0'}</p>
+                        </div>
+                        <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+                          <p className="text-[10px] font-black text-red-500 uppercase mb-1">Brokas</p>
+                          <p className="font-black text-xl text-red-700">{printer.defectsAmount ?? '0'}</p>
+                        </div>
+                      </>
+                    )}
+                    <div className="bg-slate-50 p-4 rounded-2xl">
+                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Pamaina</p>
+                      <p className="font-bold text-slate-800 text-sm">{printer.vit.shift || '—'}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase">Pradžios Checklistas</label>
+                      <select
+                        className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-mimaki-blue/50"
+                        value={printer.checklistTemplateId || ''}
+                        onChange={(e) => updatePrinter(printer.id, { checklistTemplateId: e.target.value })}
+                      >
+                        <option value="">-- Nėra --</option>
+                        {checklistTemplates.filter(t => !t.type || t.type === 'START').map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
                         ))}
+                      </select>
+                    </div>
+
+                    <div className="mt-4">
+                      <label className="text-[10px] font-black text-slate-400 uppercase">Pabaigos Checklistas</label>
+                      <select
+                        className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-mimaki-blue/50"
+                        value={printer.endShiftChecklistId || ''}
+                        onChange={(e) => updatePrinter(printer.id, { endShiftChecklistId: e.target.value })}
+                      >
+                        <option value="">-- Nėra --</option>
+                        {checklistTemplates.filter(t => t.type === 'END').map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${printer.maintenanceDone ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
+                      <span className="font-bold text-slate-600 text-sm">Priežiūra atlikta</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${printer.vit.confirmed ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
+                      <span className="font-bold text-slate-600 text-sm">VIT Forma patvirtinta</span>
+                    </div>
+                  </div>
+
+                  {printer.nextOperatorMessage && (
+                    <div className="mt-8 p-6 bg-amber-50 rounded-3xl text-amber-800 text-sm italic font-medium border border-amber-100">
+                      <span className="block text-[10px] font-black uppercase mb-1 opacity-50">Žinutė kitai pamainai:</span>
+                      "{printer.nextOperatorMessage}"
+                    </div>
+                  )}
+                </div>
+
+                <div className="w-full md:w-[400px] p-10 bg-slate-50 flex flex-col items-center justify-center">
+                  <p className="text-sm font-black text-slate-400 uppercase mb-6 tracking-widest text-center">Nozzle Check Foto</p>
+                  {printer.isMimaki ? (
+                    <div className="grid grid-cols-2 gap-4 w-full">
+                      {(printer.selectedMimakiUnits || []).map(unit => (
+                        <div key={unit} className="relative group cursor-zoom-in" onClick={() => setSelectedImg(printer.mimakiNozzleFiles?.[unit]?.url || null)}>
+                          <div className="mb-2 flex justify-between items-center">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Blokas {unit}</span>
+                            {printer.mimakiNozzleFiles?.[unit] ? (
+                              <span className="text-[10px] font-bold text-emerald-500">Yra</span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-red-400">Nėra</span>
+                            )}
+                          </div>
+                          {printer.mimakiNozzleFiles?.[unit] ? (
+                            <img
+                              src={printer.mimakiNozzleFiles[unit].url}
+                              className="rounded-xl shadow-sm border-2 border-white w-full h-24 object-cover transition-transform group-hover:scale-105"
+                              alt={`Nozzle ${unit}`}
+                            />
+                          ) : (
+                            <div className="w-full h-24 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-slate-100">
+                              <span className="text-slate-300 text-[10px] font-bold">---</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {(!printer.selectedMimakiUnits || printer.selectedMimakiUnits.length === 0) && (
+                        <div className="col-span-2 text-center py-4 text-slate-400 text-xs italic">Nėra pasirinktų blokų</div>
+                      )}
+                    </div>
+                  ) : (
+                    printer.nozzleFile ? (
+                      <div className="relative group cursor-zoom-in w-full text-center" onClick={() => setSelectedImg(printer.nozzleFile?.url || null)}>
+                        <img
+                          src={printer.nozzleFile.url}
+                          className="rounded-3xl shadow-xl border-4 border-white max-h-60 mx-auto transition-transform group-hover:scale-105"
+                          alt="Nozzle"
+                        />
+                        <div className="mt-4">
+                          <p className="text-[10px] font-bold text-slate-500">{printer.nozzleFile.timestamp}</p>
+                        </div>
                       </div>
                     ) : (
-                      <div className="py-6 text-center border-2 border-dashed border-slate-100 rounded-xl">
-                        <p className="text-xs font-bold text-slate-300 uppercase">Nėra įrenginių</p>
+                      <div className="w-full h-48 border-4 border-dashed border-slate-200 rounded-[32px] flex items-center justify-center">
+                        <span className="text-slate-300 font-bold uppercase text-xs">Nuotraukos nėra</span>
                       </div>
-                    )}
-                  </div>
+                    )
+                  )}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Unassigned Printers Section (Optional?) */}
-          {printers.filter(p => !p.stationId).length > 0 && (
-            <div className="mt-12">
-              <h3 className="text-xl font-black text-slate-400 uppercase tracking-widest mb-6">Nepriskirti Įrenginiai</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {printers.filter(p => !p.stationId).map(printer => (
-                  <div key={printer.id} className="bg-slate-50 rounded-2xl p-6 border border-slate-200 opacity-75 hover:opacity-100 transition-opacity">
-                    <div className="flex justify-between items-center mb-2">
-                      <h4 className="font-bold text-slate-700">{printer.name}</h4>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-slate-400 hover:text-mimaki-blue"
-                        onClick={() => setEditingTemplate(printer)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <p className="text-xs text-slate-400 font-bold uppercase">Nepriskirtas</p>
-                  </div>
-                ))}
               </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        /* Original PRINTERS view (which was listing all printers) is now STATIONS view essentially. 
-           But wait, the user might still want to see the Detailed Printer Cards?
-           Actually, the requirement is "Admin UI: Add Station detail view".
-           The previous view was "PRINTERS". I reused 'PRINTERS' viewMode for the new Station view.
-           Do we still need the old Detailed Printer Cards view? 
-           Typically "Admin Station Assignment" implies organizing them.
-           But the Admin needs to see live status too?
-           
-           Maybe we keep 'PRINTERS' as the Detailed List, and add 'STATIONS' as a separate tab?
-           In Step 506, I added 'PRINTERS' tab which listed Printer Cards.
-           
-           If I replace the content of 'PRINTERS' viewMode with Stations List, where do the Printer Cards go?
-           
-           The user task says: "Admin UI: Add Station detail view".
-           And "Update station selection to show new stations".
-           
-           If I hide the detailed printer cards, how does the admin monitor production?
-           The AdminView is primarily for "Gamybos Kontrolė" (Production Control).
-           So seeing the BIG printer cards is important.
-           
-           Maybe 'STATIONS' should be a NEW tab "STATIONAI" (which I added in header), 
-           and 'PRINTERS' remains "ĮRENGINIAI" (Detailed View).
-           
-           Let's check the header I modified in step 506/501?
-           In step 506 line 185:
-           <button onClick={() => setViewMode('PRINTERS')}> Stationai </button>
-           
-           I accepted 'PRINTERS' as 'Stationai' in the label.
-           This implies I intended to REPLACE the view.
-           
-           However, the Station Card I just designed is a high-level grouping.
-           The Printer Card (original) has all the stats (Production, Defects, Nozzle Photo).
-           
-           If I replace it, I lose that visibility unless I embed it inside the Station Card?
-           The Station Card I designed above only lists names.
-           
-           Proposed Solution:
-           1. Rename 'PRINTERS' viewMode to 'DASHBOARD' or keep 'PRINTERS' but restore the Detailed Cards.
-           2. Add 'STATIONS' viewMode for managing the Stations (CRUD).
-           
-           Let's look at the ViewMode state in `AdminView`:
-           const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | ...>('PRINTERS');
-           
-           I will add 'STATIONS' to the state type allowing me to switch.
-           I will keep 'PRINTERS' as the detailed dashboard.
-           I will add 'STATIONS' tab in the header.
-        */
-
-        /* I will stick to what I wrote:
-           1. 'STATIONS' Mode -> Management of Stations (Edit/Assign).
-           2. 'PRINTERS' Mode -> The Live Dashboard (Original).
-           
-           So I need to:
-           - Render Stations List ONLY when viewMode === 'STATIONS'.
-           - Restore/Keep Printers List when viewMode === 'PRINTERS'.
-        */
-
-        /* Wait, I am replacing the content of `) : ( <div className="space-y-10"> ...` which was the DEFAULT case (PRINTERS).
-           I need to wrap this properly.
-        */
-
-        <div className="space-y-10">
-          {/* Original Printer Dashboard Content */}
-          <div className="flex justify-between items-center bg-white p-8 rounded-[40px] shadow-sm border border-slate-200">
-            <h3 className="text-xl font-black text-slate-800 uppercase">Įrenginių Kontrolė</h3>
-            {/* Maybe add a button to switch to Station Management if separate? or just rely on Tab */}
+            ))}
           </div>
-          {/* ... mapped printers ... */}
         </div>
-      )}
-
+      )
+      }
 
       {/* Create User Modal */}
       {
@@ -812,42 +805,40 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
         )
       }
       {/* Super User Zone */}
-      {
-        isSuperUser && (
-          <div className="mt-20 border-t-2 border-red-100 pt-10">
-            <h2 className="text-2xl font-black text-red-600 mb-6 flex items-center gap-3">
-              <Trash2 className="w-6 h-6" />
-              PAVOJINGA ZONA (SUPER ADMIN)
-            </h2>
+      {isSuperUser && (
+        <div className="mt-20 border-t-2 border-red-100 pt-10">
+          <h2 className="text-2xl font-black text-red-600 mb-6 flex items-center gap-3">
+            <Trash2 className="w-6 h-6" />
+            PAVOJINGA ZONA (SUPER ADMIN)
+          </h2>
 
-            <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-8 max-w-2xl">
-              <p className="text-red-800 mb-6 font-medium">
-                Ši funkcija ištrins <span className="font-bold underline">VISĄ</span> gamybos istoriją (žurnalą) ir atstatys visus stationus į pradinę būseną.
-                <br /><br />
-                Tai yra negrįžtamas veiksmas, skirtas sistemos paruošimui "švariai" pradžiai.
-              </p>
+          <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-8 max-w-2xl">
+            <p className="text-red-800 mb-6 font-medium">
+              Ši funkcija ištrins <span className="font-bold underline">VISĄ</span> gamybos istoriją (žurnalą) ir atstatys visus stationus į pradinę būseną.
+              <br /><br />
+              Tai yra negrįžtamas veiksmas, skirtas sistemos paruošimui "švariai" pradžiai.
+            </p>
 
-              <button
-                onClick={() => {
-                  const confirmation = window.prompt("Įrašykite 'DELETE ALL' norėdami patvirtinti visų duomenų ištrynimą:");
-                  if (confirmation === 'DELETE ALL') {
-                    clearAllData()
-                      .then(() => addToast?.("Visi duomenys sėkmingai ištrinti", "success"))
-                      .catch(() => addToast?.("Klaida trinant duomenis", "error"));
-                  } else if (confirmation !== null) {
-                    addToast?.("Veiksmas atšauktas: neteisingas patvirtinimo kodas", "info");
-                  }
-                }}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-red-600/20 active:scale-95 transition-all flex items-center gap-3"
-              >
-                <Trash2 className="w-5 h-5" />
-                IŠTRINTI VISĄ ISTORIJĄ IR NUNULINTI STATIONUS
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                const confirmation = window.prompt("Įrašykite 'DELETE ALL' norėdami patvirtinti visų duomenų ištrynimą:");
+                if (confirmation === 'DELETE ALL') {
+                  clearAllData()
+                    .then(() => addToast?.("Visi duomenys sėkmingai ištrinti", "success"))
+                    .catch(() => addToast?.("Klaida trinant duomenis", "error"));
+                } else if (confirmation !== null) {
+                  addToast?.("Veiksmas atšauktas: neteisingas patvirtinimo kodas", "info");
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-red-600/20 active:scale-95 transition-all flex items-center gap-3"
+            >
+              <Trash2 className="w-5 h-5" />
+              IŠTRINTI VISĄ ISTORIJĄ IR NUNULINTI STATIONUS
+            </button>
           </div>
-        )
-      }
+        </div>
+      )}
 
-    </div >
+    </div>
   );
 };
