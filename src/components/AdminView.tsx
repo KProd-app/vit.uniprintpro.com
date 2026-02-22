@@ -6,8 +6,9 @@ import { ChecklistEditor } from './ChecklistEditor';
 import { StationEditor } from './StationEditor';
 import { InstructionGenerator } from './InstructionGenerator';
 import { AdminTVPanel } from './AdminTVPanel';
+import { TransfersJournal } from './TransfersJournal';
 import { Button } from './ui/button';
-import { Plus, Settings, Printer, Users, Trash2, Edit, RotateCcw, MessageSquare, ExternalLink, X, QrCode, Monitor } from 'lucide-react';
+import { Plus, Settings, Printer, Users, Trash2, Edit, RotateCcw, MessageSquare, ExternalLink, X, QrCode, Monitor, Truck } from 'lucide-react';
 
 // ... (existing code)
 
@@ -39,7 +40,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
   const [editingTemplate, setEditingTemplate] = useState<ChecklistTemplate | PrinterData | undefined | 'NEW' | 'NEW_USER' | 'NEW_STATION'>(undefined);
   const [selectedInstructionPrinter, setSelectedInstructionPrinter] = useState<PrinterData | null>(null);
 
-  const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS' | 'MESSAGES' | 'TV'>('PRINTERS');
+  const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS' | 'MESSAGES' | 'TV' | 'TRANSFERS_JOURNAL'>('PRINTERS');
   const [users, setUsers] = useState<User[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
@@ -167,33 +168,34 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                 viewMode === 'JOURNAL' ? 'Pamainų Istorija' :
                   viewMode === 'MESSAGES' ? 'Vartotojų Pranešimai' :
                     viewMode === 'TV' ? 'TV Ekrano Duomenų Istorija' :
-                      'Vartotojų Valdymas'}
+                      viewMode === 'TRANSFERS_JOURNAL' ? 'Visi Registruoti Pervežimai' :
+                        'Vartotojų Valdymas'}
           </p>
         </div>
 
-        <div className="flex gap-4">
-          <div className="bg-white rounded-2xl p-1 flex shadow-sm border border-slate-200">
+        <div className="flex gap-4 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 hide-scrollbar items-center">
+          <div className="bg-white rounded-2xl p-1 flex shadow-sm border border-slate-200 w-max shrink-0">
             <button
               onClick={() => setViewMode('PRINTERS')}
-              className={`px-6 py-3 rounded-xl font-bold uppercase text-sm flex items-center gap-2 transition-all ${viewMode === 'PRINTERS' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'PRINTERS' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
             >
               <Printer className="w-4 h-4" /> Stationai
             </button>
             <button
               onClick={() => setViewMode('CHECKLISTS')}
-              className={`px-6 py-3 rounded-xl font-bold uppercase text-sm flex items-center gap-2 transition-all ${viewMode === 'CHECKLISTS' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'CHECKLISTS' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
             >
               <Settings className="w-4 h-4" /> Checklistai
             </button>
             <button
               onClick={() => setViewMode('JOURNAL')}
-              className={`px-6 py-3 rounded-xl font-bold uppercase text-sm flex items-center gap-2 transition-all ${viewMode === 'JOURNAL' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'JOURNAL' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
             >
               <RotateCcw className="w-4 h-4" /> Žurnalas
             </button>
             <button
               onClick={() => setViewMode('USERS')}
-              className={`px-6 py-3 rounded-xl font-bold uppercase text-sm flex items-center gap-2 transition-all ${viewMode === 'USERS' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+              className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'USERS' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
             >
               <Users className="w-4 h-4" /> Vartotojai
             </button>
@@ -203,15 +205,21 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
               <>
                 <button
                   onClick={() => setViewMode('MESSAGES')}
-                  className={`px-6 py-3 rounded-xl font-bold uppercase text-sm flex items-center gap-2 transition-all ${viewMode === 'MESSAGES' ? 'bg-mimaki-blue text-white shadow-md' : 'text-mimaki-blue hover:text-blue-600 hover:bg-blue-50'}`}
+                  className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'MESSAGES' ? 'bg-mimaki-blue text-white shadow-md' : 'text-mimaki-blue hover:text-blue-600 hover:bg-blue-50'}`}
                 >
                   <MessageSquare className="w-4 h-4" /> Pranešimai
                 </button>
                 <button
                   onClick={() => setViewMode('TV')}
-                  className={`px-6 py-3 rounded-xl font-bold uppercase text-sm flex items-center gap-2 transition-all ${viewMode === 'TV' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50'}`}
+                  className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'TV' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50'}`}
                 >
                   <Monitor className="w-4 h-4" /> TV Ekranas
+                </button>
+                <button
+                  onClick={() => setViewMode('TRANSFERS_JOURNAL')}
+                  className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'TRANSFERS_JOURNAL' ? 'bg-pink-600 text-white shadow-md' : 'text-pink-500 hover:text-pink-700 hover:bg-pink-50'}`}
+                >
+                  <Truck className="w-4 h-4" /> Pervežimai
                 </button>
               </>
             )}
@@ -219,7 +227,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
 
           <button
             onClick={onBack}
-            className="bg-slate-100 text-slate-600 px-8 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+            className="bg-slate-100 text-slate-600 px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all shrink-0"
           >
             Grįžti
           </button>
@@ -284,6 +292,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
         </div>
       ) : viewMode === 'TV' && isSuperUser ? (
         <AdminTVPanel />
+      ) : viewMode === 'TRANSFERS_JOURNAL' && isSuperUser ? (
+        <TransfersJournal />
       ) : viewMode === 'CHECKLISTS' ? (
         <div className="space-y-8">
           <div className="flex justify-end">
@@ -389,15 +399,24 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                         ) : (
                           <>
                             <div>
-                              <span className="font-bold text-emerald-600">{log.productionAmount}</span>
-                              <span className="text-slate-300 mx-2">/</span>
-                              <span className="font-bold text-red-500">
+                              <span className="font-bold text-emerald-600" title="Pagaminta">{log.productionAmount}</span>
+                              <span className="text-slate-300 mx-1">/</span>
+                              <span className="font-bold text-red-500" title="Brokas">
                                 {log.productionAmount ? (
-                                  ((Number(log.defectsAmount) || 0) / (Number(log.productionAmount) || 1) * 100).toFixed(1) + '%'
+                                  ((Number(log.defectsAmount) || 0) / ((Number(log.productionAmount) || 0) + (Number(log.defectsAmount) || 0)) * 100).toFixed(1) + '%'
                                 ) : (
                                   (log.defectsAmount || 0)
                                 )}
                               </span>
+                              {log.defectsReason && (
+                                <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-bold uppercase cursor-help" title={`Broko priežastis: ${log.defectsReason}`}>
+                                  Priežastis
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-slate-500 mt-1 flex gap-2">
+                              {Number(log.backlog) > 0 && <span title="Atsilikimas">Atsilikimas: <span className="text-orange-600 font-bold">{log.backlog}</span></span>}
+                              {Number(log.remainingAmount) > 0 && <span title="Liko gaminti">Liko: <span className="text-blue-600 font-bold">{log.remainingAmount}</span></span>}
                             </div>
                             {(Number(log.robotDefects) > 0 || Number(log.printingDefects) > 0) && (
                               <div className="text-[10px] text-slate-400 mt-1">
@@ -587,9 +606,17 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                         </div>
                       </>
                     )}
-                    <div className="bg-slate-50 p-4 rounded-2xl">
-                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Pamaina</p>
-                      <p className="font-bold text-slate-800 text-sm">{printer.vit.shift || '—'}</p>
+                    <div className="bg-slate-50 p-4 rounded-2xl flex flex-col justify-center border border-slate-100">
+                      {printer.name.toLowerCase().includes('pakavimas') ? null : (
+                        <div className="mb-2">
+                          <p className="text-[9px] font-black text-orange-500 uppercase mb-0.5">Atsilikimas</p>
+                          <p className="font-black text-sm text-orange-700">{printer.backlog ?? '0'}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-[9px] font-black text-blue-500 uppercase mb-0.5">Liko</p>
+                        <p className="font-black text-sm text-blue-700">{printer.remainingAmount ?? '0'}</p>
+                      </div>
                     </div>
                   </div>
 

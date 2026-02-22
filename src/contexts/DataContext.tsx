@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, PrinterStatus, User, Feedback, Station } from '../types';
+import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, PrinterStatus, User, Feedback } from '../types';
 import { supabase } from '../lib/supabase';
 import { StorageRepository } from '../lib/repository/StorageRepository';
 import { SupabaseRepository } from '../lib/repository/SupabaseRepository';
@@ -30,13 +30,6 @@ interface DataContextType {
     updateUser: (id: string, data: Partial<User>) => Promise<void>;
     deleteUser: (id: string) => Promise<void>;
     createUser: (user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }) => Promise<void>;
-    // Stations
-    stations: Station[];
-    assignPrinterToStation: (printerId: string, stationId: string | null) => Promise<void>;
-    createStation: (station: Partial<Station>) => Promise<string>;
-    updateStation: (id: string, updates: Partial<Station>) => Promise<void>;
-    deleteStation: (id: string) => Promise<void>;
-
     // Feedback
     saveFeedback: (feedback: Omit<Feedback, 'id' | 'createdAt'>) => Promise<void>;
     getFeedback: () => Promise<Feedback[]>;
@@ -54,7 +47,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isSyncing, setIsSyncing] = useState(false);
 
     const [checklistTemplates, setChecklistTemplates] = useState<ChecklistTemplate[]>([]);
-    const [stations, setStations] = useState<Station[]>([]);
 
     // Initial load
     useEffect(() => {
@@ -64,10 +56,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // MOCK_PRINTERS are used as defaults if DB is empty
             await repository.initialize(MOCK_PRINTERS);
 
-            const [printersData, checklistsData, stationsData] = await Promise.all([
+            const [printersData, checklistsData] = await Promise.all([
                 repository.getPrinters(),
-                repository.getChecklistTemplates(),
-                repository.getStations()
+                repository.getChecklistTemplates()
             ]);
 
             // Seed default checklists if missing
@@ -375,43 +366,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return await repository.getFeedback();
     };
 
-    const assignPrinterToStation = async (printerId: string, stationId: string | null) => {
-        setIsSyncing(true);
-        await repository.assignPrinterToStation(printerId, stationId);
-        // Refresh printers to update the local state
-        const data = await repository.getPrinters();
-        setPrinters(data);
-        setIsSyncing(false);
-    };
-
-    const createStation = async (station: Partial<Station>) => {
-        setIsSyncing(true);
-        const id = await repository.createStation(station);
-        const data = await repository.getStations();
-        setStations(data);
-        setIsSyncing(false);
-        return id;
-    };
-
-    const updateStation = async (id: string, updates: Partial<Station>) => {
-        setIsSyncing(true);
-        await repository.updateStation(id, updates);
-        const data = await repository.getStations();
-        setStations(data);
-        setIsSyncing(false);
-    };
-
-    const deleteStation = async (id: string) => {
-        setIsSyncing(true);
-        await repository.deleteStation(id);
-        const data = await repository.getStations();
-        setStations(data);
-        // Also refresh printers as they might be unassigned
-        const printersData = await repository.getPrinters();
-        setPrinters(printersData);
-        setIsSyncing(false);
-    };
-
     const clearAllData = async () => {
         setIsSyncing(true);
         try {
@@ -447,12 +401,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             createUser,
             saveFeedback,
             getFeedback,
-            clearAllData,
-            stations,
-            assignPrinterToStation,
-            createStation,
-            updateStation,
-            deleteStation
+            clearAllData
         }}>
             {children}
         </DataContext.Provider>

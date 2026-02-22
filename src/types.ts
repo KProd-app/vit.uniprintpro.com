@@ -48,19 +48,14 @@ export interface PrinterConfig {
   id: string;
   name: string;
   isMimaki?: boolean;
+  assignedMimakiUnits?: number[]; // Admin assigned default units for Mimaki
   hasWhiteInk?: boolean; // Future proofing
   hasVarnish?: boolean; // Future proofing
   hasNozzleCheck?: boolean; // Controls if nozzle check step is required
   checklistTemplateId?: string; // Link to specific START shift checklist
   endShiftChecklistId?: string; // Link to specific END shift checklist
   qrCode?: string; // Optional custom QR code value (defaults to ID if not set)
-  stationId?: string; // Link to the station this printer belongs to
-}
-
-export interface Station {
-  id: string;
-  name: string;
-  stationQrLink?: string;
+  requireDateOnNozzle?: boolean; // Controls if operator must write date on nozzle check
 }
 
 // Dynamic state that changes during the shift
@@ -92,7 +87,9 @@ export interface PrinterState {
   // End of Shift
   productionAmount?: number;
   remainingAmount?: number;
+  backlog?: number;         // Naujas atsilikimas
   defectsAmount?: number;
+  defectsReason?: string;   // Nauja broko priežastis
   robotDefects?: number;
   printingDefects?: number;
   nextOperatorMessage?: string;
@@ -113,7 +110,7 @@ export interface ChecklistTemplate {
   items: string[];
 }
 
-export type ViewType = 'LOGIN' | 'DASHBOARD' | 'SETUP' | 'SUMMARY' | 'ADMIN' | 'END_SHIFT' | 'LIVE' | 'START_VERIFICATION' | 'LIVE_MOBILE' | 'LIVE_DESKTOP';
+export type ViewType = 'LOGIN' | 'DASHBOARD' | 'SETUP' | 'SUMMARY' | 'ADMIN' | 'END_SHIFT' | 'LIVE' | 'LIVE_MOBILE' | 'LIVE_DESKTOP' | 'LENTA' | 'USER_TV';
 
 
 export interface PrinterLog {
@@ -126,7 +123,10 @@ export interface PrinterLog {
   startedAt: string;
   finishedAt: string;
   productionAmount: number;
+  remainingAmount?: number;
+  backlog?: number;         // Naujas atsilikimas
   defectsAmount: number;
+  defectsReason?: string;   // Nauja broko priežastis
   robotDefects?: number;
   printingDefects?: number;
   vitData: VITData;

@@ -12,7 +12,7 @@ interface EndShiftProcessProps {
   printer: PrinterData;
   currentUser: User;
   checklistTemplates: ChecklistTemplate[];
-  onFinish: (message: string, checklist: { [key: string]: boolean }, production: number, defects: number, remaining: number, robotDefects?: number, printDefects?: number) => void;
+  onFinish: (message: string, checklist: { [key: string]: boolean }, production: number, defects: number, remaining: number, robotDefects?: number, printDefects?: number, backlog?: number, defectsReason?: string) => void;
   onCancel: () => void;
   addToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
@@ -23,6 +23,18 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
     return (printer.endShiftChecklist && Object.keys(printer.endShiftChecklist).length > 0) ? 2 : 1;
   });
 
+  // Calculate current defect rate state
+  const getCurrentDefectRate = () => {
+    const p = parseFloat(productionAmount) || 0;
+    const d = parseFloat(defectsAmount) || 0;
+    const total = p + d;
+    return total > 0 ? (d / total) * 100 : 0;
+  };
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
+
   const [checklist, setChecklist] = useState<{ [key: string]: boolean }>(printer.endShiftChecklist || {});
   const [message, setMessage] = useState(printer.nextOperatorMessage || '');
 
@@ -30,6 +42,8 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
   const [productionAmount, setProductionAmount] = useState<string>(printer.productionAmount?.toString() || '');
   const [defectsAmount, setDefectsAmount] = useState<string>(printer.defectsAmount?.toString() || '');
   const [remainingAmount, setRemainingAmount] = useState<string>(printer.remainingAmount?.toString() || '');
+  const [backlogAmount, setBacklogAmount] = useState<string>(printer.backlog?.toString() || '0');
+  const [defectsReason, setDefectsReason] = useState<string>(printer.defectsReason || '');
 
   // Packing specific inputs
   const [robotDefects, setRobotDefects] = useState<string>(printer.robotDefects?.toString() || '');
@@ -99,8 +113,6 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
         return;
       }
       if (!isPackingStation && (isNaN(rem) || rem < 0)) {
-        // remaining is optional? or required? User said "ask". let's make it required or 0 default.
-        // Let's make it required for better data.
         addToast("Įveskite korektišką likusį kiekį!", "error");
         return;
       }
@@ -108,20 +120,25 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
         addToast("Įveskite korektišką brokų kiekį!", "error");
         return;
       }
+
+      const parsedBacklog = parseFloat(backlogAmount);
+      if (isNaN(parsedBacklog) || parsedBacklog < 0) {
+        addToast("Įveskite korektišką atsilikimą!", "error");
+        return;
+      }
+
+      const total = prod + def;
+      const defectRate = total > 0 ? (def / total) * 100 : 0;
+      if (defectRate > 5 && !defectsReason.trim()) {
+        addToast("Brokas viršija 5%. Būtina nurodyti broko priežastį!", "error");
+        return;
+      }
     }
 
     const remFinal = parseFloat(remainingAmount) || 0;
+    const backFinal = parseFloat(backlogAmount) || 0;
 
-    // We need to cast or update the interface. simpler to pass object or just extra args
-    // onFinish signature in props: (message: string, checklist: any, production: number, defects: number) => void;
-    // We should piggyback or update App.tsx to handle this.
-    // For now I will assume I can pass extra args if checking types, but typescript will complain.
-    // I need to update the interface in this file first.
-
-    // Actually, I can update the prop interface right here in the replacement.
-    // But I need to update App.tsx too.
-    // But I need to update App.tsx too.
-    onFinish(message, checklist, prod, def, remFinal, robotDef, printDef);
+    onFinish(message, checklist, prod, def, remFinal, robotDef, printDef, backFinal, defectsReason);
   };
 
   return (
@@ -215,9 +232,9 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
                     <div className="flex items-center justify-center">
                       <input
                         type="number"
-                        autoFocus
                         value={robotDefects}
                         onChange={(e) => setRobotDefects(e.target.value)}
+                        onFocus={(e) => e.target.select()}
                         placeholder="0"
                         className="w-full bg-transparent border-none p-0 font-black text-6xl text-amber-900 focus:ring-0 outline-none text-center placeholder-amber-900/20"
                       />
@@ -233,6 +250,7 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
                         type="number"
                         value={printingDefects}
                         onChange={(e) => setPrintingDefects(e.target.value)}
+                        onFocus={(e) => e.target.select()}
                         placeholder="0"
                         className="w-full bg-transparent border-none p-0 font-black text-6xl text-red-900 focus:ring-0 outline-none text-center placeholder-red-900/20"
                       />
@@ -241,7 +259,7 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   {/* Production Amount */}
                   <div className="bg-emerald-50/50 p-6 rounded-[3rem] border border-emerald-100 flex flex-col focus-within:ring-4 focus-within:ring-emerald-500/20 transition-all shadow-inner">
                     <h3 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Pagaminta</h3>
@@ -250,8 +268,9 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
                         type="number"
                         value={productionAmount}
                         onChange={(e) => setProductionAmount(e.target.value)}
+                        onFocus={(e) => e.target.select()}
                         placeholder="0"
-                        className="w-full bg-transparent border-none p-0 font-black text-6xl text-emerald-900 focus:ring-0 outline-none text-center placeholder-emerald-900/20"
+                        className="w-full bg-transparent border-none p-0 font-black text-5xl xl:text-6xl text-emerald-900 focus:ring-0 outline-none text-center placeholder-emerald-900/20"
                       />
                     </div>
                     <p className="text-emerald-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt. / m²</p>
@@ -265,8 +284,9 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
                         type="number"
                         value={remainingAmount}
                         onChange={(e) => setRemainingAmount(e.target.value)}
+                        onFocus={(e) => e.target.select()}
                         placeholder="0"
-                        className="w-full bg-transparent border-none p-0 font-black text-6xl text-blue-900 focus:ring-0 outline-none text-center placeholder-blue-900/20"
+                        className="w-full bg-transparent border-none p-0 font-black text-5xl xl:text-6xl text-blue-900 focus:ring-0 outline-none text-center placeholder-blue-900/20"
                       />
                     </div>
                     <p className="text-blue-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt. / m²</p>
@@ -280,11 +300,28 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
                         type="number"
                         value={defectsAmount}
                         onChange={(e) => setDefectsAmount(e.target.value)}
+                        onFocus={(e) => e.target.select()}
                         placeholder="0"
-                        className="w-full bg-transparent border-none p-0 font-black text-6xl text-red-900 focus:ring-0 outline-none text-center placeholder-red-900/20"
+                        className="w-full bg-transparent border-none p-0 font-black text-5xl xl:text-6xl text-red-900 focus:ring-0 outline-none text-center placeholder-red-900/20"
                       />
                     </div>
                     <p className="text-red-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt. / m²</p>
+                  </div>
+
+                  {/* Backlog Amount */}
+                  <div className="bg-orange-50/50 p-6 rounded-[3rem] border border-orange-100 flex flex-col focus-within:ring-4 focus-within:ring-orange-500/20 transition-all shadow-inner">
+                    <h3 className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-4">Atsilikimas</h3>
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={backlogAmount}
+                        onChange={(e) => setBacklogAmount(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="0"
+                        className="w-full bg-transparent border-none p-0 font-black text-5xl xl:text-6xl text-orange-900 focus:ring-0 outline-none text-center placeholder-orange-900/20"
+                      />
+                    </div>
+                    <p className="text-orange-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt. / m²</p>
                   </div>
                 </div>
               )}
@@ -292,6 +329,24 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
               <div className="bg-blue-50/50 p-6 rounded-3xl text-center text-blue-700 text-sm font-medium border border-blue-100">
                 Svarbu: Suvedus duomenis jie bus automatiškai išsaugoti administratoriaus ataskaitoje.
               </div>
+
+              {/* Conditional Defects Reason */}
+              {!isPackingStation && getCurrentDefectRate() > 5 && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  <Label className="uppercase tracking-widest mb-4 block text-[10px] font-black text-red-500 pl-2">
+                    <span className="flex items-center gap-2">
+                      <X className="w-4 h-4 bg-red-100 rounded-full p-0.5" />
+                      Dėmesio: Pamainos brokas viršija 5% ({getCurrentDefectRate().toFixed(1)}%). Būtina nurodyti priežastį.
+                    </span>
+                  </Label>
+                  <textarea
+                    value={defectsReason}
+                    onChange={(e) => setDefectsReason(e.target.value)}
+                    className="w-full p-6 bg-red-50/50 border border-red-200 rounded-[2rem] font-bold text-red-900 focus:ring-4 focus:ring-red-500/20 outline-none h-32 resize-none placeholder:text-red-400/50 transition-all shadow-inner"
+                    placeholder="Pvz.: Lūžta antgaliai, prastos kokybės tentas..."
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>

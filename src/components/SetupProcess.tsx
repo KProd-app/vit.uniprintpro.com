@@ -27,31 +27,43 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
   const [localPrinter, setLocalPrinter] = useState<PrinterData>(printer);
   const [showCamera, setShowCamera] = useState<number | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [tempRemaining, setTempRemaining] = useState<string>(printer.remainingAmount?.toString() || '0');
 
   useEffect(() => {
-    // Only initialize defaults if missing. Shift rotation is handled globally in DataContext.
     const currentHour = new Date().getHours();
     const currentShift: 'Dieninė' | 'Naktinė' = (currentHour >= 6 && currentHour < 18) ? 'Dieninė' : 'Naktinė';
+
+    let updates: Partial<PrinterData> = {};
+    let hasUpdates = false;
 
     const needsShiftInit = !localPrinter.vit.shift;
     const needsSignatureInit = !localPrinter.vit.signature;
 
     if (needsShiftInit || needsSignatureInit) {
-      const currentHour = new Date().getHours();
-      const currentShift: 'Dieninė' | 'Naktinė' = (currentHour >= 6 && currentHour < 18) ? 'Dieninė' : 'Naktinė';
-
-      const newVit = {
+      updates.vit = {
         ...localPrinter.vit,
         shift: localPrinter.vit.shift || currentShift,
         signature: localPrinter.vit.signature || currentUser.name
       };
+      hasUpdates = true;
+    }
 
-      const newData = { vit: newVit };
-      setLocalPrinter(prev => ({ ...prev, ...newData }));
-      onSave(newData);
+    if (localPrinter.isMimaki && (!localPrinter.selectedMimakiUnits || localPrinter.selectedMimakiUnits.length === 0) && localPrinter.assignedMimakiUnits && localPrinter.assignedMimakiUnits.length > 0) {
+      updates.selectedMimakiUnits = localPrinter.assignedMimakiUnits;
+      hasUpdates = true;
+    }
+
+    if (hasUpdates) {
+      setLocalPrinter(prev => ({ ...prev, ...updates }));
+      onSave(updates);
     }
   }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
 
   // Helper functions
   const updateVIT = (updates: Partial<VITData>) => {
@@ -163,16 +175,41 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
             <div className="w-24 h-24 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 animate-in zoom-in spin-in-180 duration-500 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
               <Check className="w-12 h-12" strokeWidth={3} />
             </div>
-            <h2 className="text-4xl font-black text-white mb-4 tracking-tighter uppercase">Viskas tvarkoje!</h2>
+            <h2 className="text-4xl font-black text-white mb-4 tracking-tighter">Sveiki, {localPrinter.vit.signature?.split(' ')[0] || currentUser.name.split(' ')[0]}!</h2>
             <p className="text-slate-400 text-xl mb-10 leading-relaxed font-medium">
-              Paruošimas baigtas. Galite pradėti gamybą.
+              VIT formos pildymas sėkmingai baigtas.<br />Galite pradėti darbą.
             </p>
             <Button
               size="lg"
               onClick={onFinish}
               className="w-full py-8 text-2xl font-black bg-mimaki-blue hover:bg-blue-600 shadow-xl shadow-mimaki-blue/30 rounded-3xl uppercase tracking-widest"
             >
-              PRADĖTI GAMYBĄ
+              PRADĖTI DARBĄ
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (showErrorModal) {
+    return (
+      <div className="fixed inset-0 bg-mimaki-dark/80 backdrop-blur-md flex items-center justify-center p-6 z-[100] animate-in fade-in duration-300">
+        <Card className="max-w-xl w-full text-center shadow-2xl border-red-500/20 bg-white">
+          <CardContent className="p-10">
+            <div className="w-20 h-20 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="w-10 h-10" />
+            </div>
+            <h2 className="text-3xl font-black text-slate-800 mb-4 uppercase">Nepilni Duomenys</h2>
+            <div className="text-slate-600 text-lg mb-8 text-left bg-slate-50 p-6 rounded-2xl whitespace-pre-line border border-slate-100 font-medium">
+              {showErrorModal}
+            </div>
+            <Button
+              size="lg"
+              onClick={() => setShowErrorModal(null)}
+              className="w-full py-6 text-xl font-black bg-slate-800 hover:bg-black text-white rounded-2xl uppercase"
+            >
+              Supratau
             </Button>
           </CardContent>
         </Card>
@@ -189,13 +226,13 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
             <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-10 h-10" />
             </div>
-            <CardTitle className="text-3xl font-black uppercase text-mimaki-dark">VIT Jau Atliktas!</CardTitle>
+            <CardTitle className="text-3xl font-black text-mimaki-dark">Sveiki, {localPrinter.vit.signature?.split(' ')[0] || currentUser.name.split(' ')[0]}!</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <p className="text-slate-500 font-medium text-lg">
-              Šios ({localPrinter.vit.shift}) pamainos patikrinimas jau užfiksuotas.
+              Šios ({localPrinter.vit.shift}) pamainos VIT formos pildymas jau atliktas.
               <br />
-              Galite tęsti darbą ir registruoti gamybą.
+              Galite pradėti darbą.
             </p>
             <div className="flex flex-col gap-4">
               <Button
@@ -204,7 +241,7 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                 className="w-full h-16 text-xl font-black uppercase bg-emerald-500 hover:bg-emerald-600 shadow-xl shadow-emerald-500/20 rounded-2xl"
               >
                 <Play className="w-6 h-6 mr-3" />
-                Tęsti Darbą
+                PRADĖTI DARBĄ
               </Button>
 
               <Button
@@ -260,10 +297,41 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                   <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 shadow-inner">
                     <AlertTriangle className="w-6 h-6" />
                   </div>
-                  <CardTitle className="text-3xl">Pranešimai</CardTitle>
+                  <CardTitle className="text-3xl">Likutis ir Pranešimai</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="p-8">
+                {/* Handover Verification */}
+                {!localPrinter.handoverVerified && (
+                  <div className="bg-blue-50/50 rounded-[2rem] p-8 border border-blue-100 mb-8 shadow-inner relative overflow-hidden group focus-within:ring-4 focus-within:ring-blue-500/20 transition-all">
+                    <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-6 flex items-center gap-3 relative z-10">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Info className="w-4 h-4" />
+                      </div>
+                      Liko gaminti (Patvirtinkite arba Pataisykite)
+                    </h3>
+                    <div className="relative w-full max-w-sm mx-auto z-10">
+                      <input
+                        type="number"
+                        value={tempRemaining}
+                        onChange={(e) => setTempRemaining(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        onBlur={() => {
+                          const val = parseFloat(tempRemaining);
+                          if (!isNaN(val) && val >= 0) {
+                            const newData = { remainingAmount: val, handoverVerified: true };
+                            setLocalPrinter(prev => ({ ...prev, ...newData }));
+                            onSave(newData);
+                          }
+                        }}
+                        className="w-full bg-white border-2 border-blue-100 p-6 rounded-[2rem] font-black text-5xl text-blue-900 focus:ring-0 outline-none text-center transition-all focus:border-blue-400 shadow-lg shadow-blue-900/5 placeholder-blue-200"
+                        placeholder="0"
+                      />
+                      <p className="text-blue-400 text-[10px] font-black uppercase tracking-widest mt-4 text-center">vnt. / m²</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-slate-50 border border-slate-100 rounded-[32px] p-8 md:p-10 mb-8 shadow-inner">
                   {localPrinter.nextOperatorMessage ? (
                     <div className="space-y-4">
@@ -285,7 +353,7 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                 <div className="p-6 bg-blue-50/50 border border-blue-100 rounded-3xl flex items-start space-x-4">
                   <Info className="w-6 h-6 text-mimaki-blue mt-0.5 shrink-0" />
                   <p className="text-mimaki-blue text-sm font-medium leading-relaxed">
-                    Susipažinkite su informacija prieš tęsdami. Kitame žingsnyje turėsite pažymėti valymo varneles ir patvirtinti VIT formą.
+                    Patikrinkite "Liko gaminti" kiekį, jei reikia, pataisykite. Toliau turėsite pažymėti valymo varneles ir patvirtinti VIT formą.
                   </p>
                 </div>
               </CardContent>
@@ -358,33 +426,15 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                   </div>
                 </div>
                 <div className="space-y-8">
-                  <Label className="uppercase tracking-widest text-[10px] font-black text-slate-400 pl-2">Patvirtinimas</Label>
-                  <div className="p-8 bg-slate-50/50 rounded-[3rem] border border-slate-100 h-full flex flex-col justify-center shadow-inner">
+                  <Label className="uppercase tracking-widest text-[10px] font-black text-slate-400 pl-2">Jūsų parašas</Label>
+                  <div className="p-8 bg-slate-50/50 rounded-[3rem] border border-slate-100 flex flex-col justify-center shadow-inner">
                     <Input
                       type="text"
                       value={localPrinter.vit.signature}
                       onChange={(e) => updateVIT({ signature: e.target.value, confirmed: false })}
-                      className="h-16 text-xl font-black border-slate-200 mb-6 text-center bg-white"
+                      className="h-16 text-xl font-black border-slate-200 text-center bg-white"
                       placeholder="Vardas Pavardė"
                     />
-                    <Button
-                      size="lg"
-                      onClick={() => {
-                        if (localPrinter.vit.signature.length < 3) return addToast("Įrašykite pilną vardą", "error");
-                        updateVIT({ confirmed: true });
-                        addToast("Patvirtinta", "success");
-                      }}
-                      className={cn(
-                        "w-full py-8 text-xl font-black uppercase tracking-widest transition-all shadow-xl rounded-[2rem]",
-                        localPrinter.vit.confirmed ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20" : "bg-mimaki-dark text-white hover:bg-black shadow-mimaki-dark/20"
-                      )}
-                    >
-                      {localPrinter.vit.confirmed ? (
-                        <>
-                          <Check className="w-6 h-6 mr-2" /> PATVIRTINTA
-                        </>
-                      ) : 'PATVIRTINTI'}
-                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -399,28 +449,12 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                 <div className="w-48 h-48 bg-slate-50 rounded-full flex items-center justify-center mb-10 border-[6px] border-dashed border-slate-200">
                   <Printer className="w-20 h-20 text-slate-300" />
                 </div>
-                <p className="text-2xl text-slate-600 mb-12 font-bold max-w-lg leading-relaxed">
+                <p className="text-xl text-slate-600 mb-12 font-bold max-w-lg leading-relaxed">
                   Paleiskite purkštukų patikros spausdinimą {localPrinter.isMimaki ? `pasirinktiems blokams (${localPrinter.selectedMimakiUnits?.join(', ') || 'niekas nepasirinkta'})` : 'įrenginiui'}.
                 </p>
-                <label className={cn(
-                  "inline-flex items-center p-8 rounded-[3rem] cursor-pointer shadow-2xl active:scale-95 transition-all text-left min-w-[300px]",
-                  localPrinter.nozzlePrintDone ? "bg-emerald-600 text-white shadow-emerald-600/30" : "bg-mimaki-dark text-white hover:bg-black shadow-mimaki-dark/30"
-                )}>
-                  <input
-                    type="checkbox"
-                    checked={localPrinter.nozzlePrintDone}
-                    onChange={(e) => {
-                      const newData = { nozzlePrintDone: e.target.checked };
-                      setLocalPrinter(prev => ({ ...prev, ...newData }));
-                      onSave(newData);
-                    }}
-                    className="w-12 h-12 rounded-2xl border-white/20 text-emerald-500 bg-white/10 focus:ring-offset-0 focus:ring-0 accent-white"
-                  />
-                  <div className="ml-6">
-                    <span className="block text-2xl font-black uppercase tracking-tighter">Patvirtinu</span>
-                    <span className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Spausdinimas atliktas</span>
-                  </div>
-                </label>
+                <div className="bg-blue-50/50 p-6 rounded-3xl text-center text-blue-700 text-sm font-medium border border-blue-100 max-w-md w-full">
+                  Spauskite <span className="font-black">„Patvirtinti“</span> apačioje, pagrindiniame meniu, kai spausdinimas bus atliktas.
+                </div>
               </CardContent>
             </div>
           )}
@@ -432,6 +466,15 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
               <CardContent className="p-8">
                 {showCamera === null ? (
                   <div className="space-y-6">
+                    {localPrinter.requireDateOnNozzle && (
+                      <div className="bg-red-50 border-2 border-red-500 text-red-700 p-6 rounded-3xl animate-pulse">
+                        <div className="flex items-center gap-4 mb-2">
+                          <AlertTriangle className="w-8 h-8 text-red-500" />
+                          <span className="text-xl font-black uppercase tracking-widest">Dėmesio!</span>
+                        </div>
+                        <p className="text-lg font-bold">Jei nėra datos prie Nozzle, turi parašyti <span className="underline decoration-4 decoration-red-300">Šiandienos datą</span> matomai šalia nozzle check.</p>
+                      </div>
+                    )}
                     {localPrinter.isMimaki ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {(localPrinter.selectedMimakiUnits || []).map(unit => (
@@ -443,9 +486,9 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                             {localPrinter.mimakiNozzleFiles?.[unit] ? (
                               <div className="relative rounded-[2rem] overflow-hidden group aspect-video shadow-lg">
                                 <img src={localPrinter.mimakiNozzleFiles[unit].url} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
-                                  <Button onClick={() => setShowCamera(unit)} variant="secondary" className="rounded-2xl">
-                                    <Camera className="mr-2 h-4 w-4" /> Perfotografuoti
+                                <div className="absolute bottom-2 right-2">
+                                  <Button onClick={() => setShowCamera(unit)} variant="secondary" size="sm" className="rounded-xl shadow-lg bg-white/90 text-slate-800 hover:bg-white font-bold opacity-100">
+                                    <Camera className="mr-2 h-4 w-4" /> Iš naujo
                                   </Button>
                                 </div>
                               </div>
@@ -467,8 +510,10 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                       localPrinter.nozzleFile ? (
                         <div className="relative rounded-[3rem] overflow-hidden group max-w-lg mx-auto aspect-[4/3] shadow-2xl">
                           <img src={localPrinter.nozzleFile.url} alt="Captured" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-mimaki-dark/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
-                            <Button size="lg" onClick={() => setShowCamera(0)} className="bg-white text-slate-900 hover:bg-slate-200 rounded-2xl">Perfotografuoti</Button>
+                          <div className="absolute bottom-4 right-4">
+                            <Button size="sm" onClick={() => setShowCamera(0)} className="bg-white/90 text-slate-900 hover:bg-white rounded-xl shadow-lg font-bold">
+                              <Camera className="mr-2 h-4 w-4" /> Iš naujo
+                            </Button>
                           </div>
                         </div>
                       ) : (
@@ -516,14 +561,37 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
               <Button
                 size="lg"
                 onClick={() => {
-                  if (localPrinter.isMimaki && step === 0 && (localPrinter.selectedMimakiUnits?.length || 0) === 0) {
+                  const currentStepId = stepsList[step]?.id;
+                  if (localPrinter.isMimaki && currentStepId === 'mimaki-select' && (localPrinter.selectedMimakiUnits?.length || 0) === 0) {
                     return addToast("Pasirinkite bent vieną bloką!", "error");
+                  }
+                  if (currentStepId === 'intro' && !localPrinter.handoverVerified) {
+                    const val = parseFloat(tempRemaining);
+                    if (isNaN(val) || val < 0) {
+                      return addToast("Pataisykite likutį!", "error");
+                    }
+                    const newData = { remainingAmount: val, handoverVerified: true };
+                    setLocalPrinter(prev => ({ ...prev, ...newData }));
+                    onSave(newData);
+                  }
+                  if (currentStepId === 'vit') {
+                    if (localPrinter.vit.signature.length < 3) return addToast("Įrašykite pilną vardą", "error");
+                    const assignedTemplate = checklistTemplates.find(t => t.id === localPrinter.checklistTemplateId);
+                    const itemsToShow = assignedTemplate ? assignedTemplate.items : INITIAL_VIT_CHECKLIST;
+                    const allChecked = itemsToShow.every(item => localPrinter.vit.checklist[item]);
+                    if (!allChecked) return addToast("Pažymėkite visas varneles!", "error");
+                    updateVIT({ confirmed: true });
+                  }
+                  if (currentStepId === 'nozzle') {
+                    const newData = { nozzlePrintDone: true };
+                    setLocalPrinter(prev => ({ ...prev, ...newData }));
+                    onSave(newData);
                   }
                   nextStep();
                 }}
-                className="px-12 h-16 text-lg font-black uppercase tracking-widest bg-mimaki-blue hover:bg-blue-600 shadow-xl shadow-mimaki-blue/30 rounded-2xl"
+                className="px-12 h-16 text-lg font-black uppercase tracking-widest bg-mimaki-blue hover:bg-blue-600 shadow-xl shadow-mimaki-blue/30 rounded-2xl flex items-center justify-center gap-2"
               >
-                Toliau <ChevronRight className="ml-2" />
+                {(stepsList[step]?.id === 'vit' || stepsList[step]?.id === 'nozzle') ? 'Patvirtinti' : 'Toliau'} <ChevronRight className="ml-1 w-5 h-5" />
               </Button>
             ) : (
               <Button
@@ -531,12 +599,14 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                 onClick={() => {
                   if (canFinish) setShowConfirmModal(true);
                   else {
-                    if (!localPrinter.vit.confirmed) addToast("Patvirtinkite VIT formą!", "error");
-                    else if (localPrinter.hasNozzleCheck !== false && !localPrinter.nozzlePrintDone) addToast("Patvirtinkite purkštukų spausdinimą!", "error");
-                    else if (!areNozzlesReady()) addToast("Trūksta purkštukų nuotraukų!", "error");
+                    let errorMessage = "Trūksta šių patvirtinimų:\n\n";
+                    if (!localPrinter.vit.confirmed) errorMessage += "• Nepatvirtinta VIT forma\n";
+                    if (localPrinter.hasNozzleCheck !== false && !localPrinter.nozzlePrintDone) errorMessage += "• Nepatvirtintas purkštukų spausdinimas\n";
+                    if (!areNozzlesReady()) errorMessage += "• Trūksta purkštukų nuotraukos\n";
+
+                    setShowErrorModal(errorMessage);
                   }
                 }}
-                disabled={!canFinish}
                 className={cn(
                   "px-10 h-16 text-lg font-black uppercase tracking-widest shadow-2xl transition-all rounded-2xl",
                   canFinish ? "bg-emerald-600 hover:bg-emerald-500 scale-105 shadow-emerald-600/30" : "bg-slate-200 text-slate-400"

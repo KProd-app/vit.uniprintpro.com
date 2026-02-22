@@ -1,4 +1,4 @@
-import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, User, Feedback, Station } from '../../types';
+import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, User, Feedback } from '../../types';
 
 export interface StorageRepository {
     /**
@@ -7,13 +7,6 @@ export interface StorageRepository {
     createPrinter(printer: Partial<PrinterConfig>): Promise<string>;
     deletePrinter(id: string): Promise<void>;
     getPrinters(): Promise<PrinterData[]>;
-
-    // Stations
-    getStations(): Promise<Station[]>;
-    assignPrinterToStation(printerId: string, stationId: string | null): Promise<void>;
-    createStation(station: Partial<Station>): Promise<string>;
-    updateStation(id: string, updates: Partial<Station>): Promise<void>;
-    deleteStation(id: string): Promise<void>;
 
     /**
      * Update specific printer

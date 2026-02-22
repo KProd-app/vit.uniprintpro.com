@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { PrinterData, PrinterStatus, ViewType, Station } from './types';
+import { PrinterData, PrinterStatus, ViewType } from './types';
 import { DataProvider, usePrinters } from './contexts/DataContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Dashboard } from './components/Dashboard';
 import { SetupProcess } from './components/SetupProcess';
-import { StationSetupProcess } from './components/StationSetupProcess';
 import { ViewSummary } from './components/ViewSummary';
 import { AdminView } from './components/AdminView';
 import { EndShiftProcess } from './components/EndShiftProcess';
@@ -17,29 +16,64 @@ import { MessageSquare } from 'lucide-react';
 import { LiveDashboard } from './components/LiveDashboard';
 import { MobileLiveDashboard } from './components/MobileLiveDashboard';
 import { DesktopLiveDashboard } from './components/DesktopLiveDashboard';
-import { StartVerification } from './components/StartVerification';
+import { MorningBoard } from './components/MorningBoard';
+import { UserTVPanel } from './components/UserTVPanel';
 
 // Inner component to use Auth and Data contexts
 const AppContent: React.FC = () => {
   const { user, signOut, loading: authLoading } = useAuth();
-  const { printers, stations, updatePrinter: contextUpdatePrinter, resetPrinter: contextResetPrinter, isSyncing, checklistTemplates, saveShiftLog } = usePrinters();
+  const { printers, updatePrinter: contextUpdatePrinter, resetPrinter: contextResetPrinter, isSyncing, checklistTemplates, saveShiftLog } = usePrinters();
 
   const [view, setView] = useState<ViewType>(() => {
     // Check URL for /live variants
     const path = window.location.pathname;
+    const urlParams = new URLSearchParams(window.location.search);
+    const stationParam = urlParams.get('station');
+
     if (path === '/live') return 'LIVE';
     if (path === '/mlive') return 'LIVE_MOBILE';
     if (path === '/dlive') return 'LIVE_DESKTOP';
+    if (path === '/lenta') return 'LENTA';
+    if (path === '/user') return 'USER_TV';
+
+    // Default dashboard
     return 'DASHBOARD';
   });
+
   const [activePrinterId, setActivePrinterId] = useState<string | null>(null);
-  const [activeStationId, setActiveStationId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<{ id: number, message: string, type: 'success' | 'error' | 'info' }[]>([]);
   const [showFeedback, setShowFeedback] = useState(false);
 
   // Automatically handle view switching based on auth, UNLESS it's a live dashboard
-  const isLiveView = view === 'LIVE' || view === 'LIVE_MOBILE' || view === 'LIVE_DESKTOP';
-  const currentView = isLiveView ? view : (!user ? 'LOGIN' : view);
+  const isLiveView = view === 'LIVE' || view === 'LIVE_MOBILE' || view === 'LIVE_DESKTOP' || view === 'LENTA';
+  // If not logged in and not a live viewer, enforce login
+  let currentView = isLiveView ? view : (!user ? 'LOGIN' : view);
+
+  // Auto-route to station setup if logged in, parameter is present, and we're currently on DASHBOARD
+  useEffect(() => {
+    if (user && printers.length > 0 && currentView === 'DASHBOARD') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const stationParam = urlParams.get('station');
+
+      if (stationParam) {
+        const printerExists = printers.find(p => p.id === stationParam || p.qrCode === stationParam);
+        if (printerExists) {
+          // Check if already working
+          if (printerExists.status === PrinterStatus.READY_TO_WORK || printerExists.status === PrinterStatus.NOT_STARTED) {
+            setActivePrinterId(printerExists.id);
+            setView('SETUP');
+          } else {
+            addToast("Stotis jau užimta (WORKING / IN PROGRESS)", "info");
+            // Remove the URL param to prevent reload loops
+            window.history.replaceState({}, document.title, "/");
+          }
+        } else {
+          addToast("Skenuota stotis nerasta sistemoje.", "error");
+          window.history.replaceState({}, document.title, "/");
+        }
+      }
+    }
+  }, [user, printers, currentView]);
 
   const addToast = (message: string, type: 'success' | 'error' | 'info') => {
     const id = Date.now();
@@ -59,13 +93,7 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleStartSetup = async (id: string, type: 'PRINTER' | 'STATION' = 'PRINTER') => {
-    if (type === 'STATION') {
-      setActiveStationId(id);
-      setView('STATION_SETUP' as any); // Temporary cast until ViewType updated
-      return;
-    }
-
+  const handleStartSetup = async (id: string) => {
     const p = printers.find(x => x.id === id);
     if (!p) return;
 
@@ -79,31 +107,8 @@ const AppContent: React.FC = () => {
       return;
     }
 
-    // Check availability of verification
-    // Triggers if verification is not done yet.
-    // This allows manual entry of remaining amount if it was missing from previous shift.
-    const needsVerification = !p.handoverVerified;
-
     setActivePrinterId(id);
-    if (needsVerification) {
-      setView('START_VERIFICATION');
-    } else {
-      setView('SETUP');
-    }
-  };
-
-  const handleVerificationConfirm = async (remaining: number) => {
-    if (activePrinterId) {
-      await contextUpdatePrinter(activePrinterId, {
-        handoverVerified: true,
-        remainingAmount: remaining
-        // We could clear message here, but user might want to refer to it?
-        // Let's keep it until they finish shift or explicit clear?
-        // Actually, once verified, it's "consumed".
-        // Maybe we don't clear it from DB, just verifying flag allows bypassing.
-      });
-      setView('SETUP');
-    }
+    setView('SETUP');
   };
 
   const handleOpenEndShift = (id: string) => {
@@ -111,7 +116,7 @@ const AppContent: React.FC = () => {
     setView('END_SHIFT');
   };
 
-  const handleCompleteEndShift = async (message: string, endChecklist: { [key: string]: boolean }, production: number, defects: number, remaining: number, robotDefects?: number, printDefects?: number) => {
+  const handleCompleteEndShift = async (message: string, endChecklist: { [key: string]: boolean }, production: number, defects: number, remaining: number, robotDefects?: number, printDefects?: number, backlog?: number, defectsReason?: string) => {
     if (activePrinterId && user) {
       const printer = printers.find(p => p.id === activePrinterId);
       if (printer) {
@@ -127,6 +132,8 @@ const AppContent: React.FC = () => {
             finishedAt: new Date().toISOString(),
             productionAmount: production,
             defectsAmount: defects,
+            backlog: backlog,
+            defectsReason: defectsReason,
             robotDefects: robotDefects || 0,
             printingDefects: printDefects || 0,
             vitData: printer.vit,
@@ -144,36 +151,36 @@ const AppContent: React.FC = () => {
         }
       }
 
-      await contextUpdatePrinter(activePrinterId, {
-        status: PrinterStatus.NOT_STARTED,
-        workFinishedAt: new Date().toISOString(),
-        nextOperatorMessage: message,
-        endShiftChecklist: endChecklist,
-        productionAmount: production,
-        remainingAmount: remaining,
-        defectsAmount: defects,
-        robotDefects: robotDefects || 0,
-        printingDefects: printDefects || 0,
-        // Resetting ONLY dynamic state, keeping VIT for next shift check
-        // maintenanceDone: false, // Don't reset
-        // nozzlePrintDone: false, // Don't reset
-        // nozzleFile: null, // Don't reset
-        // vit: ... // Don't reset
-        // selectedMimakiUnits: [], // Keep selection
-        // mimakiNozzleFiles: {} // Keep files
-      });
-      setView('DASHBOARD');
-      setActivePrinterId(null);
-      const defectRate = production > 0 ? ((defects / production) * 100).toFixed(1) + '%' : '0%';
-      addToast(`Pamaina baigta! Pagaminta: ${production}, Brokas: ${defectRate}`, 'success');
+      try {
+        await contextUpdatePrinter(activePrinterId, {
+          status: PrinterStatus.NOT_STARTED,
+          workFinishedAt: new Date().toISOString(),
+          nextOperatorMessage: message,
+          endShiftChecklist: endChecklist,
+          productionAmount: production,
+          remainingAmount: remaining,
+          backlog: backlog,
+          defectsAmount: defects,
+          defectsReason: defectsReason,
+          robotDefects: robotDefects || 0,
+          printingDefects: printDefects || 0,
+        });
+        setView('DASHBOARD');
+        setActivePrinterId(null);
+        const defectRate = production > 0 ? ((defects / production) * 100).toFixed(1) + '%' : '0%';
+        addToast(`Pamaina baigta! Pagaminta: ${production}, Brokas: ${defectRate}`, 'success');
 
-      // Scroll to top to ensure user sees the dashboard/scanner immediately
-      window.scrollTo(0, 0);
+        // Scroll to top to ensure user sees the dashboard/scanner immediately
+        window.scrollTo(0, 0);
 
-      // Reload the page to ensure fresh state for next shift
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+        // Reload the page to ensure fresh state for next shift
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } catch (error: any) {
+        console.error("Error saving shift data:", error);
+        addToast(`Klaida išsaugant! ${error.message || 'Patikrinkite ryšį.'}`, "error");
+      }
     }
   };
 
@@ -231,7 +238,6 @@ const AppContent: React.FC = () => {
       {currentView === 'DASHBOARD' && user && (
         <Dashboard
           printers={printers}
-          stations={stations}
           onStart={handleStartSetup}
           onFinishWork={handleOpenEndShift}
           onView={(id) => { setActivePrinterId(id); setView('SUMMARY'); }}
@@ -254,30 +260,6 @@ const AppContent: React.FC = () => {
           onCancel={() => { setView('DASHBOARD'); setActivePrinterId(null); }}
           addToast={addToast}
           uploadFile={usePrinters().uploadFile}
-        />
-      )}
-
-      {/* Render Station Setup */}
-      {(view as any) === 'STATION_SETUP' && activeStationId && user && (
-        <StationSetupProcess
-          station={stations.find(s => s.id === activeStationId)!}
-          assignedPrinters={printers.filter(p => p.stationId === activeStationId)}
-          currentUser={user}
-          checklistTemplates={checklistTemplates}
-          updatePrinter={contextUpdatePrinter}
-          onFinish={() => setView('DASHBOARD')}
-          onCancel={() => { setView('DASHBOARD'); setActiveStationId(null); }}
-          addToast={addToast}
-          uploadFile={usePrinters().uploadFile}
-        />
-      )}
-
-      {currentView === 'START_VERIFICATION' && activePrinter && user && (
-        <StartVerification
-          printer={activePrinter}
-          currentUser={user}
-          onConfirm={handleVerificationConfirm}
-          onCancel={() => { setView('DASHBOARD'); setActivePrinterId(null); }}
         />
       )}
 
@@ -310,6 +292,17 @@ const AppContent: React.FC = () => {
 
       {currentView === 'LIVE_DESKTOP' && (
         <DesktopLiveDashboard printers={printers} />
+      )}
+
+      {currentView === 'LENTA' && (
+        <MorningBoard printers={printers} />
+      )}
+
+      {currentView === 'USER_TV' && user && (
+        <UserTVPanel currentUser={user} onBack={() => {
+          // Just refresh or clear param
+          window.location.href = '/';
+        }} addToast={addToast} />
       )}
 
       {/* Feedback Button - Always visible if logged in */}

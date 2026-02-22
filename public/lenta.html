@@ -126,8 +126,8 @@
         .printer-row {
             display: grid;
             grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;
-            gap: 0.5vw;
-            padding: 0.8vh 1vw;
+            gap: 0.4vw;
+            padding: 0.4vh 0.8vw;
             align-items: center;
             border-bottom: 1px solid rgba(30, 41, 59, 0.5);
             flex: 1;
@@ -141,11 +141,12 @@
         }
 
         .p-name {
-            font-size: 2vh;
+            font-size: 1.8vh;
             font-weight: 900;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            line-height: 1.1;
         }
 
         .badges {
@@ -155,9 +156,9 @@
         }
 
         .badge {
-            padding: 0.2vh 0.4vw;
-            border-radius: 0.3vw;
-            font-size: 1vh;
+            padding: 0.1vh 0.3vw;
+            border-radius: 0.2vw;
+            font-size: 0.9vh;
             font-weight: bold;
             text-transform: uppercase;
         }
@@ -213,8 +214,8 @@
 
         .log-col {
             background-color: rgba(30, 41, 59, 0.4);
-            border-radius: 0.5vw;
-            padding: 0.8vh;
+            border-radius: 0.4vw;
+            padding: 0.5vh;
             border: 1px solid rgba(51, 65, 85, 0.5);
             display: flex;
             flex-direction: column;
@@ -226,8 +227,8 @@
             display: flex;
             justify-content: space-between;
             border-bottom: 1px solid rgba(51, 65, 85, 0.5);
-            padding-bottom: 0.4vh;
-            margin-bottom: 0.4vh;
+            padding-bottom: 0.2vh;
+            margin-bottom: 0.2vh;
         }
 
         .log-date {
@@ -264,14 +265,15 @@
         }
 
         .metric-label {
-            font-size: 1vh;
+            font-size: 0.9vh;
             color: #64748b;
             font-weight: bold;
             text-transform: uppercase;
+            margin-bottom: -0.2vh;
         }
 
         .metric-val {
-            font-size: 1.8vh;
+            font-size: 1.6vh;
             font-weight: 900;
         }
 
@@ -296,7 +298,7 @@
             border: 1px solid rgba(30, 41, 59, 0.8);
             border-radius: 0.5vw;
             color: #475569;
-            font-size: 1.5vh;
+            font-size: 1.2vh;
             font-weight: bold;
             text-transform: uppercase;
         }
@@ -374,9 +376,20 @@
 <body>
     <header>
         <h1>
-            <div class="pulse"></div> Gamybos Fakto sekimas
+            <div class="pulse"></div> OPERATYVINĖ GAMYBOS LENTA
         </h1>
-        <div class="clock" id="clock">00:00</div>
+        <div style="display: flex; align-items: center; gap: 1.5vw;">
+            <div
+                style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; opacity: 0.8;">
+                <span style="font-size: 1vh; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Pildyti
+                    Lentą</span>
+                <span style="font-size: 1.2vh; font-weight: bold; color: #34d399;">Skenuokite QR</span>
+            </div>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://vit.uniprintpro.com/user"
+                alt="Prisijungti per telefona"
+                style="width: 6vh; height: 6vh; background: white; padding: 0.4vh; border-radius: 0.5vw;">
+            <div class="clock" id="clock">00:00</div>
+        </div>
     </header>
 
     <div id="main-content">
@@ -405,9 +418,6 @@
                     style="position: relative; display: flex; flex-direction: column; padding-top: 1vh; gap: 1vh; overflow: hidden;">
                     <!-- Problems will be injected here -->
                 </div>
-                <!-- Fixed QR code for problems -->
-                <div class="qr-box" style="position: absolute; right: 2.5vw; top: 15vh; transform: translateY(-50%);">QR
-                </div>
             </div>
 
             <!-- Sandėlis & Pasiūlymai -->
@@ -421,7 +431,6 @@
                             style="display: flex; gap: 0.8vw; opacity: 0.8; font-size: 1.4vh; color: #94a3b8; align-items: center;">
                             <!-- Transfers injected here -->
                         </div>
-                        <div class="qr-box">QR</div>
                     </div>
                 </div>
                 <div class="panel-box" style="flex: 1;">
@@ -433,30 +442,35 @@
                             style="opacity: 0.8; font-size: 1.5vh; color: #94a3b8; display: flex; flex-direction: column; gap: 0.5vh;">
                             <!-- Proposals injected here -->
                         </div>
-                        <div class="qr-box">QR</div>
                     </div>
                 </div>
             </div>
 
             <!-- Brokai & Gedimai -->
             <div style="display: flex; gap: 1.5vw;">
-                <div class="panel-box" style="flex: 1.5;">
-                    <div class="panel-header" style="justify-content: center; border-bottom: none;">BROKAI</div>
-                    <div class="panel-content" style="align-items: center; justify-content: center;">
+                <div class="panel-box" style="flex: 1;">
+                    <div class="panel-header"
+                        style="justify-content: center; border-bottom: none; padding-bottom: 0.5vh;">BROKAI</div>
+                    <div class="panel-content" id="tv-brokai-panel"
+                        style="align-items: center; justify-content: center; padding-top: 0;">
                         <span id="tv-metric-defects"
                             style="font-size: 5vh; color: #94a3b8; font-weight: bold; opacity: 0.8;">0</span>
                     </div>
                 </div>
-                <div class="panel-box" style="flex: 1;">
+                <div class="panel-box" style="flex: 1.5;">
                     <div class="panel-header"
                         style="justify-content: space-around; border-bottom: none; padding-bottom: 0;">
-                        <span>GEDIMAI</span>
-                        <span style="border-left: 1px solid rgba(51,65,85,0.5); padding-left: 1vw;">ŽALIAVŲ
+                        <span style="flex: 1; text-align: center;">GEDIMAI</span>
+                        <span style="border-left: 1px solid rgba(51,65,85,0.5); flex: 1; text-align: center;">ŽALIAVŲ
                             TRŪKUMAS</span>
                     </div>
-                    <div class="panel-content" style="align-items: center; justify-content: center;">
-                        <span id="tv-metric-breakdowns"
-                            style="font-size: 5vh; color: #94a3b8; font-weight: bold; opacity: 0.8;">0</span>
+                    <div class="panel-content" style="flex-direction: row; gap: 1vw; align-items: stretch;">
+                        <div id="tv-breakdowns-list"
+                            style="flex: 1; display: flex; flex-direction: column; gap: 0.5vh; font-size: 1.4vh; color: #f87171; font-weight: bold; overflow: hidden;">
+                        </div>
+                        <div id="tv-shortages-list"
+                            style="flex: 1; border-left: 1px solid rgba(51,65,85,0.5); padding-left: 1vw; display: flex; flex-direction: column; gap: 0.5vh; font-size: 1.4vh; color: #fbbf24; font-weight: bold; overflow: hidden;">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -518,6 +532,12 @@
         // STATE
         var printers = [];
         var logs = [];
+        var sideData = {
+            problems: [],
+            transfers: [],
+            proposals: [],
+            metrics: {}
+        };
 
         var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -547,6 +567,26 @@
                     return;
                 }
                 if (lData) logs = lData;
+
+                // Fetch Side Data for TV
+                var [probs, trans, props, mets] = await Promise.all([
+                    supabaseClient.from('tv_problems').select('*').order('created_at', { ascending: false }).limit(20),
+                    supabaseClient.from('tv_transfers').select('*').order('created_at', { ascending: false }).limit(10),
+                    supabaseClient.from('tv_proposals').select('*').order('created_at', { ascending: false }).limit(5),
+                    supabaseClient.from('tv_metrics').select('*')
+                ]);
+
+                if (probs.data) sideData.problems = probs.data;
+                if (trans.data) sideData.transfers = trans.data;
+                if (props.data) sideData.proposals = props.data;
+
+                if (mets.data) {
+                    var mMap = {};
+                    mets.data.forEach(function (m) {
+                        mMap[m.id] = m.value;
+                    });
+                    sideData.metrics = mMap;
+                }
 
                 render();
             } catch (err) {
@@ -587,6 +627,7 @@
         }
 
         function renderLeftBoard() {
+            window.activeDefectAlerts = []; // Nulinuoja aliarmus kas renderį
             var list = document.getElementById('list');
             var headerEl = document.getElementById('row-header');
             var html = '';
@@ -606,29 +647,46 @@
                 });
             }
 
-            // EXTRACT GLOBAL TIMELINE (Last 4 unique shifts across all logs)
+            // GENERATE GLOBAL TIMELINE (Fixed 4 latest shifts based on real time)
             var uniqueShifts = [];
-            var seen = {};
-            // Sort ALL logs by date desc to get chronological keys
-            var sortedAll = [].concat(logs).sort(function (a, b) {
-                return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime();
-            });
-            for (var i = 0; i < sortedAll.length; i++) {
-                var id = getShiftId(sortedAll[i]);
-                if (!seen[id]) {
-                    seen[id] = true;
-                    uniqueShifts.push({
-                        id: id,
-                        dateStr: formatDate(sortedAll[i].finished_at),
-                        shiftStr: sortedAll[i].shift
-                    });
-                    if (uniqueShifts.length === 4) break;
+            var now = new Date();
+            var h = now.getHours();
+
+            var currentShiftDate = new Date(now);
+            var currentShiftName = "Dieninė";
+
+            if (h >= 6 && h < 18) {
+                currentShiftName = "Dieninė";
+            } else {
+                currentShiftName = "Naktinė";
+                if (h < 6) {
+                    currentShiftDate.setDate(currentShiftDate.getDate() - 1);
                 }
             }
 
-            // Pad if less than 4
-            while (uniqueShifts.length < 4) {
-                uniqueShifts.push({ id: 'empty', dateStr: '-', shiftStr: '-' });
+            var iterDate = new Date(currentShiftDate);
+            var iterShift = currentShiftName;
+
+            for (var i = 0; i < 4; i++) {
+                var yy = iterDate.getFullYear();
+                var mm = String(iterDate.getMonth() + 1).padStart(2, '0');
+                var dd = String(iterDate.getDate()).padStart(2, '0');
+                var ymd = yy + '-' + mm + '-' + dd;
+
+                var fakeIso = ymd + 'T12:00:00';
+
+                uniqueShifts.push({
+                    id: ymd + '_' + iterShift,
+                    dateStr: formatDate(fakeIso),
+                    shiftStr: iterShift
+                });
+
+                if (iterShift === "Naktinė") {
+                    iterShift = "Dieninė";
+                } else {
+                    iterShift = "Naktinė";
+                    iterDate.setDate(iterDate.getDate() - 1);
+                }
             }
 
             // Render Header
@@ -654,6 +712,15 @@
                     mappedPLogs[getShiftId(pLogs[j])] = pLogs[j];
                 }
 
+                // Find the latest valid remaining_amount for this printer
+                var latestRemain = null;
+                for (var j = 0; j < pLogs.length; j++) { // pLogs is already sorted by date descending!
+                    if (pLogs[j].remaining_amount !== null && pLogs[j].remaining_amount !== undefined) {
+                        latestRemain = pLogs[j].remaining_amount;
+                        break;
+                    }
+                }
+
                 var st = formatStatus(p.status);
                 var maintDone = p.state && p.state.vit && p.state.vit.confirmed;
                 var nozzleDone = p.state && p.state.nozzleFile && p.state.nozzleFile.url;
@@ -662,7 +729,7 @@
 
                 // Col 1: Live info
                 html += '<div class="col-live">';
-                html += '<div class="p-name">' + p.name + '</div>';
+                html += '<div class="p-name">' + p.name + (latestRemain !== null ? ' <span style="font-size:1.8vh; color:#94a3b8; font-weight:bold;">(Liko: ' + latestRemain + ')</span>' : '') + '</div>';
                 html += '<div class="badges">';
                 html += '<div class="badge ' + st.css + '">' + st.text + '</div>';
                 html += '<div class="badge ' + (maintDone ? 'b-maint-ok' : 'b-maint-bad') + '">' + (maintDone ? '✓ VALYMAS' : '✕ VALYMAS') + '</div>';
@@ -678,21 +745,36 @@
                         html += '<div class="empty-log">NEDIRBO</div>';
                     } else {
                         var shiftCss = log.shift === 'Dieninė' ? 'shift-day' : 'shift-night';
-                        var remain = log.remaining_amount !== null && log.remaining_amount !== undefined ? log.remaining_amount : '-';
+                        var backlog = log.backlog !== null && log.backlog !== undefined ? log.backlog : '-';
 
                         html += '<div class="log-col">';
-                        html += '<div class="log-header" style="justify-content: center;">';
-                        html += '<span class="log-shift ' + shiftCss + '" style="font-size: 1.4vh;">' + log.shift + ' Pamaina</span>';
+                        html += '<div class="log-header" style="justify-content: center; height: 0.4vh; padding: 0.3vh; margin-bottom: 0;">';
+                        html += '<div class="' + shiftCss + '" style="width: 100%; height: 0.3vh; border-radius: 1vh;"></div>'; // Tik spalvota juostelė vietoje teksto
                         html += '</div>';
 
                         html += '<div class="log-metrics metrics-3">';
                         html += '<div><div class="metric-label">Pagam.</div><div class="metric-val c-green">' + log.production_amount + '</div></div>';
 
-                        var defectRate = log.production_amount > 0 ? ((log.defects_amount / log.production_amount) * 100).toFixed(1) + '%' : '0%';
-                        var defectClass = log.production_amount > 0 && ((log.defects_amount / log.production_amount) * 100) > 5 ? 'c-red' : 'c-green';
-                        html += '<div><div class="metric-label">Brokas</div><div class="metric-val ' + defectClass + '">' + defectRate + '</div></div>';
+                        var defectRateNum = log.production_amount > 0 ? ((log.defects_amount / log.production_amount) * 100) : 0;
+                        var defectRate = defectRateNum.toFixed(1) + '%';
+                        var defectClass = log.production_amount > 0 && defectRateNum > 5 ? 'c-red' : 'c-green';
 
-                        html += '<div><div class="metric-label">Liko</div><div class="metric-val c-gray">' + remain + '</div></div>';
+                        var defectHtml = '<div class="metric-val ' + defectClass + '">' + defectRate + '</div>';
+
+                        if (defectRateNum > 5 && log.defects_reason) {
+                            window.activeDefectAlerts.push({
+                                printer: p.name,
+                                operator: log.operator_name || 'Nežinomas',
+                                reason: log.defects_reason,
+                                shift: log.shift
+                            });
+                            // Mažas tekstas "Priežastis" po procentu
+                            defectHtml = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1;"><div class="metric-val ' + defectClass + '">' + defectRate + '</div><div style="font-size:1vh; color:#ef4444; margin-top:0.3vh; font-weight:bold; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + log.defects_reason.replace(/"/g, '&quot;') + '">PRIEŽASTIS</div></div>';
+                        }
+
+                        html += '<div><div class="metric-label">Brokas</div>' + defectHtml + '</div>';
+
+                        html += '<div><div class="metric-label">Atsilikimas</div><div class="metric-val c-gray">' + backlog + '</div></div>';
                         html += '</div>';
                         html += '</div>'; // End log-col
                     }
@@ -705,12 +787,29 @@
         }
 
         function renderRightPanels() {
+            // Filter problems into categories
+            var genericProblems = [];
+            var breakdownList = [];
+            var shortageList = [];
+
+            sideData.problems.forEach(p => {
+                if (p.problem.startsWith('Gedimas: ')) {
+                    breakdownList.push(p);
+                } else if (p.problem.startsWith('Žaliavų trūkumas: ')) {
+                    shortageList.push(p);
+                } else {
+                    genericProblems.push(p);
+                }
+            });
+
             // 1. Problemos
             var probHtml = '';
-            sideData.problems.forEach(p => {
+            genericProblems.forEach(p => {
                 var dt = p.date_reported || formatTimeDate(p.created_at).date;
+                var deadlineHtml = p.deadline ? '<div style="font-size: 1.1vh; color: #fbbf24; margin-top: 0.2vh; font-weight: bold; text-transform: uppercase;">Iki: ' + p.deadline + '</div>' : '';
+
                 probHtml += '<div style="display: flex; flex-direction: row; border-bottom: 1px solid rgba(51, 65, 85, 0.4); padding-bottom: 0.5vh; font-size: 1.4vh; color: white;">';
-                probHtml += '  <div style="flex: 1; opacity: 0.8;">' + dt + '</div>';
+                probHtml += '  <div style="flex: 1; opacity: 0.8; display: flex; flex-direction: column;"><div>' + dt + '</div>' + deadlineHtml + '</div>';
                 probHtml += '  <div style="flex: 2; color: #f87171;">' + (p.problem || '') + '</div>';
                 probHtml += '  <div style="flex: 2; color: #34d399;">' + (p.solution || '') + '</div>';
                 probHtml += '  <div style="flex: 1; text-align: right; opacity: 0.8;">' + (p.responsible || '') + '</div>';
@@ -735,31 +834,98 @@
             var propHtml = '';
             sideData.proposals.forEach(p => {
                 var dt = formatTimeDate(p.created_at);
-                propHtml += '<div>' + dt.date + ' ' + dt.time + '</div>';
+                propHtml += '<div><span style="opacity:0.6; font-size:1.2vh;">' + dt.time + '</span> ' + p.proposal_text + '</div>';
             });
             if (!propHtml) propHtml = '<div style="opacity:0.3;">Nėra pasiūlymų</div>';
             document.getElementById('tv-proposals').innerHTML = propHtml;
 
-            // 4. Metrics
-            var breakdownsCount = sideData.metrics['breakdowns_count'] || '0';
+            // Breakdowns & Shortages
+            var bdHtml = '';
+            breakdownList.forEach(p => {
+                var text = p.problem.replace('Gedimas: ', '');
+                bdHtml += '<div>• ' + text + '</div>';
+            });
+            if (!bdHtml) bdHtml = '<div style="opacity:0.3; color:#94a3b8; font-weight:normal;">Nėra</div>';
+            document.getElementById('tv-breakdowns-list').innerHTML = bdHtml;
+
+            var shHtml = '';
+            shortageList.forEach(p => {
+                var text = p.problem.replace('Žaliavų trūkumas: ', '');
+                shHtml += '<div>• ' + text + '</div>';
+            });
+            if (!shHtml) shHtml = '<div style="opacity:0.3; color:#94a3b8; font-weight:normal;">Nėra</div>';
+            document.getElementById('tv-shortages-list').innerHTML = shHtml;
+
+            // UV Pakavimas (Robot Defects) per paskutines 4 pamainas
+            var uvLogHtml = '';
+            var uvPrinter = printers.find(function (pr) { return pr.name.toLowerCase().includes('pakavimas'); });
+            if (uvPrinter) {
+                var uvLogs = logs.filter(function (l) { return l.printer_id === uvPrinter.id; }).slice(0, 4);
+                if (uvLogs.length > 0) {
+                    uvLogHtml += '<div style="font-size: 1.2vh; color: #94a3b8; font-weight: bold; margin-bottom: 0.8vh; margin-top: 0.5vh; text-transform: uppercase;">UV Pakavimas - Roboto Brokas</div>';
+                    uvLogHtml += '<div style="display: flex; gap: 0.8vw; flex-wrap: wrap; justify-content: center; width: 100%;">';
+                    uvLogs.forEach(function (l) {
+                        var rob = l.robot_defects || 0;
+                        var dateStr = formatDate(l.finished_at).replace(' d.', '');
+                        uvLogHtml += '<div style="background: rgba(30,41,59,0.5); padding: 0.5vh 0.8vw; border-radius: 0.5vw; text-align: center; border: 1px solid rgba(51,65,85,0.5);">';
+                        uvLogHtml += '<div style="font-size: 1vh; color: #64748b; font-weight: bold; margin-bottom: 0.2vh; text-transform: uppercase;">' + dateStr + ' ' + l.shift.charAt(0) + '.</div>';
+                        uvLogHtml += '<div style="font-size: 2.5vh; font-weight: 900; color: ' + (rob > 0 ? '#f87171' : '#34d399') + ';">' + rob + '</div>';
+                        uvLogHtml += '</div>';
+                    });
+                    uvLogHtml += '</div>';
+                }
+            }
+
             var defectsCount = sideData.metrics['defects_count'] || '0';
+            var brokaiPanel = document.getElementById('tv-brokai-panel');
+
+            var alertsHtml = '';
+            if (window.activeDefectAlerts && window.activeDefectAlerts.length > 0) {
+                alertsHtml = '<div id="rotating-defect-alert" style="width: 100%; text-align: center; margin-bottom: 1vh; min-height: 8vh; display: flex; flex-direction: column; justify-content: center;"></div>';
+            } else {
+                alertsHtml = '<div style="font-size: 5vh; color: ' + (parseInt(defectsCount) > 0 ? '#fbbf24' : '#94a3b8') + '; font-weight: bold; opacity: 0.8; text-align: center; margin-bottom: 1vh;">' + defectsCount + '</div>';
+            }
+
+            brokaiPanel.innerHTML = '<div style="display:flex; flex-direction:column; width: 100%; height: 100%; justify-content: space-evenly; align-items: center;">' + alertsHtml + '<div style="width:100%; display:flex; flex-direction:column; align-items:center;">' + uvLogHtml + '</div></div>';
+
+            // Trigger first update of the rotating alert immediately if valid
+            if (window.activeDefectAlerts && window.activeDefectAlerts.length > 0) {
+                updateDefectAlertRotation();
+            }
+
             var qualityText = sideData.metrics['quality_info'] || 'KOKYBĖS SKYRIAUS INFORMACIJA NĖRA.';
-
-            var bcEl = document.getElementById('tv-metric-breakdowns');
-            bcEl.textContent = breakdownsCount;
-            bcEl.style.color = parseInt(breakdownsCount) > 0 ? '#f87171' : '#94a3b8'; // Red if > 0
-
-            var defEl = document.getElementById('tv-metric-defects');
-            defEl.textContent = defectsCount;
-            defEl.style.color = parseInt(defectsCount) > 0 ? '#fbbf24' : '#94a3b8'; // Amber if > 0
-
             var qEl = document.getElementById('tv-metric-quality');
             qEl.textContent = qualityText;
             qEl.style.color = qualityText.includes('NĖRA') ? '#1e293b' : '#34d399';
         }
 
+        window.alertRotationIndex = 0;
+        function updateDefectAlertRotation() {
+            var alertEl = document.getElementById('rotating-defect-alert');
+            if (!alertEl || !window.activeDefectAlerts || window.activeDefectAlerts.length === 0) return;
+
+            if (window.alertRotationIndex >= window.activeDefectAlerts.length) {
+                window.alertRotationIndex = 0;
+            }
+            var alert = window.activeDefectAlerts[window.alertRotationIndex];
+
+            var html = '<div style="font-size: 1.4vh; color: #f87171; font-weight: 900; text-transform: uppercase; margin-bottom: 0.5vh;">⚠️ VIRŠYTA 5% BROKO (' + alert.shift + ')</div>';
+            html += '<div style="font-size: 1.6vh; color: white; font-weight: bold; margin-bottom: 0.5vh;">' + alert.printer + ' / ' + alert.operator + '</div>';
+            html += '<div style="font-size: 1.8vh; color: #ef4444; font-weight: 900;">' + alert.reason + '</div>';
+
+            alertEl.style.opacity = 0;
+            setTimeout(function () {
+                alertEl.innerHTML = html;
+                alertEl.style.transition = 'opacity 0.5s';
+                alertEl.style.opacity = 1;
+            }, 300);
+
+            window.alertRotationIndex++;
+        }
+
         fetchData();
         setInterval(fetchData, 5000); // Poll every 5 seconds since TV
+        setInterval(updateDefectAlertRotation, 10000); // Pakeičia rodomą broko priežastį kas 10s
     </script>
 </body>
 

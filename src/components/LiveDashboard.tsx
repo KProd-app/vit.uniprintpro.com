@@ -8,6 +8,7 @@ interface LiveDashboardProps {
 
 export const LiveDashboard: React.FC<LiveDashboardProps> = ({ printers }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -135,9 +136,9 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({ printers }) => {
                                             <span className="text-[10px] font-bold uppercase text-slate-400">Nozzle</span>
                                         </div>
                                         {hasNozzleCheck ? (
-                                            <div className="relative group cursor-pointer">
+                                            <div className="relative group cursor-pointer" onClick={() => setSelectedImage(printer.nozzleFile!.url)}>
                                                 <span className="text-lg font-bold text-blue-300 underline decoration-dotted leading-none">ATLIKTAS</span>
-                                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-50 rounded-xl overflow-hidden shadow-2xl border-2 border-white/20 w-64 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
+                                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-40 rounded-xl overflow-hidden shadow-2xl border-2 border-white/20 w-64 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                                     <img src={printer.nozzleFile!.url} alt="Nozzle" className="w-full h-auto object-cover bg-black" />
                                                 </div>
                                             </div>
@@ -171,8 +172,8 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({ printers }) => {
                                             <span className="text-[10px] font-bold uppercase">Brokas</span>
                                         </div>
                                         <span className={`text-3xl font-black leading-none ${printer.productionAmount && ((printer.defectsAmount || 0) / printer.productionAmount * 100) > 5
-                                                ? 'text-red-500'
-                                                : 'text-emerald-500'
+                                            ? 'text-red-500'
+                                            : 'text-emerald-500'
                                             }`}>
                                             {printer.productionAmount ? (
                                                 ((printer.defectsAmount || 0) / (printer.productionAmount || 1) * 100).toFixed(1) + '%'
@@ -187,6 +188,29 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({ printers }) => {
                     );
                 })}
             </div>
+
+            {/* Fullscreen Image Modal */}
+            {selectedImage && (
+                <div
+                    className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-8 animate-in fade-in duration-200 cursor-pointer"
+                    onClick={() => setSelectedImage(null)}
+                >
+                    <div className="relative max-w-7xl max-h-screen">
+                        <button
+                            className="absolute -top-6 -right-6 md:-top-12 md:-right-12 text-white bg-white/10 hover:bg-white/20 rounded-full p-2 backdrop-blur-lg transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}
+                        >
+                            <XCircle className="w-8 h-8 md:w-10 md:h-10" />
+                        </button>
+                        <img
+                            src={selectedImage}
+                            alt="Ekrano nuotrauka išdidinta"
+                            className="w-auto h-auto max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl border-2 border-slate-700/50"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

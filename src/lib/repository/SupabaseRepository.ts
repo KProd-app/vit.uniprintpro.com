@@ -1,5 +1,5 @@
 import { StorageRepository } from './StorageRepository';
-import { PrinterData, PrinterConfig, PrinterStatus, PrinterState, ChecklistTemplate, PrinterLog, User, UserRole, Feedback, Station } from '../../types';
+import { PrinterData, PrinterConfig, PrinterStatus, PrinterState, ChecklistTemplate, PrinterLog, User, UserRole, Feedback } from '../../types';
 import { supabase } from '../supabase';
 
 export class SupabaseRepository implements StorageRepository {
@@ -19,6 +19,7 @@ export class SupabaseRepository implements StorageRepository {
                     checklist_template_id: printer.checklistTemplateId || null,
                     end_shift_checklist_id: printer.endShiftChecklistId || null,
                     qr_code: printer.qrCode || null,
+                    require_date_on_nozzle: !!printer.requireDateOnNozzle,
                 },
                 state: {
                     // Initial empty state
@@ -79,99 +80,10 @@ export class SupabaseRepository implements StorageRepository {
             status: this.normalizeStatus(row.status),
             ...defaultState, // 1. Apply defaults
             ...row.config,   // 2. config overrides (if any name collision, though unlikely)
-            stationId: row.station_id, // Map database column to domain model
+            requireDateOnNozzle: row.config?.require_date_on_nozzle || false,
             ...row.state     // 3. DB state overrides defaults
         }));
     }
-
-    async getStations(): Promise<Station[]> {
-        const { data, error } = await supabase
-            .from('stations')
-            .select('*')
-            .order('name');
-
-        if (error) {
-            console.error('Error fetching stations:', error);
-            return [];
-        }
-
-        return data.map((row: any) => ({
-            id: row.id,
-            name: row.name,
-            stationQrLink: row.station_qr_link
-        }));
-    }
-
-    async assignPrinterToStation(printerId: string, stationId: string | null): Promise<void> {
-        const { error } = await supabase
-            .from('printers')
-            .update({ station_id: stationId })
-            .eq('id', printerId);
-
-        if (error) {
-            console.error('Error assigning printer to station:', error);
-            throw error;
-        }
-    }
-
-    async createStation(station: Partial<Station>): Promise<string> {
-        const { data, error } = await supabase
-            .from('stations')
-            .insert([{
-                name: station.name,
-                station_qr_link: station.stationQrLink
-            }])
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error creating station:', error);
-            throw error;
-        }
-
-        return data.id;
-    }
-
-    async updateStation(id: string, updates: Partial<Station>): Promise<void> {
-        const dbUpdates: any = {};
-        if (updates.name) dbUpdates.name = updates.name;
-        if (updates.stationQrLink !== undefined) dbUpdates.station_qr_link = updates.stationQrLink;
-
-        const { error } = await supabase
-            .from('stations')
-            .update(dbUpdates)
-            .eq('id', id);
-
-        if (error) {
-            console.error('Error updating station:', error);
-            throw error;
-        }
-    }
-
-    async deleteStation(id: string): Promise<void> {
-        // First unassign all printers
-        const { error: unassignError } = await supabase
-            .from('printers')
-            .update({ station_id: null })
-            .eq('station_id', id);
-
-        if (unassignError) {
-            console.error('Error unassigning printers before deleting station:', unassignError);
-            throw unassignError;
-        }
-
-        const { error } = await supabase
-            .from('stations')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            console.error('Error deleting station:', error);
-            throw error;
-        }
-    }
-
-
 
     private normalizeStatus(status: string): PrinterStatus {
         switch (status) {
@@ -202,7 +114,7 @@ export class SupabaseRepository implements StorageRepository {
         const configUpdates: any = { ...current.config };
         const stateUpdates: any = { ...current.state };
 
-        const configKeys = ['isMimaki', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'hasNozzleCheck'];
+        const configKeys = ['isMimaki', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'hasNozzleCheck', 'requireDateOnNozzle'];
         const topLevelKeys = ['name', 'status', 'type'];
 
         Object.entries(updates).forEach(([key, value]) => {
@@ -211,7 +123,16 @@ export class SupabaseRepository implements StorageRepository {
             if (topLevelKeys.includes(key)) {
                 topLevelUpdates[key] = value;
             } else if (configKeys.includes(key)) {
-                configUpdates[key] = value;
+                // Map camelCase to snake_case where necessary
+                if (key === 'requireDateOnNozzle') {
+                    configUpdates['require_date_on_nozzle'] = value;
+                } else if (key === 'hasNozzleCheck') {
+                    configUpdates['has_nozzle_check'] = value;
+                } else if (key === 'checklistTemplateId') {
+                    configUpdates['checklist_template_id'] = value;
+                } else {
+                    configUpdates[key] = value;
+                }
             } else {
                 // Assume everything else is state
                 stateUpdates[key] = value;
@@ -306,7 +227,7 @@ export class SupabaseRepository implements StorageRepository {
                 const config: any = {};
                 const state: any = {};
 
-                const configKeys = ['isMimaki', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId'];
+                const configKeys = ['isMimaki', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'requireDateOnNozzle'];
                 Object.entries(p).forEach(([key, value]) => {
                     if (['id', 'name', 'status', 'type'].includes(key)) return;
                     if (configKeys.includes(key)) config[key] = value;
@@ -413,7 +334,12 @@ export class SupabaseRepository implements StorageRepository {
             started_at: log.startedAt,
             finished_at: log.finishedAt,
             production_amount: log.productionAmount,
+            remaining_amount: log.remainingAmount || null,
+            backlog: log.backlog || null,               // Naujas atsilikimas
             defects_amount: log.defectsAmount,
+            defects_reason: log.defectsReason || null,  // Nauja broko priežastis
+            robot_defects: log.robotDefects || 0,
+            printing_defects: log.printingDefects || 0,
             vit_data: log.vitData,
             nozzle_data: log.nozzleData,
             next_operator_message: log.nextOperatorMessage
@@ -462,7 +388,12 @@ export class SupabaseRepository implements StorageRepository {
             startedAt: row.started_at,
             finishedAt: row.finished_at,
             productionAmount: row.production_amount,
+            remainingAmount: row.remaining_amount,
+            backlog: row.backlog,                   // Naujas atsilikimas
             defectsAmount: row.defects_amount,
+            defectsReason: row.defects_reason,      // Nauja broko priežastis
+            robotDefects: row.robot_defects,
+            printingDefects: row.printing_defects,
             vitData: row.vit_data,
             nozzleData: row.nozzle_data,
             nextOperatorMessage: row.next_operator_message
@@ -537,8 +468,8 @@ export class SupabaseRepository implements StorageRepository {
 
         // Using a secondary client to sign up the user without logging out the admin
         const { createClient } = await import('@supabase/supabase-js');
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const supabaseUrl = (import.meta as any).env.VITE_SUPABASE_URL;
+        const supabaseKey = (import.meta as any).env.VITE_SUPABASE_ANON_KEY;
 
         if (!supabaseUrl || !supabaseKey) {
             throw new Error('Supabase URL or Anon Key missing in environment.');
