@@ -24,16 +24,28 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
             try {
                 // Fetch recent logs (could be optimized, but ok for a few printers)
                 const allLogs = await getShiftLogs();
+
                 // Group by printer
                 const grouped: Record<string, PrinterLog[]> = {};
-                allLogs.forEach(log => {
-                    if (!grouped[log.printerId]) grouped[log.printerId] = [];
-                    grouped[log.printerId].push(log);
-                });
+
+                // Polyfill-safe iteration
+                if (allLogs && Array.isArray(allLogs)) {
+                    allLogs.forEach(log => {
+                        if (!log) return;
+                        if (!grouped[log.printerId]) grouped[log.printerId] = [];
+                        grouped[log.printerId].push(log);
+                    });
+                }
 
                 // Sort and slice top 4 for each
-                for (const pid in grouped) {
-                    grouped[pid].sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime());
+                const pids = Object.keys(grouped);
+                for (let i = 0; i < pids.length; i++) {
+                    const pid = pids[i];
+                    grouped[pid].sort((a, b) => {
+                        const tA = a.finishedAt ? new Date(a.finishedAt).getTime() : 0;
+                        const tB = b.finishedAt ? new Date(b.finishedAt).getTime() : 0;
+                        return tB - tA;
+                    });
                     grouped[pid] = grouped[pid].slice(0, 4);
                 }
 
