@@ -7,4 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Missing Supabase URL or Anon Key. Please check your .env file.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+        fetch: (url, options) => {
+            return fetch(url, {
+                ...options,
+                cache: 'no-store'
+            });
+        }
+    }
+});

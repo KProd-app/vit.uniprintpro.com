@@ -388,9 +388,14 @@
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://vit.uniprintpro.com/user"
                 alt="Prisijungti per telefona"
                 style="width: 6vh; height: 6vh; background: white; padding: 0.4vh; border-radius: 0.5vw;">
-            <div class="clock" id="clock">00:00</div>
+            <div style="text-align: right;">
+                <div class="clock" id="clock">00:00</div>
+                <div id="last-updated" style="font-size: 1vh; color: #64748b; font-weight: bold; margin-top: 0.5vh; text-transform: uppercase;">Atnaujinta: --:--:--</div>
+            </div>
         </div>
     </header>
+
+    <div id="error-banner" style="display: none; background: #ef4444; color: white; padding: 1vh; text-align: center; font-weight: bold; text-transform: uppercase; margin-bottom: 1vh; border-radius: 0.5vw;"></div>
 
     <div id="main-content">
         <div id="board">
@@ -525,6 +530,13 @@
         setInterval(updateClock, 1000);
         updateClock();
 
+        function showError(msg) {
+            var el = document.getElementById('error-banner');
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(function() { el.style.display = 'none'; }, 10000);
+        }
+
         // CONFIG
         var SUPABASE_URL = 'https://hljqmgmwjrtowpfsnokr.supabase.co';
         var SUPABASE_KEY = 'sb_publishable_8JLf1MPUFX2c06nab_aWvQ_dlpeCmpI';
@@ -539,7 +551,13 @@
             metrics: {}
         };
 
-        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            global: {
+                fetch: (url, options) => {
+                    return fetch(url, { ...options, cache: 'no-store' });
+                }
+            }
+        });
 
         async function fetchData() {
             try {
@@ -551,6 +569,7 @@
 
                 if (pErr) {
                     console.error("Error fetching printers:", pErr);
+                    showError("Klaida gaunant duomenis: " + pErr.message);
                     return;
                 }
                 if (pData) printers = pData;
@@ -589,8 +608,15 @@
                 }
 
                 render();
+
+                // Update Last Updated Timestamp
+                var now = new Date();
+                var timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+                document.getElementById('last-updated').textContent = "Atnaujinta: " + timeStr;
+
             } catch (err) {
                 console.error("Unexpected error fetching data:", err);
+                showError("Netikėta klaida: " + err.message);
             }
         }
 
@@ -734,7 +760,23 @@
                 html += '<div class="badge ' + st.css + '">' + st.text + '</div>';
                 html += '<div class="badge ' + (maintDone ? 'b-maint-ok' : 'b-maint-bad') + '">' + (maintDone ? '✓ VALYMAS' : '✕ VALYMAS') + '</div>';
                 html += '<div class="badge ' + (nozzleDone ? 'b-nozzle-ok' : 'b-nozzle-bad') + '">' + (nozzleDone ? '✓ NOZZLE' : '✕ NOZZLE') + '</div>';
-                html += '</div></div>';
+                html += '</div>';
+
+                // Add Current Production Stats
+                var prod = p.production_amount || 0;
+                var defects = p.defects_amount || 0;
+                html += '<div style="display:flex; gap: 1vw; margin-top: 0.5vh;">';
+                html += '<div style="background: rgba(30,41,59,0.5); padding: 0.2vh 0.5vw; border-radius: 0.3vw; border: 1px solid rgba(51,65,85,0.5); text-align: center;">';
+                html += '<div style="font-size: 0.8vh; color: #64748b; font-weight: bold; text-transform: uppercase;">Pagam.</div>';
+                html += '<div style="font-size: 1.4vh; color: white; font-weight: 900;">' + prod + '</div>';
+                html += '</div>';
+                html += '<div style="background: rgba(30,41,59,0.5); padding: 0.2vh 0.5vw; border-radius: 0.3vw; border: 1px solid rgba(51,65,85,0.5); text-align: center;">';
+                html += '<div style="font-size: 0.8vh; color: #64748b; font-weight: bold; text-transform: uppercase;">Brokas</div>';
+                html += '<div style="font-size: 1.4vh; color: ' + (defects > 0 ? '#f87171' : '#64748b') + '; font-weight: 900;">' + defects + '</div>';
+                html += '</div>';
+                html += '</div>';
+
+                html += '</div>'; // End col-live
 
                 // Col 2 to 5: Match the global timeline columns
                 for (var j = 0; j < 4; j++) {

@@ -11,6 +11,8 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [logs, setLogs] = useState<Record<string, PrinterLog[]>>({});
     const [loading, setLoading] = useState(true);
+    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+    const [error, setError] = useState<string | null>(null);
     const { getShiftLogs } = usePrinters();
 
     useEffect(() => {
@@ -18,9 +20,15 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
         return () => clearInterval(timer);
     }, []);
 
+    // Update timestamp when live data changes
+    useEffect(() => {
+        setLastUpdated(new Date());
+    }, [printers]);
+
     useEffect(() => {
         const fetchAllLogs = async () => {
             setLoading(true);
+            setError(null);
             try {
                 // Fetch recent logs (could be optimized, but ok for a few printers)
                 const allLogs = await getShiftLogs();
@@ -50,16 +58,18 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
                 }
 
                 setLogs(grouped);
-            } catch (err) {
+                setLastUpdated(new Date());
+            } catch (err: any) {
                 console.error("Failed to load logs for Lenta", err);
+                setError(err.message || "Nepavyko užkrauti istorijos");
             } finally {
                 setLoading(false);
             }
         };
 
         fetchAllLogs();
-        // Refresh logs every 5 minutes just in case
-        const logsTimer = setInterval(fetchAllLogs, 5 * 60 * 1000);
+        // Refresh logs every 1 minute
+        const logsTimer = setInterval(fetchAllLogs, 60 * 1000);
         return () => clearInterval(logsTimer);
     }, [getShiftLogs]);
 
@@ -78,16 +88,30 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
     return (
         <div className="fixed inset-0 z-50 h-screen w-screen bg-slate-950 text-white p-6 font-sans flex flex-col overflow-hidden">
             {/* Header */}
-            <header className="flex justify-between items-center mb-6 bg-slate-900/80 px-8 py-4 rounded-2xl border border-slate-800 shrink-0">
+            <header className="flex justify-between items-center mb-6 bg-slate-900/80 px-8 py-4 rounded-2xl border border-slate-800 shrink-0 relative">
                 <h1 className="text-3xl font-black tracking-tight text-white uppercase flex items-center gap-4">
                     <span className="w-4 h-4 rounded-full bg-blue-500 animate-pulse"></span>
                     Gamybos Fakto sekimas
                 </h1>
-                <div className="flex items-center gap-3 bg-slate-800/80 px-6 py-3 rounded-xl border border-slate-700">
-                    <Clock className="w-8 h-8 text-blue-400" />
-                    <span className="text-3xl font-mono font-bold tracking-wider">
-                        {currentTime.toLocaleTimeString('lt-LT', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+
+                {/* Error Banner */}
+                {error && (
+                    <div className="absolute left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-6 py-2 rounded-full font-bold uppercase tracking-wider text-sm flex items-center gap-2 animate-bounce">
+                        <AlertCircle className="w-5 h-5" />
+                        {error}
+                    </div>
+                )}
+
+                <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-3 bg-slate-800/80 px-6 py-3 rounded-xl border border-slate-700">
+                        <Clock className="w-8 h-8 text-blue-400" />
+                        <span className="text-3xl font-mono font-bold tracking-wider">
+                            {currentTime.toLocaleTimeString('lt-LT', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                    </div>
+                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">
+                        Atnaujinta: {lastUpdated.toLocaleTimeString('lt-LT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </div>
                 </div>
             </header>
 
@@ -143,6 +167,18 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
                                                             <XCircle className="w-3 h-3" /> Nozzle
                                                         </span>
                                                     )}
+                                                </div>
+
+                                                {/* Current Shift Production */}
+                                                <div className="grid grid-cols-2 gap-2 mt-3">
+                                                    <div className="bg-slate-800/50 rounded-lg p-1.5 text-center border border-slate-700/50">
+                                                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Pagaminta</div>
+                                                        <div className="text-xl font-black text-white leading-none">{printer.productionAmount || 0}</div>
+                                                    </div>
+                                                    <div className="bg-slate-800/50 rounded-lg p-1.5 text-center border border-slate-700/50">
+                                                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Brokas</div>
+                                                        <div className={`text-xl font-black leading-none ${(printer.defectsAmount || 0) > 0 ? 'text-red-400' : 'text-slate-500'}`}>{printer.defectsAmount || 0}</div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
