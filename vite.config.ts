@@ -15,7 +15,19 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       legacy({
-        targets: ['defaults', 'not IE 11'],
+        targets: ['chrome >= 64', 'edge >= 79', 'safari >= 11.1', 'firefox >= 67'],
+        additionalLegacyPolyfills: ['regenerator-runtime/runtime'],
+        renderLegacyChunks: true,
+        polyfills: [
+            'es.symbol',
+            'es.promise',
+            'es.promise.finally',
+            'es/map',
+            'es/set',
+            'es.array.flat-map',
+            'es.object.entries',
+            'es.object.from-entries',
+        ],
       }),
     ],
     define: {
@@ -26,6 +38,9 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, './src'),
       }
+    },
+    build: {
+      target: 'es2015', // Lower build target for base bundle
     }
   };
 });
