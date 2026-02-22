@@ -232,9 +232,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const interval = setInterval(async () => {
             // Always poll, even if hidden, to ensure background tabs (like on a TV that might switch inputs) stay fresh
             // Reduced to 2s for better responsiveness if realtime fails
-            const data = await repository.getPrinters();
-            setPrinters(data);
-            checkShiftRotation();
+            try {
+                const data = await repository.getPrinters();
+                setPrinters(data);
+                await checkShiftRotation();
+            } catch (e) {
+                console.error("Polling error:", e);
+            }
         }, 2000);
 
         return () => {
