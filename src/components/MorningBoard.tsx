@@ -11,6 +11,7 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [logs, setLogs] = useState<Record<string, PrinterLog[]>>({});
     const [loading, setLoading] = useState(true);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const { getShiftLogs } = usePrinters();
 
     useEffect(() => {
@@ -21,20 +22,28 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
     useEffect(() => {
         const fetchAllLogs = async () => {
             setLoading(true);
+            setErrorMsg(null);
             try {
                 // Fetch recent logs (could be optimized, but ok for a few printers)
+                // Added explicit limit to avoid overload, though getShiftLogs might ignore it if not implemented
                 const allLogs = await getShiftLogs();
+
+                if (!allLogs) {
+                    throw new Error("Gauta tuščia reikšmė (null) iš serverio");
+                }
 
                 // Group by printer
                 const grouped: Record<string, PrinterLog[]> = {};
 
                 // Polyfill-safe iteration
-                if (allLogs && Array.isArray(allLogs)) {
+                if (Array.isArray(allLogs)) {
                     allLogs.forEach(log => {
                         if (!log) return;
                         if (!grouped[log.printerId]) grouped[log.printerId] = [];
                         grouped[log.printerId].push(log);
                     });
+                } else {
+                    throw new Error("Gauti duomenys nėra masyvas");
                 }
 
                 // Sort and slice top 4 for each
@@ -42,16 +51,21 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
                 for (let i = 0; i < pids.length; i++) {
                     const pid = pids[i];
                     grouped[pid].sort((a, b) => {
-                        const tA = a.finishedAt ? new Date(a.finishedAt).getTime() : 0;
-                        const tB = b.finishedAt ? new Date(b.finishedAt).getTime() : 0;
-                        return tB - tA;
+                        // Safer Date parsing for older browsers
+                        const parseDate = (d: string) => {
+                            if (!d) return 0;
+                            const t = Date.parse(d);
+                            return isNaN(t) ? 0 : t;
+                        };
+                        return parseDate(b.finishedAt) - parseDate(a.finishedAt);
                     });
                     grouped[pid] = grouped[pid].slice(0, 4);
                 }
 
                 setLogs(grouped);
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Failed to load logs for Lenta", err);
+                setErrorMsg(err.message || "Klaida kraunant duomenis");
             } finally {
                 setLoading(false);
             }
@@ -92,7 +106,12 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
             </header>
 
             {/* List Table */}
-            <div className="flex-1 bg-slate-900/50 rounded-2xl border border-slate-800 overflow-hidden flex flex-col shadow-2xl">
+            <div className="flex-1 bg-slate-900/50 rounded-2xl border border-slate-800 overflow-hidden flex flex-col shadow-2xl relative">
+                {errorMsg && (
+                    <div className="absolute top-0 left-0 right-0 bg-red-600/90 text-white px-4 py-2 text-center text-sm font-bold z-50">
+                        KLAIDA: {errorMsg}
+                    </div>
+                )}
                 {/* Table Header */}
                 <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr] gap-4 bg-slate-900 px-6 py-4 border-b border-slate-800 font-bold uppercase tracking-wider text-sm text-slate-400 shrink-0">
                     <div>Įrenginys & Gyvas Statusas</div>
