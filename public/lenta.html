@@ -767,19 +767,7 @@
                 html += '<div class="badge ' + (nozzleDone ? 'b-nozzle-ok' : 'b-nozzle-bad') + '">' + (nozzleDone ? '✓ NOZZLE' : '✕ NOZZLE') + '</div>';
                 html += '</div>';
 
-                // Add Current Production Stats
-                var prod = (p.state && p.state.productionAmount) || 0;
-                var defects = (p.state && p.state.defectsAmount) || 0;
-                html += '<div style="display:flex; gap: 1vw; margin-top: 0.5vh;">';
-                html += '<div style="background: rgba(30,41,59,0.5); padding: 0.2vh 0.5vw; border-radius: 0.3vw; border: 1px solid rgba(51,65,85,0.5); text-align: center;">';
-                html += '<div style="font-size: 0.8vh; color: #64748b; font-weight: bold; text-transform: uppercase;">Pagam.</div>';
-                html += '<div style="font-size: 1.4vh; color: white; font-weight: 900;">' + prod + '</div>';
-                html += '</div>';
-                html += '<div style="background: rgba(30,41,59,0.5); padding: 0.2vh 0.5vw; border-radius: 0.3vw; border: 1px solid rgba(51,65,85,0.5); text-align: center;">';
-                html += '<div style="font-size: 0.8vh; color: #64748b; font-weight: bold; text-transform: uppercase;">Brokas</div>';
-                html += '<div style="font-size: 1.4vh; color: ' + (defects > 0 ? '#f87171' : '#64748b') + '; font-weight: 900;">' + defects + '</div>';
-                html += '</div>';
-                html += '</div>';
+                // Remove current production stats as requested, keep only the remaining amount in the title
 
                 html += '</div>'; // End col-live
 
