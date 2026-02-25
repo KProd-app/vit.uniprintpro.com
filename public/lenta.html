@@ -553,8 +553,9 @@
 
         var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
             global: {
-                fetch: (url, options) => {
-                    return fetch(url, { ...options, cache: 'no-store' });
+                fetch: function(url, options) {
+                    var opts = Object.assign({}, options, { cache: 'no-store' });
+                    return fetch(url, opts);
                 }
             }
         });
