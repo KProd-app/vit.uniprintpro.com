@@ -554,6 +554,9 @@
             proposals: [],
             metrics: {}
         };
+        window.activeDefectAlerts = [];
+        window.alertRotationIndex = 0;
+        window.lastDefectAlertsSignature = '';
 
         var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
             global: {
@@ -591,6 +594,10 @@
                     return;
                 }
                 if (lData) logs = lData;
+
+                // Build rotating defect reasons directly from latest logs
+                // so BROKAI panel stays in sync with VIT form submissions.
+                syncDefectAlertsFromLogs();
 
                 // Fetch Side Data for TV
                 var [probs, trans, props, mets] = await Promise.all([
@@ -652,13 +659,54 @@
             return { date: dd + '-' + mm, time: hh + ':' + mn };
         }
 
+        function syncDefectAlertsFromLogs() {
+            var alerts = [];
+            var printerNameById = {};
+
+            for (var i = 0; i < printers.length; i++) {
+                printerNameById[printers[i].id] = printers[i].name;
+            }
+
+            for (var j = 0; j < logs.length; j++) {
+                var log = logs[j];
+                var production = Number(log.production_amount || 0);
+                var defects = Number(log.defects_amount || 0);
+                var hasReason = !!log.defects_reason;
+
+                if (production <= 0 || !hasReason) continue;
+
+                var defectRateNum = (defects / production) * 100;
+                if (defectRateNum > 5) {
+                    alerts.push({
+                        printer: printerNameById[log.printer_id] || log.printer_name || 'Nežinomas įrenginys',
+                        operator: log.operator_name || 'Nežinomas',
+                        reason: log.defects_reason,
+                        shift: log.shift || '-'
+                    });
+                }
+            }
+
+            var signatureParts = [];
+            for (var k = 0; k < alerts.length; k++) {
+                var a = alerts[k];
+                signatureParts.push(a.printer + '|' + a.operator + '|' + a.reason + '|' + a.shift);
+            }
+            var nextSignature = signatureParts.join('||');
+
+            if (nextSignature !== window.lastDefectAlertsSignature) {
+                window.alertRotationIndex = 0;
+                window.lastDefectAlertsSignature = nextSignature;
+            }
+
+            window.activeDefectAlerts = alerts;
+        }
+
         function render() {
             renderLeftBoard();
             renderRightPanels();
         }
 
         function renderLeftBoard() {
-            window.activeDefectAlerts = []; // Nulinuoja aliarmus kas renderį
             var list = document.getElementById('list');
             var headerEl = document.getElementById('row-header');
             var html = '';
@@ -800,12 +848,6 @@
                         var defectHtml = '<div class="metric-val ' + defectClass + '">' + defectRate + '</div>';
 
                         if (defectRateNum > 5 && log.defects_reason) {
-                            window.activeDefectAlerts.push({
-                                printer: p.name,
-                                operator: log.operator_name || 'Nežinomas',
-                                reason: log.defects_reason,
-                                shift: log.shift
-                            });
                             // Priežastis po procentu
                             defectHtml = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1;"><div class="metric-val ' + defectClass + '">' + defectRate + '</div><div style="font-size:1vh; color:#ef4444; margin-top:0.3vh; font-weight:bold; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + log.defects_reason.replace(/"/g, '&quot;') + '">PRIEŽASTIS</div></div>';
                         }
@@ -941,7 +983,6 @@
             qEl.style.color = qualityText.includes('NĖRA') ? '#1e293b' : '#34d399';
         }
 
-        window.alertRotationIndex = 0;
         function updateDefectAlertRotation() {
             var alertEl = document.getElementById('rotating-defect-alert');
             if (!alertEl || !window.activeDefectAlerts || window.activeDefectAlerts.length === 0) return;
