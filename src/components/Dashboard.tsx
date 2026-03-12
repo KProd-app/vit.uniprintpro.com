@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PrinterData, PrinterStatus, User, UserRole } from '../types';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Button } from './ui/button';
@@ -31,8 +31,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [showScanner, setShowScanner] = useState<boolean>(myPrinters.length === 0 && currentUser.role === UserRole.WORKER);
   const [scanError, setScanError] = useState<string>('');
   const [showAllPrinters, setShowAllPrinters] = useState<boolean>(false);
+  const [scannerEnabled, setScannerEnabled] = useState<boolean>(false);
 
   // If user has an active job, they see that job. Otherwise scanner or list.
+
+  useEffect(() => {
+    if (!showScanner) {
+      setScannerEnabled(false);
+      setScanError('');
+    }
+  }, [showScanner]);
 
   const handleScan = (detectedCodes: any) => {
     if (detectedCodes && detectedCodes.length > 0) {
@@ -229,7 +237,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <Button
               onClick={() => {
                 setShowScanner(!showScanner);
-                if (!showScanner) setShowAllPrinters(false); // If opening scanner, hide list
+                if (!showScanner) {
+                  setShowAllPrinters(false);
+                  setScannerEnabled(false);
+                  setScanError('');
+                }
               }}
               className={`h-14 px-8 rounded-2xl font-bold uppercase tracking-widest transition-all ${showScanner ? 'bg-white text-slate-800 border border-slate-200 hover:bg-slate-50' : 'bg-mimaki-blue text-white shadow-lg shadow-mimaki-blue/30'}`}
             >
@@ -257,11 +269,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </CardHeader>
               <CardContent className="p-4">
                 <div className="relative rounded-[2rem] overflow-hidden border-4 border-slate-700 bg-black aspect-square">
-                  <Scanner
-                    onScan={handleScan}
-                    components={{}}
-                    styles={{ container: { width: '100%', height: '100%' } }}
-                  />
+                  {scannerEnabled ? (
+                    <Scanner
+                      onScan={handleScan}
+                      onError={() => setScanError('Nepavyko pasiekti kameros. Patikrinkite kameros leidimą naršyklėje.')}
+                      components={{}}
+                      styles={{ container: { width: '100%', height: '100%' } }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-center text-white p-6">
+                      <p className="font-bold">Norint skenuoti QR, reikia įjungti kamerą.</p>
+                      <Button
+                        onClick={() => setScannerEnabled(true)}
+                        className="mt-4 bg-mimaki-blue text-white hover:bg-blue-700"
+                      >
+                        Įjungti kamerą
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 {scanError && (
                   <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-center text-sm font-bold">

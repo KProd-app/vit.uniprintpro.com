@@ -92,6 +92,10 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
         console.error('Camera access totally failed:', err);
         setHasPermission(false);
       }
+      setHasPermission(true);
+    } catch (err) {
+      console.error('Camera access totally failed:', err);
+      setHasPermission(false);
     }
 
     setupCamera();
@@ -99,7 +103,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
     return () => {
       stopStream();
     };
-  }, []);
+  }, [cameraStarted]);
 
   const takePhoto = () => {
     if (videoRef.current && canvasRef.current) {
