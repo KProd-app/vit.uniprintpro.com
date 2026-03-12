@@ -52,53 +52,53 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [flashOn, setFlashOn] = useState(false);
-  const [cameraStarted, setCameraStarted] = useState(false);
 
-  const stopStream = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    setStream(null);
-    setFlashOn(false);
-  };
-
-  const startCamera = async () => {
-    setHasPermission(null);
-    try {
-      let s: MediaStream;
-      try {
-        s = await getMediaStream({
-          video: { facingMode: { ideal: 'environment' } },
-          audio: false
-        });
-      } catch (initialErr) {
-        console.warn('Environment camera failed, falling back to generic camera', initialErr);
-        s = await getMediaStream({
-          video: true,
-          audio: false
-        });
+  useEffect(() => {
+    async function setupCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        console.error('Camera API is not supported in this browser.');
+        setHasPermission(false);
+        return;
       }
 
-      streamRef.current = s;
-      setStream(s);
+      try {
+        let s: MediaStream;
+        try {
+          s = await getMediaStream({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false
+          });
+        } catch (initialErr) {
+          console.warn("Environment camera failed, falling back to generic camera", initialErr);
+          // Fallback to any available camera if environment fails (e.g., Samsung browser issues)
+          s = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+          });
+        }
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = s;
-        videoRef.current.muted = true;
-        videoRef.current.play().catch((playErr) => {
-          console.warn('Video autoplay failed, waiting for user interaction.', playErr);
-        });
+        streamRef.current = s;
+        setStream(s);
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          videoRef.current.muted = true;
+          videoRef.current.play().catch((playErr) => {
+            console.warn('Video autoplay failed, waiting for user interaction.', playErr);
+          });
+        }
+        setHasPermission(true);
+      } catch (err) {
+        console.error('Camera access totally failed:', err);
+        setHasPermission(false);
       }
       setHasPermission(true);
     } catch (err) {
       console.error('Camera access totally failed:', err);
       setHasPermission(false);
     }
-  };
 
-  useEffect(() => {
-    if (cameraStarted && !streamRef.current) {
-      startCamera();
-    }
+    setupCamera();
 
     return () => {
       stopStream();
@@ -149,25 +149,10 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
     onCancel();
   };
 
-  if (!cameraStarted) {
-    return (
-      <div className="p-10 text-center bg-slate-50 rounded-2xl border border-slate-200">
-        <p className="text-slate-700 font-bold">Norint fotografuoti, reikia įjungti kamerą.</p>
-        <button
-          onClick={() => setCameraStarted(true)}
-          className="mt-4 bg-mimaki-blue hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold"
-        >
-          Įjungti kamerą
-        </button>
-      </div>
-    );
-  }
-
   if (hasPermission === false) {
     return (
       <div className="p-10 text-center bg-red-50 rounded-2xl border border-red-200">
         <p className="text-red-600 font-bold">Klaida: Nepavyko pasiekti kameros.</p>
-        <button onClick={() => startCamera()} className="mt-4 text-mimaki-blue underline mr-4">Bandyti dar kartą</button>
         <button onClick={handleCancel} className="mt-4 text-slate-600 underline">Grįžti</button>
       </div>
     );
@@ -176,7 +161,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
   const toggleFlash = async () => {
     if (stream) {
       const track = stream.getVideoTracks()[0];
-      if (!track || typeof track.getCapabilities !== 'function') return;
       const capabilities = track.getCapabilities();
       // @ts-ignore
       if (capabilities.torch) {
