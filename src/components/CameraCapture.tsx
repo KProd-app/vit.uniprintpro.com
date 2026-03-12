@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 
 interface CameraCaptureProps {
@@ -7,47 +6,104 @@ interface CameraCaptureProps {
   onCancel: () => void;
 }
 
+type LegacyNavigator = Navigator & {
+  webkitGetUserMedia?: (
+    constraints: MediaStreamConstraints,
+    success: (stream: MediaStream) => void,
+    error: (err: unknown) => void
+  ) => void;
+  mozGetUserMedia?: (
+    constraints: MediaStreamConstraints,
+    success: (stream: MediaStream) => void,
+    error: (err: unknown) => void
+  ) => void;
+  msGetUserMedia?: (
+    constraints: MediaStreamConstraints,
+    success: (stream: MediaStream) => void,
+    error: (err: unknown) => void
+  ) => void;
+};
+
+const getMediaStream = async (constraints: MediaStreamConstraints): Promise<MediaStream> => {
+  if (navigator.mediaDevices?.getUserMedia) {
+    return navigator.mediaDevices.getUserMedia(constraints);
+  }
+
+  const legacyNavigator = navigator as LegacyNavigator;
+  const legacyGetUserMedia =
+    legacyNavigator.webkitGetUserMedia ||
+    legacyNavigator.mozGetUserMedia ||
+    legacyNavigator.msGetUserMedia;
+
+  if (!legacyGetUserMedia) {
+    throw new Error('Camera API is not supported in this browser.');
+  }
+
+  return new Promise((resolve, reject) => {
+    legacyGetUserMedia.call(legacyNavigator, constraints, resolve, reject);
+  });
+};
+
 export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userName, onCancel }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [flashOn, setFlashOn] = useState(false);
+  const [cameraStarted, setCameraStarted] = useState(false);
+
+  const stopStream = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setStream(null);
+    setFlashOn(false);
+  };
+
+  const startCamera = async () => {
+    setHasPermission(null);
+    try {
+      let s: MediaStream;
+      try {
+        s = await getMediaStream({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false
+        });
+      } catch (initialErr) {
+        console.warn('Environment camera failed, falling back to generic camera', initialErr);
+        s = await getMediaStream({
+          video: true,
+          audio: false
+        });
+      }
+
+      streamRef.current = s;
+      setStream(s);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = s;
+        videoRef.current.muted = true;
+        videoRef.current.play().catch((playErr) => {
+          console.warn('Video autoplay failed, waiting for user interaction.', playErr);
+        });
+      }
+      setHasPermission(true);
+    } catch (err) {
+      console.error('Camera access totally failed:', err);
+      setHasPermission(false);
+    }
+  };
 
   useEffect(() => {
-    async function setupCamera() {
-      try {
-        // Try requesting environment camera first
-        let s: MediaStream;
-        try {
-          s = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' } },
-            audio: false
-          });
-        } catch (initialErr) {
-          console.warn("Environment camera failed, falling back to generic camera", initialErr);
-          // Fallback to any available camera if environment fails (e.g., Samsung A54 issue)
-          s = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: false
-          });
-        }
-
-        setStream(s);
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-        }
-        setHasPermission(true);
-      } catch (err) {
-        console.error("Camera access totally failed:", err);
-        setHasPermission(false);
-      }
+    if (cameraStarted && !streamRef.current) {
+      startCamera();
     }
-    setupCamera();
+
     return () => {
-      stream?.getTracks().forEach(track => track.stop());
+      stopStream();
     };
-  }, []);
+  }, [cameraStarted]);
 
   const takePhoto = () => {
     if (videoRef.current && canvasRef.current) {
@@ -56,39 +112,31 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
       const context = canvas.getContext('2d');
       if (!context) return;
 
-      // Set canvas size to video size
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      // Draw video frame to canvas
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Add Overlay (Black Bar)
-      context.fillStyle = "rgba(0, 0, 0, 0.6)";
+      context.fillStyle = 'rgba(0, 0, 0, 0.6)';
       context.fillRect(0, canvas.height - 60, canvas.width, 60);
 
-      // Format username: vardas.pavarde -> Vardas Pavardė
       const formattedUserName = userName.split('.').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 
-      // Add Timestamp and User text
       const now = new Date();
       const timestamp = now.toLocaleString('lt-LT');
-      context.fillStyle = "white";
-      context.font = "bold 20px Inter, Arial";
+      context.fillStyle = 'white';
+      context.font = 'bold 20px Inter, Arial';
       context.fillText(`${timestamp} | Op: ${formattedUserName}`, 20, canvas.height - 25);
 
       const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
       setPreviewImage(dataUrl);
-
-      // Do NOT stop stream yet. We pause the video by showing the image over it.
     }
   };
 
   const confirmPhoto = () => {
     if (previewImage) {
       onCapture(previewImage);
-      // Stop stream
-      stream?.getTracks().forEach(track => track.stop());
+      stopStream();
     }
   };
 
@@ -96,21 +144,40 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
     setPreviewImage(null);
   };
 
-  if (hasPermission === false) {
+  const handleCancel = () => {
+    stopStream();
+    onCancel();
+  };
+
+  if (!cameraStarted) {
     return (
-      <div className="p-10 text-center bg-red-50 rounded-2xl border border-red-200">
-        <p className="text-red-600 font-bold">Klaida: Nepavyko pasiekti kameros.</p>
-        <button onClick={onCancel} className="mt-4 text-slate-600 underline">Grįžti</button>
+      <div className="p-10 text-center bg-slate-50 rounded-2xl border border-slate-200">
+        <p className="text-slate-700 font-bold">Norint fotografuoti, reikia įjungti kamerą.</p>
+        <button
+          onClick={() => setCameraStarted(true)}
+          className="mt-4 bg-mimaki-blue hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold"
+        >
+          Įjungti kamerą
+        </button>
       </div>
     );
   }
 
-  const [flashOn, setFlashOn] = useState(false);
+  if (hasPermission === false) {
+    return (
+      <div className="p-10 text-center bg-red-50 rounded-2xl border border-red-200">
+        <p className="text-red-600 font-bold">Klaida: Nepavyko pasiekti kameros.</p>
+        <button onClick={() => startCamera()} className="mt-4 text-mimaki-blue underline mr-4">Bandyti dar kartą</button>
+        <button onClick={handleCancel} className="mt-4 text-slate-600 underline">Grįžti</button>
+      </div>
+    );
+  }
 
   const toggleFlash = async () => {
     if (stream) {
       const track = stream.getVideoTracks()[0];
-      const capabilities = track.getCapabilities(); // Check if torch is supported
+      if (!track || typeof track.getCapabilities !== 'function') return;
+      const capabilities = track.getCapabilities();
       // @ts-ignore
       if (capabilities.torch) {
         try {
@@ -118,7 +185,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
           await track.applyConstraints({ advanced: [{ torch: !flashOn }] });
           setFlashOn(!flashOn);
         } catch (e) {
-          console.error("Flash error:", e);
+          console.error('Flash error:', e);
         }
       }
     }
@@ -141,7 +208,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
         <div className="absolute inset-0 border-4 border-dashed border-white/30 pointer-events-none m-8 rounded-2xl"></div>
       )}
 
-      {/* Flashlight Button */}
       {!previewImage && (
         <button
           onClick={toggleFlash}
@@ -172,7 +238,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
         ) : (
           <>
             <button
-              onClick={onCancel}
+              onClick={handleCancel}
               className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-bold backdrop-blur-md transition-all"
             >
               Atšaukti
@@ -185,7 +251,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
               <div className="w-16 h-16 border-4 border-slate-900 rounded-full group-hover:bg-slate-100 transition-colors"></div>
             </button>
 
-            <div className="w-24"></div> {/* Spacer */}
+            <div className="w-24"></div>
           </>
         )}
       </div>
