@@ -53,15 +53,14 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [flashOn, setFlashOn] = useState(false);
 
-  const stopStream = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    setStream(null);
-    setFlashOn(false);
-  };
-
   useEffect(() => {
     async function setupCamera() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        console.error('Camera API is not supported in this browser.');
+        setHasPermission(false);
+        return;
+      }
+
       try {
         let s: MediaStream;
         try {
@@ -70,8 +69,9 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
             audio: false
           });
         } catch (initialErr) {
-          console.warn('Environment camera failed, falling back to generic camera', initialErr);
-          s = await getMediaStream({
+          console.warn("Environment camera failed, falling back to generic camera", initialErr);
+          // Fallback to any available camera if environment fails (e.g., Samsung browser issues)
+          s = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: false
           });
