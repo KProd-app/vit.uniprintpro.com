@@ -13,6 +13,7 @@ export class SupabaseRepository implements StorageRepository {
                 status: PrinterStatus.NOT_STARTED, // Default
                 config: {
                     isMimaki: !!printer.isMimaki,
+                    assigned_mimaki_units: printer.assignedMimakiUnits || [],
                     hasWhiteInk: !!printer.hasWhiteInk,
                     hasVarnish: !!printer.hasVarnish,
                     has_nozzle_check: !!printer.hasNozzleCheck,
@@ -80,6 +81,11 @@ export class SupabaseRepository implements StorageRepository {
             status: this.normalizeStatus(row.status),
             ...defaultState, // 1. Apply defaults
             ...row.config,   // 2. config overrides (if any name collision, though unlikely)
+            assignedMimakiUnits: row.config?.assigned_mimaki_units || row.config?.assignedMimakiUnits || [],
+            hasNozzleCheck: row.config?.has_nozzle_check ?? row.config?.hasNozzleCheck ?? false,
+            checklistTemplateId: row.config?.checklist_template_id || row.config?.checklistTemplateId || undefined,
+            endShiftChecklistId: row.config?.end_shift_checklist_id || row.config?.endShiftChecklistId || undefined,
+            qrCode: row.config?.qr_code || row.config?.qrCode || undefined,
             requireDateOnNozzle: row.config?.require_date_on_nozzle || false,
             ...row.state     // 3. DB state overrides defaults
         }));
@@ -114,7 +120,7 @@ export class SupabaseRepository implements StorageRepository {
         const configUpdates: any = { ...current.config };
         const stateUpdates: any = { ...current.state };
 
-        const configKeys = ['isMimaki', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'hasNozzleCheck', 'requireDateOnNozzle'];
+        const configKeys = ['isMimaki', 'assignedMimakiUnits', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'endShiftChecklistId', 'hasNozzleCheck', 'qrCode', 'requireDateOnNozzle'];
         const topLevelKeys = ['name', 'status', 'type'];
 
         Object.entries(updates).forEach(([key, value]) => {
@@ -130,6 +136,12 @@ export class SupabaseRepository implements StorageRepository {
                     configUpdates['has_nozzle_check'] = value;
                 } else if (key === 'checklistTemplateId') {
                     configUpdates['checklist_template_id'] = value;
+                } else if (key === 'endShiftChecklistId') {
+                    configUpdates['end_shift_checklist_id'] = value;
+                } else if (key === 'qrCode') {
+                    configUpdates['qr_code'] = value;
+                } else if (key === 'assignedMimakiUnits') {
+                    configUpdates['assigned_mimaki_units'] = value;
                 } else {
                     configUpdates[key] = value;
                 }
