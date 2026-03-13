@@ -652,7 +652,6 @@
             var h = d.getHours();
 
             // "Naktinė" pamaina priklauso tos dienos vakarui, net jei pamaina baigiasi kitos dienos rytą.
-            // Jei Naktinė baigėsi tarp vidurnakčio ir 14:00 (pvz., 06:15 ryto), ją priskiriame vakarykštei dienai.
             if (log.shift === 'Naktinė' && h < 14) {
                 d.setDate(d.getDate() - 1);
             }
@@ -732,21 +731,65 @@
                 groupedLogs[l.printer_id].push(l);
             }
 
-            // Ensure they are sorted by finished_at descending (latest first)
+            // Ensure they are sorted by finished_at descending
             for (var pid in groupedLogs) {
                 groupedLogs[pid].sort(function (a, b) {
-                    var timeA = a.finished_at ? new Date(a.finished_at).getTime() : 0;
-                    var timeB = b.finished_at ? new Date(b.finished_at).getTime() : 0;
-                    return timeB - timeA;
+                    return new Date(b.finished_at).getTime() - new Date(a.finished_at).getTime();
                 });
             }
 
-            // Render Header Statically (like desktop View)
+            // GENERATE GLOBAL TIMELINE (Fixed 4 latest shifts based on real time)
+            var uniqueShifts = [];
+            var now = new Date();
+            var h = now.getHours();
+
+            var currentShiftDate = new Date(now);
+            var currentShiftName = "Dieninė";
+
+            if (h >= 6 && h < 18) {
+                currentShiftName = "Dieninė";
+            } else {
+                currentShiftName = "Naktinė";
+                if (h < 6) {
+                    currentShiftDate.setDate(currentShiftDate.getDate() - 1);
+                }
+            }
+
+            var iterDate = new Date(currentShiftDate);
+            var iterShift = currentShiftName;
+
+            for (var i = 0; i < 4; i++) {
+                var yy = iterDate.getFullYear();
+                var mm = String(iterDate.getMonth() + 1).padStart(2, '0');
+                var dd = String(iterDate.getDate()).padStart(2, '0');
+                var ymd = yy + '-' + mm + '-' + dd;
+
+                var fakeIso = ymd + 'T12:00:00';
+
+                uniqueShifts.push({
+                    id: ymd + '_' + iterShift,
+                    dateStr: formatDate(fakeIso),
+                    shiftStr: iterShift
+                });
+
+                if (iterShift === "Naktinė") {
+                    iterShift = "Dieninė";
+                } else {
+                    iterShift = "Naktinė";
+                    iterDate.setDate(iterDate.getDate() - 1);
+                }
+            }
+
+            // Render Header
             var headerHtml = '<div>Įrenginys & Statusas</div>';
-            headerHtml += '<div>Paskutinė Pamaina (-1)</div>';
-            headerHtml += '<div>Priešpaskutinė (-2)</div>';
-            headerHtml += '<div>Ankstesnė (-3)</div>';
-            headerHtml += '<div>Seniausia (-4)</div>';
+            for (var i = 0; i < 4; i++) {
+                var s = uniqueShifts[i];
+                if (s.id === 'empty') headerHtml += '<div>-</div>';
+                else {
+                    var color = s.shiftStr === 'Dieninė' ? '#fbbf24' : '#60a5fa'; // amber / blue
+                    headerHtml += '<div>' + s.dateStr + ' <span style="color:' + color + '">(' + s.shiftStr.substring(0, 4) + '.)</span></div>';
+                }
+            }
             headerEl.innerHTML = headerHtml;
 
             // Render Printers
@@ -754,9 +797,15 @@
                 var p = printers[i];
                 var pLogs = groupedLogs[p.id] || [];
 
+                // Map printer logs by their shift ID so we can match the global columns
+                var mappedPLogs = {};
+                for (var j = 0; j < pLogs.length; j++) {
+                    mappedPLogs[getShiftId(pLogs[j])] = pLogs[j];
+                }
+
                 // Find the latest valid remaining_amount for this printer
                 var latestRemain = null;
-                for (var j = 0; j < pLogs.length; j++) {
+                for (var j = 0; j < pLogs.length; j++) { // pLogs is already sorted by date descending!
                     if (pLogs[j].remaining_amount !== null && pLogs[j].remaining_amount !== undefined) {
                         latestRemain = pLogs[j].remaining_amount;
                         break;
@@ -777,27 +826,24 @@
                 html += '<div class="badge ' + (maintDone ? 'b-maint-ok' : 'b-maint-bad') + '">' + (maintDone ? '✓ VALYMAS' : '✕ VALYMAS') + '</div>';
                 html += '<div class="badge ' + (nozzleDone ? 'b-nozzle-ok' : 'b-nozzle-bad') + '">' + (nozzleDone ? '✓ NOZZLE' : '✕ NOZZLE') + '</div>';
                 html += '</div>';
+
+                // Remove current production stats as requested, keep only the remaining amount in the title
+
                 html += '</div>'; // End col-live
 
-                // Col 2 to 5: Display the last 4 logs relative to THIS printer specifically
+                // Col 2 to 5: Match the global timeline columns
                 for (var j = 0; j < 4; j++) {
-                    var log = pLogs[j];
+                    var shiftRef = uniqueShifts[j];
+                    var log = mappedPLogs[shiftRef.id];
 
                     if (!log) {
                         html += '<div class="empty-log">NEDIRBO</div>';
                     } else {
                         var shiftCss = log.shift === 'Dieninė' ? 'shift-day' : 'shift-night';
                         var backlog = log.backlog !== null && log.backlog !== undefined ? log.backlog : '-';
-                        var logDate = log.finished_at ? formatDate(log.finished_at) : formatDate(log.created_at);
 
                         html += '<div class="log-col">';
-
-                        html += '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid rgba(51,65,85,0.5); padding-bottom: 0.2vh; margin-bottom: 0.5vh;">';
-                        html += '<span style="font-size:1vh; color:#94a3b8; font-weight:bold;">' + logDate.substring(0, 5) + '</span>';
-                        html += '<span style="font-size:1vh; font-weight:900; text-transform:uppercase;" class="' + shiftCss + '">' + log.shift + '</span>';
-                        html += '</div>';
-
-                        html += '<div style="font-size: 0.9vh; font-weight: bold; color: #64748b; text-transform: uppercase; display: flex; justify-content: space-around; margin-bottom: 0.2vh;">';
+                        html += '<div style="font-size: 0.9vh; font-weight: bold; color: #64748b; text-transform: uppercase; display: flex; justify-content: space-around; border-bottom: 1px solid rgba(51,65,85,0.5); padding-bottom: 0.2vh; margin-bottom: 0.5vh;">';
                         html += '<span>PAGAM.</span><span>BROKAS</span><span>ATSILIKIMAS</span>';
                         html += '</div>';
 
@@ -814,7 +860,8 @@
                         var defectHtml = '<div class="metric-val ' + defectClass + '">' + defectRate + '</div>';
 
                         if (defectRateNum > 5 && log.defects_reason) {
-                            defectHtml = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1;"><div class="metric-val ' + defectClass + '">' + defectRate + '</div><div style="font-size:0.9vh; color:#ef4444; margin-top:0.3vh; font-weight:bold; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + log.defects_reason.replace(/"/g, '&quot;') + '">PRIEŽ.</div></div>';
+                            // Priežastis po procentu
+                            defectHtml = '<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1;"><div class="metric-val ' + defectClass + '">' + defectRate + '</div><div style="font-size:1vh; color:#ef4444; margin-top:0.3vh; font-weight:bold; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + log.defects_reason.replace(/"/g, '&quot;') + '">PRIEŽASTIS</div></div>';
                         }
 
                         html += defectHtml;
@@ -823,6 +870,8 @@
                         html += '<div class="metric-val c-gray">' + backlog + '</div>';
                         html += '</div>';
 
+                        // Thin color bar at the bottom instead of top
+                        html += '<div class="' + shiftCss + '" style="width: 100%; height: 0.3vh; border-radius: 1vh; margin-top: auto;"></div>';
                         html += '</div>'; // End log-col
                     }
                 }
