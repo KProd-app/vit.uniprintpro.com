@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, PrinterStatus, User, Feedback } from '../types';
 import { supabase } from '../lib/supabase';
+import { getVilniusShiftBoundaries } from '../lib/utils';
 import { StorageRepository } from '../lib/repository/StorageRepository';
 import { SupabaseRepository } from '../lib/repository/SupabaseRepository';
 import { MOCK_PRINTERS, DEFAULT_TEMPLATES } from '../constants';
@@ -84,36 +85,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // Shift Rotation Logic
         const checkShiftRotation = async () => {
+            const { shiftStartAbsolute: shiftStart, currentShiftName } = getVilniusShiftBoundaries();
             const now = new Date();
-            const currentHour = now.getHours();
-            // Determine current shift based on time
-            // 06:00 - 18:00 = Dieninė
-            // 18:00 - 06:00 = Naktinė
-            const isDayShift = currentHour >= 6 && currentHour < 18;
-            const currentShiftName = isDayShift ? 'Dieninė' : 'Naktinė';
-
-            // Construct a "Shift ID" or timestamp that represents the START of the current shift window
-            // e.g. if now is 14:00, shift start was today 06:00.
-            // if now is 20:00, shift start was today 18:00.
-            // if now is 02:00, shift start was yesterday 18:00.
-
-            let shiftStart = new Date(now);
-            shiftStart.setMinutes(0, 0, 0);
-
-            if (isDayShift) {
-                shiftStart.setHours(6);
-            } else {
-                if (currentHour < 6) {
-                    // It is night shift, but effectively the shift started yesterday 18:00
-                    shiftStart.setDate(shiftStart.getDate() - 1);
-                    shiftStart.setHours(18);
-                } else {
-                    // It is night shift, started today 18:00
-                    shiftStart.setHours(18);
-                }
-            }
-
-            const shiftStartIso = shiftStart.toISOString();
+            const isDayShift = currentShiftName === 'Dieninė';
 
             const printers = await repository.getPrinters();
 
