@@ -9,7 +9,8 @@ import { InstructionGenerator } from './InstructionGenerator';
 import { AdminTVPanel } from './AdminTVPanel';
 import { TransfersJournal } from './TransfersJournal';
 import { Button } from './ui/button';
-import { Plus, Settings, Printer, Users, Trash2, Edit, RotateCcw, MessageSquare, ExternalLink, X, QrCode, Monitor, Truck } from 'lucide-react';
+import { Plus, Settings, Printer, Users, Trash2, Edit, RotateCcw, MessageSquare, ExternalLink, X, QrCode, Monitor, Truck, BookOpen } from 'lucide-react';
+import { AdminInstructions } from './AdminInstructions';
 
 // ... (existing code)
 
@@ -41,7 +42,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
   const [editingTemplate, setEditingTemplate] = useState<ChecklistTemplate | PrinterData | undefined | 'NEW' | 'NEW_USER' | 'NEW_STATION'>(undefined);
   const [selectedInstructionPrinter, setSelectedInstructionPrinter] = useState<PrinterData | null>(null);
 
-  const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS' | 'MESSAGES' | 'TV' | 'TRANSFERS_JOURNAL'>('PRINTERS');
+  const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS' | 'MESSAGES' | 'TV' | 'TRANSFERS_JOURNAL' | 'INSTRUCTIONS'>('PRINTERS');
   const [users, setUsers] = useState<User[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
@@ -171,7 +172,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                   viewMode === 'MESSAGES' ? 'Vartotojų Pranešimai' :
                     viewMode === 'TV' ? 'TV Ekrano Duomenų Istorija' :
                       viewMode === 'TRANSFERS_JOURNAL' ? 'Visi Registruoti Pervežimai' :
-                        'Vartotojų Valdymas'}
+                        viewMode === 'INSTRUCTIONS' ? 'Sistemos Naudojimo Instrukcija' :
+                          'Vartotojų Valdymas'}
           </p>
         </div>
 
@@ -200,6 +202,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
               className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'USERS' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
             >
               <Users className="w-4 h-4" /> Vartotojai
+            </button>
+            <button
+              onClick={() => setViewMode('INSTRUCTIONS')}
+              className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'INSTRUCTIONS' ? 'bg-amber-500 text-white shadow-md' : 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'}`}
+            >
+              <BookOpen className="w-4 h-4" /> Instrukcija
             </button>
 
             {/* Super User Tabs */}
@@ -869,6 +877,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
           </div>
         )
       }
+      {/* Instructions Zone */}
+      {viewMode === 'INSTRUCTIONS' && (
+        <AdminInstructions />
+      )}
+
       {/* Super User Zone */}
       {isSuperUser && (
         <div className="mt-20 border-t-2 border-red-100 pt-10">
