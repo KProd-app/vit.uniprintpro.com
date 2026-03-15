@@ -30,12 +30,12 @@ export const AdminInstructions: React.FC = () => {
                                 <strong className="text-slate-800">Gyvas rodiklių redagavimas:</strong> Skaičiai (Pagamino, Brokas, Iš viso ir t.t.) yra aktyvūs laukeliai. Spustelėję ir įvedę kitą skaičių iškart atnaujinsite informaciją, kurią visi mato ekrane.
                             </li>
                             <li>
-                                <strong className="text-slate-800">Checklistų priskyrimas:</strong> Iš išskleidžiamojo meniu galite pasirinkti, kurį pradžios / pabaigos checklistą darbuotojas turės atlikti planšetėje.
+                                <strong className="text-slate-800">Checklistų priskyrimas:</strong> Iš išskleidžiamojo meniu galite pasirinkti, kurį pradžios / pabaigos checklistą darbuotojas turės atlikti telefone.
                             </li>
                             <li>
                                 <strong className="text-slate-800">Greitieji veiksmai (užvedus pelytę kortelės kampe):</strong>
                                 <br />- 🔄 <strong>Nunulinti:</strong> Jei darbuotojas per klaidą pradėjo pamainą, atšaukite visus veiksmus.
-                                <br />- 📷 <strong>QR Kodas:</strong> Atsisiųsite prisijungimo iš planšetės lipduką, kur darbuotojas galės susivesti PIN kodu.
+                                <br />- 📷 <strong>QR Kodas:</strong> Atsisiųsite to įrenginio instrukcijas atspausdinimui (PDF formatu).
                                 <br />- ✏️ <strong>Redaguoti:</strong> Pakeisite pačio įrenginio pavadinimą ir tipą (spauda/pakavimas/kita).
                             </li>
                         </ul>
@@ -50,7 +50,7 @@ export const AdminInstructions: React.FC = () => {
                     </div>
                     <div className="pl-9 space-y-3 text-slate-600 text-sm leading-relaxed">
                         <p>
-                            Prižiūrėkite kontrolinius klausimynus (PVZ: Ar švari darbo vieta?). Darbuotojai privalės juos užpildyti planšetėje, todėl turėsite kontrolę kiek tvarkingai pabaigiama pamaina.
+                            Prižiūrėkite kontrolinius klausimynus (PVZ: Ar švari darbo vieta?). Darbuotojai privalės juos užpildyti telefone, todėl turėsite kontrolę kiek tvarkingai pabaigiama pamaina.
                         </p>
                         <p>Sukūrę checklistą, būtinai eikite į "Stationai" langą ir priskirkite tą sąrašą prie atitinkamo printerio!</p>
                     </div>
@@ -84,7 +84,9 @@ export const AdminInstructions: React.FC = () => {
                                 <strong className="text-slate-800">Pasiūlymai / Sandėlio Pervežimai:</strong> Tai standartiniai pranešimai, kurie kaupiasi lentelėse po atskirais mygtukais.
                             </li>
                             <li>
-                                <strong className="text-slate-800">Vartotojai:</strong> Galite sukurti naują darbuotoją ir matyti jo PIN kodą. Saugumo sumetimais, pamainų duomenų negalima lengvai prarasti, tad vartotojų ištrinti šiuo metu neleidžiama.
+                                <strong className="text-slate-800">Vartotojai:</strong> Čia galite sukurti naują darbuotoją. Atkreipkite dėmesį, jog prie įrenginio **nereikia jokio slaptažodžio ar PIN kodo** – darbuotojas tiesiog suveda savo vardą telefone ir sistema pati patikrina ar toks vartotojas egzistuoja.
+                                <br /><br />
+                                <span className="text-red-500 font-bold bg-red-50 px-2 py-1 rounded">SVARBU:</span> Jei norite ištrinti esamą darbuotoją, susisiekite su <strong>Lukas Kuprys</strong> per <em>Slack</em> arba <em>Mattermost</em> programėlę.
                             </li>
                         </ul>
                     </div>
@@ -110,7 +112,7 @@ export const AdminInstructions: React.FC = () => {
                         </div>
                         <ul className="list-disc pl-5 space-y-2 mt-4">
                             <li>
-                                <strong className="text-slate-800">Gedimai ir Žaliavų trūkumas:</strong> Darbuotojams padavus signalą iš planšetės, jis automatiškai įkris į šiuos sąrašus ir pradės mirksėti TV lentoje.
+                                <strong className="text-slate-800">Gedimai ir Žaliavų trūkumas:</strong> Darbuotojams padavus signalą iš telefono, jis automatiškai įkris į šiuos sąrašus ir pradės mirksėti TV lentoje.
                             </li>
                             <li>
                                 <strong className="text-slate-800">Redaguoti ("EDIT"):</strong> Pridėkite atsakymą / sprendimą (žaliai TV lange), priskirkite inžinieriaus vardą arba duokite terminą spręsti („Iki:...“).
