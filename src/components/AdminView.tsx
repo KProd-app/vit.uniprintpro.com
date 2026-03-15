@@ -589,22 +589,46 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                       <>
                         <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
                           <p className="text-[10px] font-black text-amber-500 uppercase mb-1">Roboto Brokas</p>
-                          <p className="font-black text-xl text-amber-700">{printer.robotDefects ?? '0'}</p>
+                          <input
+                            type="number"
+                            className="bg-transparent font-black text-xl text-amber-700 w-full focus:outline-none"
+                            value={printer.robotDefects ?? ''}
+                            placeholder="0"
+                            onChange={(e) => updatePrinter(printer.id, { robotDefects: parseInt(e.target.value) || 0 })}
+                          />
                         </div>
                         <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
                           <p className="text-[10px] font-black text-red-500 uppercase mb-1">Spaudos Brokas</p>
-                          <p className="font-black text-xl text-red-700">{printer.printingDefects ?? '0'}</p>
+                          <input
+                            type="number"
+                            className="bg-transparent font-black text-xl text-red-700 w-full focus:outline-none"
+                            value={printer.printingDefects ?? ''}
+                            placeholder="0"
+                            onChange={(e) => updatePrinter(printer.id, { printingDefects: parseInt(e.target.value) || 0 })}
+                          />
                         </div>
                       </>
                     ) : (
                       <>
                         <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
                           <p className="text-[10px] font-black text-emerald-500 uppercase mb-1">Pagamino</p>
-                          <p className="font-black text-xl text-emerald-700">{printer.productionAmount ?? '0'}</p>
+                          <input
+                            type="number"
+                            className="bg-transparent font-black text-xl text-emerald-700 w-full focus:outline-none"
+                            value={printer.productionAmount ?? ''}
+                            placeholder="0"
+                            onChange={(e) => updatePrinter(printer.id, { productionAmount: parseInt(e.target.value) || 0 })}
+                          />
                         </div>
                         <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
                           <p className="text-[10px] font-black text-red-500 uppercase mb-1">Brokas</p>
-                          <p className="font-black text-xl text-red-700">{printer.defectsAmount ?? '0'}</p>
+                          <input
+                            type="number"
+                            className="bg-transparent font-black text-xl text-red-700 w-full focus:outline-none"
+                            value={printer.defectsAmount ?? ''}
+                            placeholder="0"
+                            onChange={(e) => updatePrinter(printer.id, { defectsAmount: parseInt(e.target.value) || 0 })}
+                          />
                         </div>
                       </>
                     )}
@@ -612,12 +636,24 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                       {printer.name.toLowerCase().includes('pakavimas') ? null : (
                         <div className="mb-2">
                           <p className="text-[9px] font-black text-orange-500 uppercase mb-0.5">Atsilikimas</p>
-                          <p className="font-black text-sm text-orange-700">{printer.backlog ?? '0'}</p>
+                          <input
+                            type="number"
+                            className="bg-transparent font-black text-sm text-orange-700 w-full focus:outline-none"
+                            value={printer.backlog ?? ''}
+                            placeholder="0"
+                            onChange={(e) => updatePrinter(printer.id, { backlog: parseInt(e.target.value) || 0 })}
+                          />
                         </div>
                       )}
                       <div>
                         <p className="text-[9px] font-black text-blue-500 uppercase mb-0.5">Liko</p>
-                        <p className="font-black text-sm text-blue-700">{printer.remainingAmount ?? '0'}</p>
+                        <input
+                          type="number"
+                          className="bg-transparent font-black text-sm text-blue-700 w-full focus:outline-none"
+                          value={printer.remainingAmount ?? ''}
+                          placeholder="0"
+                          onChange={(e) => updatePrinter(printer.id, { remainingAmount: parseInt(e.target.value) || 0 })}
+                        />
                       </div>
                     </div>
                   </div>

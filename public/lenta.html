@@ -674,6 +674,11 @@
         function syncDefectAlertsFromLogs() {
             var alerts = [];
             var printerNameById = {};
+            var now = new Date();
+            var twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+            var resetTimeStr = sideData.metrics ? sideData.metrics['reset_defects_time'] : null;
+            var resetTime = resetTimeStr ? new Date(resetTimeStr) : null;
 
             for (var i = 0; i < printers.length; i++) {
                 printerNameById[printers[i].id] = printers[i].name;
@@ -681,6 +686,12 @@
 
             for (var j = 0; j < logs.length; j++) {
                 var log = logs[j];
+                var logTime = new Date(log.created_at);
+
+                // Skip perfectly valid reasons if they are too old, or if admin reset the board
+                if (logTime < twentyFourHoursAgo) continue;
+                if (resetTime && logTime < resetTime) continue;
+
                 var production = Number(log.production_amount || 0);
                 var defects = Number(log.defects_amount || 0);
                 var hasReason = !!log.defects_reason;
@@ -689,9 +700,12 @@
 
                 var defectRateNum = (defects / production) * 100;
                 if (defectRateNum > 5) {
+                    var logDateObj = formatTimeDate(log.created_at);
+                    var formattedAuthor = logDateObj.date.replace('-', '.') + ' ' + (log.shift || '');
+
                     alerts.push({
                         printer: printerNameById[log.printer_id] || log.printer_name || 'Nežinomas įrenginys',
-                        operator: log.operator_name || 'Nežinomas',
+                        operator: formattedAuthor,
                         reason: log.defects_reason,
                         shift: log.shift || '-'
                     });
