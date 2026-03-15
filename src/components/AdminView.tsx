@@ -526,7 +526,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
             </table>
           </div>
         </div>
-      ) : (
+      ) : viewMode === 'PRINTERS' ? (
         <div className="space-y-10">
           <div className="flex justify-between items-center bg-white p-8 rounded-[40px] shadow-sm border border-slate-200">
             <h3 className="text-xl font-black text-slate-800 uppercase">Stationų Sąrašas</h3>
@@ -767,7 +767,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
             ))}
           </div>
         </div>
-      )
+      ) : null
       }
 
       {/* Create User Modal */}
