@@ -114,7 +114,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                                 printerName: p.name,
                                 shift: p.vit.shift || previousShift,
                                 operatorName: p.operatorName || 'Sistema (Auto)',
-                                date: new Date().toISOString().split('T')[0],
+                                date: getVilniusShiftBoundaries().logicalDateString,
                                 startedAt: p.workStartedAt || new Date().toISOString(),
                                 finishedAt: new Date().toISOString(),
                                 productionAmount: p.productionAmount || 0,

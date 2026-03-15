@@ -55,5 +55,10 @@ export function getVilniusShiftBoundaries(dateStr?: string) {
     const offsetMs = vnoDate.getTime() - now.getTime();
     const shiftStartAbsolute = new Date(shiftStartLocal.getTime() - offsetMs);
 
-    return { shiftStartAbsolute, currentShiftName };
+    const yy = shiftStartLocal.getFullYear();
+    const mm = String(shiftStartLocal.getMonth() + 1).padStart(2, '0');
+    const dd = String(shiftStartLocal.getDate()).padStart(2, '0');
+    const logicalDateString = `${yy}-${mm}-${dd}`;
+
+    return { shiftStartAbsolute, currentShiftName, logicalDateString };
 }

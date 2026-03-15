@@ -4,6 +4,7 @@ import { usePrinters } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ChecklistEditor } from './ChecklistEditor';
 import { StationEditor } from './StationEditor';
+import { getVilniusShiftBoundaries } from '../lib/utils';
 import { InstructionGenerator } from './InstructionGenerator';
 import { AdminTVPanel } from './AdminTVPanel';
 import { TransfersJournal } from './TransfersJournal';
@@ -44,8 +45,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
   const [users, setUsers] = useState<User[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
+  // ...
   const [shiftFilter, setShiftFilter] = useState('All');
-  const [dateFilter, setDateFilter] = useState<string>(new Date().toISOString().split('T')[0]); // Default to today
+  const [dateFilter, setDateFilter] = useState<string>(getVilniusShiftBoundaries().logicalDateString); // Default to today's logical shift date
   const [selectedImg, setSelectedImg] = useState<string | null>(null);
   const [newUserRole, setNewUserRole] = useState<'Admin' | 'Worker'>('Worker');
 

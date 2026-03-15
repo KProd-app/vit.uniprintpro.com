@@ -18,6 +18,7 @@ import { MobileLiveDashboard } from './components/MobileLiveDashboard';
 import { DesktopLiveDashboard } from './components/DesktopLiveDashboard';
 import { MorningBoard } from './components/MorningBoard';
 import { UserTVPanel } from './components/UserTVPanel';
+import { getVilniusShiftBoundaries } from './lib/utils';
 
 // Inner component to use Auth and Data contexts
 const AppContent: React.FC = () => {
@@ -127,7 +128,7 @@ const AppContent: React.FC = () => {
             printerName: printer.name,
             shift: printer.vit.shift,
             operatorName: printer.operatorName || user.name,
-            date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+            date: getVilniusShiftBoundaries().logicalDateString, // Correct Lithuanian logical date
             startedAt: printer.workStartedAt || new Date().toISOString(),
             finishedAt: new Date().toISOString(),
             productionAmount: production,
