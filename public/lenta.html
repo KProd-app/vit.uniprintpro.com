@@ -983,14 +983,14 @@
             if (uvPrinter) {
                 var uvLogs = logs.filter(function (l) { return l.printer_id === uvPrinter.id; }).slice(0, 4);
                 if (uvLogs.length > 0) {
-                    uvLogHtml += '<div style="font-size: 1.2vh; color: #94a3b8; font-weight: bold; margin-bottom: 0.8vh; margin-top: 0.5vh; text-transform: uppercase;">UV Pakavimas - Roboto Brokas</div>';
-                    uvLogHtml += '<div style="display: flex; gap: 0.8vw; flex-wrap: wrap; justify-content: center; width: 100%;">';
+                    uvLogHtml += '<div style="font-size: 1.1vh; color: #94a3b8; font-weight: bold; margin-bottom: 0.5vh; margin-top: 0.5vh; text-transform: uppercase;">UV Pakavimas - Roboto Brokas</div>';
+                    uvLogHtml += '<div style="display: flex; gap: 0.4vw; flex-wrap: nowrap; justify-content: center; width: 100%;">';
                     uvLogs.forEach(function (l) {
                         var rob = l.robot_defects || 0;
                         var dateStr = formatDate(l.finished_at).replace(' d.', '');
-                        uvLogHtml += '<div style="background: rgba(30,41,59,0.5); padding: 0.5vh 0.8vw; border-radius: 0.5vw; text-align: center; border: 1px solid rgba(51,65,85,0.5);">';
-                        uvLogHtml += '<div style="font-size: 1vh; color: #64748b; font-weight: bold; margin-bottom: 0.2vh; text-transform: uppercase;">' + dateStr + ' ' + l.shift.charAt(0) + '.</div>';
-                        uvLogHtml += '<div style="font-size: 2.5vh; font-weight: 900; color: ' + (rob > 0 ? '#f87171' : '#34d399') + ';">' + rob + '</div>';
+                        uvLogHtml += '<div style="flex: 1; min-width: 0; background: rgba(30,41,59,0.5); padding: 0.4vh 0.4vw; border-radius: 0.5vw; text-align: center; border: 1px solid rgba(51,65,85,0.5);">';
+                        uvLogHtml += '<div style="font-size: 0.85vh; color: #64748b; font-weight: bold; margin-bottom: 0.1vh; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + dateStr + ' ' + l.shift.charAt(0) + '.</div>';
+                        uvLogHtml += '<div style="font-size: 2vh; font-weight: 900; color: ' + (rob > 0 ? '#f87171' : '#34d399') + ';">' + rob + '</div>';
                         uvLogHtml += '</div>';
                     });
                     uvLogHtml += '</div>';
