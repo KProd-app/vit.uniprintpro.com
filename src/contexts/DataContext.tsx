@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, PrinterStatus, User, Feedback } from '../types';
 import { supabase } from '../lib/supabase';
 import { getVilniusShiftBoundaries } from '../lib/utils';
@@ -313,54 +313,54 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setIsSyncing(false);
     };
 
-    const saveShiftLog = async (log: Omit<PrinterLog, 'id'>) => {
+    const saveShiftLog = useCallback(async (log: Omit<PrinterLog, 'id'>) => {
         await repository.saveShiftLog(log);
-    };
+    }, []);
 
-    const getShiftLogs = async (filters?: { printerId?: string, date?: string }) => {
+    const getShiftLogs = useCallback(async (filters?: { printerId?: string, date?: string }) => {
         return await repository.getShiftLogs(filters);
-    };
+    }, []);
 
-    const getUsers = async () => {
+    const getUsers = useCallback(async () => {
         return await repository.getUsers();
-    };
+    }, []);
 
-    const updateUser = async (id: string, data: Partial<any>) => { // using any to avoid import cycles or complex types in context for now, or just import User
+    const updateUser = useCallback(async (id: string, data: Partial<any>) => {
         await repository.updateUser(id, data);
-    };
+    }, []);
 
-    const deleteUser = async (id: string) => {
+    const deleteUser = useCallback(async (id: string) => {
         await repository.deleteUser(id);
-    };
+    }, []);
 
-    const createUser = async (user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }) => {
+    const createUser = useCallback(async (user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }) => {
         await repository.createUser(user);
-    };
+    }, []);
 
-    const saveFeedback = async (feedback: Omit<Feedback, 'id' | 'createdAt'>) => {
+    const saveFeedback = useCallback(async (feedback: Omit<Feedback, 'id' | 'createdAt'>) => {
         await repository.saveFeedback(feedback);
-    };
+    }, []);
 
-    const getFeedback = async () => {
+    const getFeedback = useCallback(async () => {
         return await repository.getFeedback();
-    };
+    }, []);
 
-    const resolveFeedback = async (id: string) => {
+    const resolveFeedback = useCallback(async (id: string) => {
         await repository.resolveFeedback(id);
-    };
+    }, []);
 
-    const clearAllData = async () => {
+    const clearAllData = useCallback(async () => {
         setIsSyncing(true);
         try {
             await repository.clearAllData();
-            await refreshPrinters(); // Refresh local state
+            await refreshPrinters();
         } catch (e) {
             console.error("Error clearing all data:", e);
             throw e;
         } finally {
             setIsSyncing(false);
         }
-    };
+    }, [refreshPrinters]);
 
     return (
         <DataContext.Provider value={{
