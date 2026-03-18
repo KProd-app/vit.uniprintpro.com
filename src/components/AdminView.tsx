@@ -418,7 +418,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                                   (log.defectsAmount || 0)
                                 )}
                               </span>
-                              {log.defectsReason && (
+                              {log.defectsReason && Number(log.productionAmount) > 0 && (((Number(log.defectsAmount) || 0) / Number(log.productionAmount)) * 100) > 5 && (
                                 <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-bold uppercase cursor-help" title={`Broko priežastis: ${log.defectsReason}`}>
                                   Priežastis
                                 </span>

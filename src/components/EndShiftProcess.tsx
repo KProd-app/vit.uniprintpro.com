@@ -27,8 +27,7 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
   const getCurrentDefectRate = () => {
     const p = parseFloat(productionAmount) || 0;
     const d = parseFloat(defectsAmount) || 0;
-    const total = p + d;
-    return total > 0 ? (d / total) * 100 : 0;
+    return p > 0 ? (d / p) * 100 : 0;
   };
 
   useEffect(() => {
@@ -127,18 +126,27 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
         return;
       }
 
-      const total = prod + def;
-      const defectRate = total > 0 ? (def / total) * 100 : 0;
+      const defectRate = prod > 0 ? (def / prod) * 100 : 0;
       if (defectRate > 5 && !defectsReason.trim()) {
         addToast("Brokas viršija 5%. Būtina nurodyti broko priežastį!", "error");
         return;
       }
     }
 
+    let finalDefectsReason = defectsReason;
+    if (!isPackingStation) {
+      const p = parseFloat(productionAmount) || 0;
+      const d = parseFloat(defectsAmount) || 0;
+      const defectRate = p > 0 ? (d / p) * 100 : 0;
+      if (defectRate <= 5) {
+        finalDefectsReason = '';
+      }
+    }
+
     const remFinal = parseFloat(remainingAmount) || 0;
     const backFinal = parseFloat(backlogAmount) || 0;
 
-    onFinish(message, checklist, prod, def, remFinal, robotDef, printDef, backFinal, defectsReason);
+    onFinish(message, checklist, prod, def, remFinal, robotDef, printDef, backFinal, finalDefectsReason);
   };
 
   return (

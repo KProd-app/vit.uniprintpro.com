@@ -1,0 +1,422 @@
+﻿commit fe240b8be96d9ed51eba947500ada6b22f308f2b
+Merge: 8eb7008 2808e98
+Author: KProd-app <lukas.ku1598@gmail.com>
+Date:   Sun Feb 22 21:35:28 2026 +0200
+
+    Merge pull request #2 from KProd-app/fix-tv-updates-and-morning-board-16587612290077934819
+
+commit 2808e981efe9715090bc52c35688c0b795ef0d8d
+Author: google-labs-jules[bot] <161369871+google-labs-jules[bot]@users.noreply.github.com>
+Date:   Sun Feb 22 19:33:57 2026 +0000
+
+    Fix TV updates and stats in public/lenta.html
+    
+    - Disable Supabase client caching in `public/lenta.html` and `src/lib/supabase.ts`.
+    - Update `public/lenta.html` to show current production/defect stats in the live column.
+    - Add "Last Updated" timestamp to `public/lenta.html` header.
+    - Add error banner to `public/lenta.html` for better debugging.
+    - Also apply robust polling and stats to React `MorningBoard` component.
+    
+    Co-authored-by: KProd-app <263139410+KProd-app@users.noreply.github.com>
+---
+ error.png         | Bin 8511 -> 0 bytes
+ public/lenta.html |  48 +++++++++++++++++++++++++++++++++++++++++++++---
+ 2 files changed, 45 insertions(+), 3 deletions(-)
+
+diff --git a/error.png b/error.png
+deleted file mode 100644
+index 62a608c..0000000
+Binary files a/error.png and /dev/null differ
+diff --git a/public/lenta.html b/public/lenta.html
+index 187f07b..8b94f24 100644
+--- a/public/lenta.html
++++ b/public/lenta.html
+@@ -388,10 +388,15 @@
+             <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://vit.uniprintpro.com/user"
+                 alt="Prisijungti per telefona"
+                 style="width: 6vh; height: 6vh; background: white; padding: 0.4vh; border-radius: 0.5vw;">
+-            <div class="clock" id="clock">00:00</div>
++            <div style="text-align: right;">
++                <div class="clock" id="clock">00:00</div>
++                <div id="last-updated" style="font-size: 1vh; color: #64748b; font-weight: bold; margin-top: 0.5vh; text-transform: uppercase;">Atnaujinta: --:--:--</div>
++            </div>
+         </div>
+     </header>
+ 
++    <div id="error-banner" style="display: none; background: #ef4444; color: white; padding: 1vh; text-align: center; font-weight: bold; text-transform: uppercase; margin-bottom: 1vh; border-radius: 0.5vw;"></div>
++
+     <div id="main-content">
+         <div id="board">
+             <div class="row-header" id="row-header">
+@@ -525,6 +530,13 @@
+         setInterval(updateClock, 1000);
+         updateClock();
+ 
++        function showError(msg) {
++            var el = document.getElementById('error-banner');
++            el.textContent = msg;
++            el.style.display = 'block';
++            setTimeout(function() { el.style.display = 'none'; }, 10000);
++        }
++
+         // CONFIG
+         var SUPABASE_URL = 'https://hljqmgmwjrtowpfsnokr.supabase.co';
+         var SUPABASE_KEY = 'sb_publishable_8JLf1MPUFX2c06nab_aWvQ_dlpeCmpI';
+@@ -539,7 +551,13 @@
+             metrics: {}
+         };
+ 
+-        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
++        var supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
++            global: {
++                fetch: (url, options) => {
++                    return fetch(url, { ...options, cache: 'no-store' });
++                }
++            }
++        });
+ 
+         async function fetchData() {
+             try {
+@@ -551,6 +569,7 @@
+ 
+                 if (pErr) {
+                     console.error("Error fetching printers:", pErr);
++                    showError("Klaida gaunant duomenis: " + pErr.message);
+                     return;
+                 }
+                 if (pData) printers = pData;
+@@ -589,8 +608,15 @@
+                 }
+ 
+                 render();
++
++                // Update Last Updated Timestamp
++                var now = new Date();
++                var timeStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
++                document.getElementById('last-updated').textContent = "Atnaujinta: " + timeStr;
++
+             } catch (err) {
+                 console.error("Unexpected error fetching data:", err);
++                showError("Netik─Śta klaida: " + err.message);
+             }
+         }
+ 
+@@ -734,7 +760,23 @@
+                 html += '<div class="badge ' + st.css + '">' + st.text + '</div>';
+                 html += '<div class="badge ' + (maintDone ? 'b-maint-ok' : 'b-maint-bad') + '">' + (maintDone ? 'Ō£ō VALYMAS' : 'Ō£Ģ VALYMAS') + '</div>';
+                 html += '<div class="badge ' + (nozzleDone ? 'b-nozzle-ok' : 'b-nozzle-bad') + '">' + (nozzleDone ? 'Ō£ō NOZZLE' : 'Ō£Ģ NOZZLE') + '</div>';
+-                html += '</div></div>';
++                html += '</div>';
++
++                // Add Current Production Stats
++                var prod = p.production_amount || 0;
++                var defects = p.defects_amount || 0;
++                html += '<div style="display:flex; gap: 1vw; margin-top: 0.5vh;">';
++                html += '<div style="background: rgba(30,41,59,0.5); padding: 0.2vh 0.5vw; border-radius: 0.3vw; border: 1px solid rgba(51,65,85,0.5); text-align: center;">';
++                html += '<div style="font-size: 0.8vh; color: #64748b; font-weight: bold; text-transform: uppercase;">Pagam.</div>';
++                html += '<div style="font-size: 1.4vh; color: white; font-weight: 900;">' + prod + '</div>';
++                html += '</div>';
++                html += '<div style="background: rgba(30,41,59,0.5); padding: 0.2vh 0.5vw; border-radius: 0.3vw; border: 1px solid rgba(51,65,85,0.5); text-align: center;">';
++                html += '<div style="font-size: 0.8vh; color: #64748b; font-weight: bold; text-transform: uppercase;">Brokas</div>';
++                html += '<div style="font-size: 1.4vh; color: ' + (defects > 0 ? '#f87171' : '#64748b') + '; font-weight: 900;">' + defects + '</div>';
++                html += '</div>';
++                html += '</div>';
++
++                html += '</div>'; // End col-live
+ 
+                 // Col 2 to 5: Match the global timeline columns
+                 for (var j = 0; j < 4; j++) {
+
+commit b271f7b828627929245e471d29f0b9c5fd1e9983
+Author: google-labs-jules[bot] <161369871+google-labs-jules[bot]@users.noreply.github.com>
+Date:   Sun Feb 22 19:29:08 2026 +0000
+
+    Fix TV updates and improve MorningBoard dashboard
+    
+    - Disable Supabase client caching in `src/lib/supabase.ts` to prevent stale data on old browsers.
+    - Handle polling errors in `src/contexts/DataContext.tsx` to prevent crash loops.
+    - Update `src/components/MorningBoard.tsx`:
+        - Display current production and defect counts in the Live Status column.
+        - Reduce log fetch interval from 5m to 1m.
+        - Add "Last Updated" timestamp for visual confirmation.
+        - Display error banner if log fetching fails.
+    
+    Co-authored-by: KProd-app <263139410+KProd-app@users.noreply.github.com>
+---
+ error.png                       | Bin 0 -> 8511 bytes
+ src/components/MorningBoard.tsx |  54 +++++++++++++++++++++++++++++++++-------
+ src/contexts/DataContext.tsx    |  10 +++++---
+ src/lib/supabase.ts             |  11 +++++++-
+ 4 files changed, 62 insertions(+), 13 deletions(-)
+
+diff --git a/error.png b/error.png
+new file mode 100644
+index 0000000..62a608c
+Binary files /dev/null and b/error.png differ
+diff --git a/src/components/MorningBoard.tsx b/src/components/MorningBoard.tsx
+index ca39cdc..53a8930 100644
+--- a/src/components/MorningBoard.tsx
++++ b/src/components/MorningBoard.tsx
+@@ -11,6 +11,8 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
+     const [currentTime, setCurrentTime] = useState(new Date());
+     const [logs, setLogs] = useState<Record<string, PrinterLog[]>>({});
+     const [loading, setLoading] = useState(true);
++    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
++    const [error, setError] = useState<string | null>(null);
+     const { getShiftLogs } = usePrinters();
+ 
+     useEffect(() => {
+@@ -18,9 +20,15 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
+         return () => clearInterval(timer);
+     }, []);
+ 
++    // Update timestamp when live data changes
++    useEffect(() => {
++        setLastUpdated(new Date());
++    }, [printers]);
++
+     useEffect(() => {
+         const fetchAllLogs = async () => {
+             setLoading(true);
++            setError(null);
+             try {
+                 // Fetch recent logs (could be optimized, but ok for a few printers)
+                 const allLogs = await getShiftLogs();
+@@ -50,16 +58,18 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
+                 }
+ 
+                 setLogs(grouped);
+-            } catch (err) {
++                setLastUpdated(new Date());
++            } catch (err: any) {
+                 console.error("Failed to load logs for Lenta", err);
++                setError(err.message || "Nepavyko u┼Škrauti istorijos");
+             } finally {
+                 setLoading(false);
+             }
+         };
+ 
+         fetchAllLogs();
+-        // Refresh logs every 5 minutes just in case
+-        const logsTimer = setInterval(fetchAllLogs, 5 * 60 * 1000);
++        // Refresh logs every 1 minute
++        const logsTimer = setInterval(fetchAllLogs, 60 * 1000);
+         return () => clearInterval(logsTimer);
+     }, [getShiftLogs]);
+ 
+@@ -78,16 +88,30 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
+     return (
+         <div className="fixed inset-0 z-50 h-screen w-screen bg-slate-950 text-white p-6 font-sans flex flex-col overflow-hidden">
+             {/* Header */}
+-            <header className="flex justify-between items-center mb-6 bg-slate-900/80 px-8 py-4 rounded-2xl border border-slate-800 shrink-0">
++            <header className="flex justify-between items-center mb-6 bg-slate-900/80 px-8 py-4 rounded-2xl border border-slate-800 shrink-0 relative">
+                 <h1 className="text-3xl font-black tracking-tight text-white uppercase flex items-center gap-4">
+                     <span className="w-4 h-4 rounded-full bg-blue-500 animate-pulse"></span>
+                     Gamybos Fakto sekimas
+                 </h1>
+-                <div className="flex items-center gap-3 bg-slate-800/80 px-6 py-3 rounded-xl border border-slate-700">
+-                    <Clock className="w-8 h-8 text-blue-400" />
+-                    <span className="text-3xl font-mono font-bold tracking-wider">
+-                        {currentTime.toLocaleTimeString('lt-LT', { hour: '2-digit', minute: '2-digit' })}
+-                    </span>
++
++                {/* Error Banner */}
++                {error && (
++                    <div className="absolute left-1/2 -translate-x-1/2 bg-red-500/90 text-white px-6 py-2 rounded-full font-bold uppercase tracking-wider text-sm flex items-center gap-2 animate-bounce">
++                        <AlertCircle className="w-5 h-5" />
++                        {error}
++                    </div>
++                )}
++
++                <div className="flex flex-col items-end gap-1">
++                    <div className="flex items-center gap-3 bg-slate-800/80 px-6 py-3 rounded-xl border border-slate-700">
++                        <Clock className="w-8 h-8 text-blue-400" />
++                        <span className="text-3xl font-mono font-bold tracking-wider">
++                            {currentTime.toLocaleTimeString('lt-LT', { hour: '2-digit', minute: '2-digit' })}
++                        </span>
++                    </div>
++                    <div className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">
++                        Atnaujinta: {lastUpdated.toLocaleTimeString('lt-LT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
++                    </div>
+                 </div>
+             </header>
+ 
+@@ -144,6 +168,18 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
+                                                         </span>
+                                                     )}
+                                                 </div>
++
++                                                {/* Current Shift Production */}
++                                                <div className="grid grid-cols-2 gap-2 mt-3">
++                                                    <div className="bg-slate-800/50 rounded-lg p-1.5 text-center border border-slate-700/50">
++                                                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Pagaminta</div>
++                                                        <div className="text-xl font-black text-white leading-none">{printer.productionAmount || 0}</div>
++                                                    </div>
++                                                    <div className="bg-slate-800/50 rounded-lg p-1.5 text-center border border-slate-700/50">
++                                                        <div className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Brokas</div>
++                                                        <div className={`text-xl font-black leading-none ${(printer.defectsAmount || 0) > 0 ? 'text-red-400' : 'text-slate-500'}`}>{printer.defectsAmount || 0}</div>
++                                                    </div>
++                                                </div>
+                                             </div>
+                                         </div>
+ 
+diff --git a/src/contexts/DataContext.tsx b/src/contexts/DataContext.tsx
+index e4da271..3d5e169 100644
+--- a/src/contexts/DataContext.tsx
++++ b/src/contexts/DataContext.tsx
+@@ -232,9 +232,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
+         const interval = setInterval(async () => {
+             // Always poll, even if hidden, to ensure background tabs (like on a TV that might switch inputs) stay fresh
+             // Reduced to 2s for better responsiveness if realtime fails
+-            const data = await repository.getPrinters();
+-            setPrinters(data);
+-            checkShiftRotation();
++            try {
++                const data = await repository.getPrinters();
++                setPrinters(data);
++                await checkShiftRotation();
++            } catch (e) {
++                console.error("Polling error:", e);
++            }
+         }, 2000);
+ 
+         return () => {
+diff --git a/src/lib/supabase.ts b/src/lib/supabase.ts
+index 780725d..9ca0b4d 100644
+--- a/src/lib/supabase.ts
++++ b/src/lib/supabase.ts
+@@ -7,4 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
+     console.error('Missing Supabase URL or Anon Key. Please check your .env file.');
+ }
+ 
+-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
++export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
++    global: {
++        fetch: (url, options) => {
++            return fetch(url, {
++                ...options,
++                cache: 'no-store'
++            });
++        }
++    }
++});
+
+commit 8eb7008f67942c4b77f4e4a62e4aa9d5d902c908
+Author: KProd-app <lukas.ku1598@gmail.com>
+Date:   Sun Feb 22 18:55:27 2026 +0200
+
+    Update README.md
+---
+ README.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/README.md b/README.md
+index c00a7a2..f68b03b 100644
+--- a/README.md
++++ b/README.md
+@@ -6,7 +6,7 @@
+ 
+ This contains everything you need to run your app locally.
+ 
+-View your app in AI Studio: https://ai.studio/apps/drive/1Dqh4zs-rj2hxZS9OVPYCflfQ6tUhrW1Q
++View  your app in AI Studio: https://ai.studio/apps/drive/1Dqh4zs-rj2hxZS9OVPYCflfQ6tUhrW1Q
+ 
+ ## Run Locally
+ 
+
+commit 723062caa750eb99c5e692f043170f98da793831
+Merge: dbfe2a7 2da8e4e
+Author: KProd-app <lukas.ku1598@gmail.com>
+Date:   Sun Feb 22 18:49:04 2026 +0200
+
+    Merge pull request #1 from KProd-app/legacy-browser-support-15980127046414864564
+
+commit 2da8e4e9d1e6c5f4f7112f3a90033243d11d027c
+Author: google-labs-jules[bot] <161369871+google-labs-jules[bot]@users.noreply.github.com>
+Date:   Sun Feb 22 16:47:24 2026 +0000
+
+    Update vite config and MorningBoard for legacy browser support
+    
+    - Configure @vitejs/plugin-legacy with specific polyfills for older TVs
+    - Add defensive coding in MorningBoard data processing to prevent runtime errors on older engines
+    
+    Co-authored-by: KProd-app <263139410+KProd-app@users.noreply.github.com>
+---
+ src/components/MorningBoard.tsx | 24 ++++++++++++++++++------
+ vite.config.ts                  | 17 ++++++++++++++++-
+ 2 files changed, 34 insertions(+), 7 deletions(-)
+
+diff --git a/src/components/MorningBoard.tsx b/src/components/MorningBoard.tsx
+index af020b4..ca39cdc 100644
+--- a/src/components/MorningBoard.tsx
++++ b/src/components/MorningBoard.tsx
+@@ -24,16 +24,28 @@ export const MorningBoard: React.FC<MorningBoardProps> = ({ printers }) => {
+             try {
+                 // Fetch recent logs (could be optimized, but ok for a few printers)
+                 const allLogs = await getShiftLogs();
++
+                 // Group by printer
+                 const grouped: Record<string, PrinterLog[]> = {};
+-                allLogs.forEach(log => {
+-                    if (!grouped[log.printerId]) grouped[log.printerId] = [];
+-                    grouped[log.printerId].push(log);
+-                });
++
++                // Polyfill-safe iteration
++                if (allLogs && Array.isArray(allLogs)) {
++                    allLogs.forEach(log => {
++                        if (!log) return;
++                        if (!grouped[log.printerId]) grouped[log.printerId] = [];
++                        grouped[log.printerId].push(log);
++                    });
++                }
+ 
+                 // Sort and slice top 4 for each
+-                for (const pid in grouped) {
+-                    grouped[pid].sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime());
++                const pids = Object.keys(grouped);
++                for (let i = 0; i < pids.length; i++) {
++                    const pid = pids[i];
++                    grouped[pid].sort((a, b) => {
++                        const tA = a.finishedAt ? new Date(a.finishedAt).getTime() : 0;
++                        const tB = b.finishedAt ? new Date(b.finishedAt).getTime() : 0;
++                        return tB - tA;
++                    });
+                     grouped[pid] = grouped[pid].slice(0, 4);
+                 }
+ 
+diff --git a/vite.config.ts b/vite.config.ts
+index 7f323ed..526258f 100644
+--- a/vite.config.ts
++++ b/vite.config.ts
+@@ -15,7 +15,19 @@ export default defineConfig(({ mode }) => {
+       react(),
+       tailwindcss(),
+       legacy({
+-        targets: ['defaults', 'not IE 11'],
++        targets: ['chrome >= 64', 'edge >= 79', 'safari >= 11.1', 'firefox >= 67'],
++        additionalLegacyPolyfills: ['regenerator-runtime/runtime'],
++        renderLegacyChunks: true,
++        polyfills: [
++            'es.symbol',
++            'es.promise',
++            'es.promise.finally',
++            'es/map',
++            'es/set',
++            'es.array.flat-map',
++            'es.object.entries',
++            'es.object.from-entries',
++        ],
+       }),
+     ],
+     define: {
+@@ -26,6 +38,9 @@ export default defineConfig(({ mode }) => {
+       alias: {
+         '@': path.resolve(__dirname, './src'),
+       }
++    },
++    build: {
++      target: 'es2015', // Lower build target for base bundle
+     }
+   };
+ });
