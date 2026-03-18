@@ -21,6 +21,7 @@ export interface Feedback {
   url?: string;
   createdAt: string;
   userAgent?: string;
+  resolved?: boolean;
 }
 
 export interface User {

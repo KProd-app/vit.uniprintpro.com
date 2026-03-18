@@ -41,6 +41,7 @@ export interface StorageRepository {
     // Feedback
     saveFeedback(feedback: Omit<Feedback, 'id' | 'createdAt'>): Promise<void>;
     getFeedback(): Promise<Feedback[]>;
+    resolveFeedback(id: string): Promise<void>;
 
     /**
      * Clear all data (Admin only)

@@ -34,6 +34,7 @@ interface DataContextType {
     // Feedback
     saveFeedback: (feedback: Omit<Feedback, 'id' | 'createdAt'>) => Promise<void>;
     getFeedback: () => Promise<Feedback[]>;
+    resolveFeedback: (id: string) => Promise<void>;
     clearAllData: () => Promise<void>;
 }
 
@@ -344,6 +345,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return await repository.getFeedback();
     };
 
+    const resolveFeedback = async (id: string) => {
+        await repository.resolveFeedback(id);
+    };
+
     const clearAllData = async () => {
         setIsSyncing(true);
         try {
@@ -379,6 +384,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             createUser,
             saveFeedback,
             getFeedback,
+            resolveFeedback,
             clearAllData
         }}>
             {children}

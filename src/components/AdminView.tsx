@@ -9,7 +9,7 @@ import { InstructionGenerator } from './InstructionGenerator';
 import { AdminTVPanel } from './AdminTVPanel';
 import { TransfersJournal } from './TransfersJournal';
 import { Button } from './ui/button';
-import { Plus, Settings, Printer, Users, Trash2, Edit, RotateCcw, MessageSquare, ExternalLink, X, QrCode, Monitor, Truck, BookOpen } from 'lucide-react';
+import { Plus, Settings, Printer, Users, Trash2, Edit, RotateCcw, MessageSquare, ExternalLink, X, QrCode, Monitor, Truck, BookOpen, Check } from 'lucide-react';
 import { AdminInstructions } from './AdminInstructions';
 
 // ... (existing code)
@@ -35,6 +35,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
     deletePrinter,
     resetPrinter,
     getFeedback,
+    resolveFeedback,
     clearAllData
   } = usePrinters();
 
@@ -80,6 +81,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
 
   // Check if current user is 'uniprintpro' or has Admin role
   const isSuperUser = user?.role === UserRole.ADMIN || user?.name.toLowerCase().includes('uniprintpro');
+  const isUniprintProUser = user?.name.toLowerCase().includes('uniprintpro');
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto">
@@ -211,14 +213,16 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
             </button>
 
             {/* Super User Tabs */}
-            {isSuperUser && (
-              <>
+            {isUniprintProUser && (
                 <button
                   onClick={() => setViewMode('MESSAGES')}
                   className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'MESSAGES' ? 'bg-mimaki-blue text-white shadow-md' : 'text-mimaki-blue hover:text-blue-600 hover:bg-blue-50'}`}
                 >
                   <MessageSquare className="w-4 h-4" /> Pranešimai
                 </button>
+            )}
+            {isSuperUser && (
+              <>
                 <button
                   onClick={() => setViewMode('TV')}
                   className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'TV' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50'}`}
@@ -244,7 +248,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
         </div>
       </header>
 
-      {viewMode === 'MESSAGES' && isSuperUser ? (
+      {viewMode === 'MESSAGES' && isUniprintProUser ? (
         <div className="bg-white rounded-[40px] shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-8 border-b border-slate-100">
             <h3 className="text-xl font-black text-slate-800 uppercase">Vartotojų Atsiliepimai ir Klaidos</h3>
@@ -257,7 +261,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                   <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Tipas</th>
                   <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Vartotojas</th>
                   <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest w-1/2">Žinutė</th>
-                  <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Nuoroda</th>
+                  <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Statusas</th>
+                  <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Veiksmai</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -285,12 +290,37 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                       </td>
                       <td className="p-6 text-slate-700 font-medium">
                         {item.message}
+                        {item.url && (
+                          <div className="mt-2">
+                            <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-mimaki-blue hover:text-blue-700 inline-flex items-center gap-1 text-xs font-bold uppercase">
+                              Priedas / Nuoroda <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
+                        )}
                       </td>
                       <td className="p-6">
-                        {item.url && (
-                          <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-mimaki-blue hover:text-blue-700 flex items-center gap-1 text-xs font-bold uppercase">
-                            Atidaryti <ExternalLink className="w-3 h-3" />
-                          </a>
+                        {item.resolved ? (
+                          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold uppercase">Išspręsta</span>
+                        ) : (
+                          <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-bold uppercase">Laukia</span>
+                        )}
+                      </td>
+                      <td className="p-6">
+                        {!item.resolved && (
+                          <Button 
+                            onClick={async () => {
+                              try {
+                                await resolveFeedback(item.id);
+                                setFeedback(prev => prev.map(f => f.id === item.id ? { ...f, resolved: true } : f));
+                                addToast?.("Problema pažymėta kaip išspręsta", "success");
+                              } catch (e) {
+                                addToast?.("Nepavyko atnaujinti", "error");
+                              }
+                            }}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-bold uppercase px-3 py-1 h-auto"
+                          >
+                            <Check className="w-3 h-3 mr-1" /> Žymėti
+                          </Button>
                         )}
                       </td>
                     </tr>

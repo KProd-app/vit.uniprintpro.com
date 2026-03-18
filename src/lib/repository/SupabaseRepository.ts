@@ -549,8 +549,21 @@ export class SupabaseRepository implements StorageRepository {
             message: row.message,
             url: row.url,
             createdAt: row.created_at,
-            userAgent: row.user_agent
+            userAgent: row.user_agent,
+            resolved: row.resolved
         }));
+    }
+
+    async resolveFeedback(id: string): Promise<void> {
+        const { error } = await supabase
+            .from('feedback')
+            .update({ resolved: true })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error resolving feedback:', error);
+            throw error;
+        }
     }
 
     async clearAllData(): Promise<void> {
