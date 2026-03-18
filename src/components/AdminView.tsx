@@ -1,4 +1,4 @@
-import { PrinterData, PrinterStatus, ChecklistTemplate, User, Feedback } from '../types';
+import { PrinterData, PrinterStatus, ChecklistTemplate, User, Feedback, UserRole } from '../types';
 import React, { useState, useEffect } from 'react';
 import { usePrinters } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -78,8 +78,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
     }
   }, [getShiftLogs, shiftFilter, dateFilter, viewMode, getFeedback]);
 
-  // Check if current user is 'uniprintpro'
-  const isSuperUser = user?.name.toLowerCase().includes('uniprintpro');
+  // Check if current user is 'uniprintpro' or has Admin role
+  const isSuperUser = user?.role === UserRole.ADMIN || user?.name.toLowerCase().includes('uniprintpro');
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto">
