@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User } from '../types';
 import { supabase } from '../lib/supabase';
 import { Button } from './ui/button';
-import { Truck, MessageSquare, AlertTriangle, AlertCircle, ArrowLeft, Camera, Image as ImageIcon } from 'lucide-react';
+import { Truck, MessageSquare, AlertTriangle, AlertCircle, ArrowLeft, Camera, Image as ImageIcon, Play, Droplets } from 'lucide-react';
 
 interface UserTVPanelProps {
     currentUser: User;
@@ -195,6 +195,26 @@ export function UserTVPanel({ currentUser, onBack, addToast }: UserTVPanelProps)
                             </div>
                             <span className="font-bold text-slate-700 text-sm uppercase text-center leading-tight">Žaliavų<br />Trūkumas</span>
                         </button>
+
+                        <a
+                            href="https://vit.uniprintpro.com"
+                            className="flex flex-col items-center justify-center gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:border-indigo-500 hover:shadow-md transition-all h-40 active:scale-95 group"
+                        >
+                            <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                                <Play className="w-8 h-8" />
+                            </div>
+                            <span className="font-bold text-slate-700 text-sm uppercase text-center leading-tight">Pradėti<br />Darbą</span>
+                        </a>
+
+                        <a
+                            href="https://dis.uniprintpro.com"
+                            className="flex flex-col items-center justify-center gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:border-pink-500 hover:shadow-md transition-all h-40 active:scale-95 group"
+                        >
+                            <div className="p-4 bg-pink-50 text-pink-600 rounded-2xl group-hover:bg-pink-500 group-hover:text-white transition-colors">
+                                <Droplets className="w-8 h-8" />
+                            </div>
+                            <span className="font-bold text-slate-700 text-sm uppercase text-center leading-tight">Dažų<br />Inventorizacija</span>
+                        </a>
                     </div>
                 )}
 
