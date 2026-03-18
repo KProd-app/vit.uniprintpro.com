@@ -208,7 +208,7 @@ export function AdminTVPanel() {
   const otherProblems = problems.filter(p => !p.problem.startsWith('Gedimas: ') && !p.problem.startsWith('Žaliavų trūkumas: '));
 
   const renderProblemList = (list: TVProblem[], emptyMsg: string) => (
-    <div className="flex-1 overflow-y-auto space-y-2 pr-2" style={{ maxHeight: '300px' }}>
+    <div className="flex-1 space-y-2">
       {list.length === 0 ? (
         <div className="text-center text-slate-400 italic py-10">{emptyMsg}</div>
       ) : (
@@ -310,17 +310,17 @@ export function AdminTVPanel() {
           </div>
         </form>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col">
-            <h4 className="font-black text-slate-700 uppercase mb-4 text-sm tracking-widest text-center">Bendros Problemos</h4>
+        <div className="flex flex-col gap-6">
+          <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex flex-col">
+            <h4 className="font-black text-slate-700 uppercase mb-4 text-sm tracking-widest border-b border-slate-200 pb-2">Bendros Problemos</h4>
             {renderProblemList(otherProblems, 'Problemų nėra')}
           </div>
-          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex flex-col">
-            <h4 className="font-black text-red-700 uppercase mb-4 text-sm tracking-widest text-center">Gedimai</h4>
+          <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex flex-col">
+            <h4 className="font-black text-red-700 uppercase mb-4 text-sm tracking-widest border-b border-red-200 pb-2">Gedimai</h4>
             {renderProblemList(gedimai, 'Gedimų nėra')}
           </div>
-          <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100 flex flex-col">
-            <h4 className="font-black text-amber-700 uppercase mb-4 text-sm tracking-widest text-center">Žaliavų trūkumas</h4>
+          <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100 flex flex-col">
+            <h4 className="font-black text-amber-700 uppercase mb-4 text-sm tracking-widest border-b border-amber-200 pb-2">Žaliavų trūkumas</h4>
             {renderProblemList(shortages, 'Trūkumų nėra')}
           </div>
         </div>
