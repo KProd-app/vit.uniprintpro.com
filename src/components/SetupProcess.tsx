@@ -8,7 +8,7 @@ import { Stepper } from './ui/stepper';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { ArrowLeft, ArrowRight, Camera, Check, AlertTriangle, Printer, Info, CheckCircle2, ChevronRight, X, Play } from 'lucide-react';
-import { cn, base64ToBlob } from '@/lib/utils';
+import { cn, base64ToBlob, getVilniusShiftBoundaries } from '@/lib/utils';
 import { canStartWork } from '@/lib/validation';
 
 interface SetupProcessProps {
@@ -32,8 +32,7 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
   const [tempRemaining, setTempRemaining] = useState<string>(printer.remainingAmount?.toString() || '0');
 
   useEffect(() => {
-    const currentHour = new Date().getHours();
-    const currentShift: 'Dieninė' | 'Naktinė' = (currentHour >= 6 && currentHour < 18) ? 'Dieninė' : 'Naktinė';
+    const { currentShiftName: currentShift } = getVilniusShiftBoundaries();
 
     let updates: Partial<PrinterData> = {};
     let hasUpdates = false;
@@ -218,7 +217,7 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
   }
 
   // Check if work is already done for this shift
-  if (isShiftDone && localPrinter.vit.shift === ((new Date().getHours() >= 6 && new Date().getHours() < 18) ? 'Dieninė' : 'Naktinė')) {
+  if (isShiftDone && localPrinter.vit.shift === getVilniusShiftBoundaries().currentShiftName) {
     return (
       <div className="fixed inset-0 bg-mimaki-gray flex items-center justify-center p-6 z-[100] animate-in fade-in duration-300">
         <Card className="max-w-xl w-full text-center shadow-2xl border-white/50 bg-white/80 backdrop-blur-md">

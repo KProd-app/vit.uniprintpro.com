@@ -413,7 +413,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                               <span className="text-slate-300 mx-1">/</span>
                               <span className="font-bold text-red-500" title="Brokas">
                                 {log.productionAmount ? (
-                                  ((Number(log.defectsAmount) || 0) / ((Number(log.productionAmount) || 0) + (Number(log.defectsAmount) || 0)) * 100).toFixed(1) + '%'
+                                  ((Number(log.defectsAmount) || 0) / (Number(log.productionAmount) || 0) * 100).toFixed(1) + '%'
                                 ) : (
                                   (log.defectsAmount || 0)
                                 )}
