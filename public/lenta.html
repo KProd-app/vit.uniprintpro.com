@@ -370,6 +370,17 @@
             justify-content: center;
             border-radius: 0.5vw;
         }
+
+        @keyframes smooth-scroll {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+
+        .scrolling-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: inherit;
+        }
     </style>
 </head>
 
@@ -926,7 +937,7 @@
                 probHtml += '</div>';
             });
             if (!probHtml) probHtml = '<div style="opacity:0.3; text-align:center; margin-top: 2vh;">Nėra atvirų problemų.</div>';
-            document.getElementById('tv-problems').innerHTML = probHtml;
+            updateListHTML('tv-problems', probHtml);
 
             // 2. Transfers
             var transHtml = '';
@@ -956,7 +967,7 @@
                 bdHtml += '<div>• ' + text + '</div>';
             });
             if (!bdHtml) bdHtml = '<div style="opacity:0.3; color:#94a3b8; font-weight:normal;">Nėra</div>';
-            document.getElementById('tv-breakdowns-list').innerHTML = bdHtml;
+            updateListHTML('tv-breakdowns-list', bdHtml);
 
             var shHtml = '';
             shortageList.forEach(p => {
@@ -964,7 +975,7 @@
                 shHtml += '<div>• ' + text + '</div>';
             });
             if (!shHtml) shHtml = '<div style="opacity:0.3; color:#94a3b8; font-weight:normal;">Nėra</div>';
-            document.getElementById('tv-shortages-list').innerHTML = shHtml;
+            updateListHTML('tv-shortages-list', shHtml);
 
             // UV Pakavimas (Robot Defects) per paskutines 4 pamainas
             var uvLogHtml = '';
@@ -1032,34 +1043,31 @@
             window.alertRotationIndex++;
         }
 
-        function rotateList(id) {
-            var list = document.getElementById(id);
-            if (!list || list.children.length <= 1) return;
-
-            // Only rotate if the content overflows the visible height
-            if (list.scrollHeight > list.clientHeight) {
-                var first = list.firstElementChild;
-                first.style.transition = 'opacity 0.6s ease-out';
-                first.style.opacity = '0';
-
-                setTimeout(function () {
-                    first.style.transition = 'none';
-                    first.style.opacity = '1';
-                    list.appendChild(first);
-                }, 600);
+        function updateListHTML(id, html) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            // Tik atnaujiname, jei HTML turinys pasikeitė, kad animacija nenutrūktų be reikalo
+            if (el.dataset.rawHtml !== html) {
+                el.dataset.rawHtml = html;
+                el.innerHTML = '<div class="scrolling-wrapper" id="scroll-wrap-' + id + '">' + html + '</div>';
+                
+                // Leidžiame naršyklei perpiešti DOM prieš skaičiuojant aukštį
+                setTimeout(function() {
+                    var wrapper = document.getElementById('scroll-wrap-' + id);
+                    if (wrapper && wrapper.scrollHeight > el.clientHeight) {
+                        // Dubliuojame turinį visam sąrašui nesibaigiančiom ciklui
+                        wrapper.innerHTML = html + html;
+                        // Apskaičiuojame animacijos greitį: pvz. 20px per sekundę
+                        var duration = wrapper.scrollHeight / 20; 
+                        wrapper.style.animation = 'smooth-scroll ' + duration + 's linear infinite';
+                    }
+                }, 50);
             }
         }
 
         fetchData();
         setInterval(fetchData, 5000); // Poll every 5 seconds since TV
         setInterval(updateDefectAlertRotation, 10000); // Pakeičia rodomą broko priežastį kas 10s
-
-        // Rotate overflowing problem lists every 10 seconds
-        setInterval(function () {
-            rotateList('tv-problems');
-            rotateList('tv-breakdowns-list');
-            rotateList('tv-shortages-list');
-        }, 10000);
     </script>
 </body>
 
