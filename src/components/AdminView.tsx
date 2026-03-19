@@ -87,7 +87,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
   const isUniprintProUser = user?.name.toLowerCase().includes('uniprintpro');
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto">
+    <div className={`p-6 md:p-10 max-w-7xl mx-auto ${selectedInstructionPrinters.length > 0 ? 'print:p-0 print:max-w-none print:m-0' : ''}`}>
 
       {/* Image Lightbox */}
       {selectedImg && (
@@ -247,6 +247,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
         </div>
       )}
 
+      {/* ALL CONTENT EXCEPT MODALS GETS HIDDEN ON PRINT */}
+      <div className={selectedInstructionPrinters.length > 0 ? 'print:hidden' : ''}>
       <header className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
         <div>
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">Gamybos Kontrolė</h1>
@@ -1042,7 +1044,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
           </div>
         </div>
       )}
-
+    </div>
     </div>
   );
 };

@@ -56,20 +56,10 @@ body {
 }
 
 @media print {
-    body * {
-        visibility: hidden;
-    }
-    #print-root, #print-root * {
-        visibility: visible;
-    }
-    #print-root {
-        position: absolute;
-        left: 0;
-        top: 0;
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        background: white;
+    body {
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     .no-print {
         display: none !important;
