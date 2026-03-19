@@ -598,7 +598,7 @@
                     .from('printer_logs')
                     .select('*')
                     .order('created_at', { ascending: false })
-                    .limit(150);
+                    .limit(400);
 
                 if (lErr) {
                     console.error("Error fetching logs:", lErr);
@@ -658,19 +658,7 @@
         }
 
         function getShiftId(log) {
-            if (!log.finished_at) return log.date + '_' + log.shift;
-            var d = new Date(log.finished_at);
-            var h = d.getHours();
-
-            // "Naktinė" pamaina priklauso tos dienos vakarui, net jei pamaina baigiasi kitos dienos rytą.
-            if (log.shift === 'Naktinė' && h < 14) {
-                d.setDate(d.getDate() - 1);
-            }
-
-            var yy = d.getFullYear();
-            var mm = String(d.getMonth() + 1).padStart(2, '0');
-            var dd = String(d.getDate()).padStart(2, '0');
-            return yy + '-' + mm + '-' + dd + '_' + log.shift;
+            return log.date + '_' + log.shift;
         }
 
         function formatTimeDate(iso) {

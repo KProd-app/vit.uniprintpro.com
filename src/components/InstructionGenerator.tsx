@@ -11,14 +11,15 @@ interface InstructionGeneratorProps {
 export const InstructionGenerator: React.FC<InstructionGeneratorProps> = ({ printer, onClose }) => {
     const printRef = useRef<HTMLDivElement>(null);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [mountTime] = useState(Date.now());
 
     // Generate QR URLs
     const loginUrl = 'https://vit.uniprintpro.com';
     const stationIdentifier = printer.qrCode || printer.id;
     const stationUrl = `https://vit.uniprintpro.com/?station=${stationIdentifier}`;
 
-    const qrLoginSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(loginUrl)}`;
-    const qrStationSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(stationUrl)}`;
+    const qrLoginSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(loginUrl)}&t=${mountTime}`;
+    const qrStationSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(stationUrl)}&t=${mountTime}`;
 
     const handleDownload = async () => {
         if (!printRef.current) return;
@@ -27,7 +28,9 @@ export const InstructionGenerator: React.FC<InstructionGeneratorProps> = ({ prin
         try {
             const dataUrl = await htmlToImage.toPng(printRef.current, {
                 pixelRatio: 2, // High resolution
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                cacheBust: true,
+                imagePlaceholder: ''
             });
 
             const link = document.createElement('a');
