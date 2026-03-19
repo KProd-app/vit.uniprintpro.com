@@ -44,7 +44,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
   // ... (existing state)
   const [editingTemplate, setEditingTemplate] = useState<ChecklistTemplate | PrinterData | undefined | 'NEW' | 'NEW_USER' | 'NEW_STATION'>(undefined);
   const [editingLog, setEditingLog] = useState<any | null>(null);
-  const [selectedInstructionPrinter, setSelectedInstructionPrinter] = useState<PrinterData | null>(null);
+  const [selectedInstructionPrinters, setSelectedInstructionPrinters] = useState<PrinterData[]>([]);
 
   const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS' | 'MESSAGES' | 'TV' | 'TRANSFERS_JOURNAL' | 'INSTRUCTIONS'>('PRINTERS');
   const [users, setUsers] = useState<User[]>([]);
@@ -160,10 +160,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
       )}
 
       {/* Instruction Modal Overlay */}
-      {selectedInstructionPrinter && (
+      {selectedInstructionPrinters.length > 0 && (
         <InstructionGenerator
-          printer={selectedInstructionPrinter}
-          onClose={() => setSelectedInstructionPrinter(null)}
+          printers={selectedInstructionPrinters}
+          onClose={() => setSelectedInstructionPrinters([])}
         />
       )}
 
@@ -651,9 +651,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
         <div className="space-y-10">
           <div className="flex justify-between items-center bg-white p-8 rounded-[40px] shadow-sm border border-slate-200">
             <h3 className="text-xl font-black text-slate-800 uppercase">Stationų Sąrašas</h3>
-            <Button onClick={() => setEditingTemplate('NEW_STATION')} className="bg-slate-900 text-white rounded-xl h-10 px-4 font-bold uppercase text-xs">
-              <Plus className="w-4 h-4 mr-2" /> Pridėti Stationą
-            </Button>
+            <div className="flex gap-4">
+              <Button onClick={() => setSelectedInstructionPrinters(printers)} className="bg-mimaki-blue hover:bg-blue-600 text-white rounded-xl h-10 px-4 font-bold uppercase text-xs shadow-lg">
+                <Printer className="w-4 h-4 mr-2" /> Visos Instrukcijos
+              </Button>
+              <Button onClick={() => setEditingTemplate('NEW_STATION')} className="bg-slate-900 text-white rounded-xl h-10 px-4 font-bold uppercase text-xs">
+                <Plus className="w-4 h-4 mr-2" /> Pridėti Stationą
+              </Button>
+            </div>
           </div>
           <div className="grid grid-cols-1 gap-10">
             {printers.map((printer) => (
@@ -686,7 +691,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                     size="icon"
                     className="bg-white shadow-sm hover:bg-slate-100 rounded-full h-10 w-10 text-slate-400 hover:text-mimaki-blue"
                     title="Atsisiųsti Instrukciją (QR)"
-                    onClick={() => setSelectedInstructionPrinter(printer)}
+                    onClick={() => setSelectedInstructionPrinters([printer])}
                   >
                     <QrCode className="w-5 h-5" />
                   </Button>
