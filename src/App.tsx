@@ -50,6 +50,16 @@ const AppContent: React.FC = () => {
   // If not logged in and not a live viewer, enforce login
   let currentView = isLiveView ? view : (!user ? 'LOGIN' : view);
 
+  // Clear station param if not logged in to prevent auto-opening after login from old QR codes
+  useEffect(() => {
+    if (!authLoading && !user) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('station')) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [user, authLoading]);
+
   // Auto-route to station setup if logged in, parameter is present, and we're currently on DASHBOARD
   useEffect(() => {
     if (user && printers.length > 0 && currentView === 'DASHBOARD') {
