@@ -328,28 +328,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
           >
             Grįžti
           </button>
-          {isSuperUser && (
-            <button
-              onClick={async () => {
-                  if(!confirm('Ar tikrai norite ištaisyti vakarykštės Naktinės pamainos datas (iš 03-19 į 03-18)?')) return;
-                  try {
-                      const { error } = await supabase
-                        .from('printer_logs')
-                        .update({ date: '2026-03-18' })
-                        .eq('date', '2026-03-19')
-                        .eq('shift', 'Naktinė')
-                        .lt('created_at', '2026-03-19T14:00:00.000Z');
-                      if (error) throw error;
-                      alert('Sėkmingai atnaujinta! Perkraukite lenta.html puslapį, kad pamatytumėte pakeitimus.');
-                  } catch(e: any) {
-                      alert('Nepavyko pataisyti DB: ' + e.message);
-                  }
-              }}
-              className="bg-red-500 text-white px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-red-600 transition-all shrink-0 ml-4 shadow-lg shadow-red-500/30"
-            >
-              🛠 TVarkyti DB Datas
-            </button>
-          )}
         </div>
       </header>
 
