@@ -133,12 +133,22 @@ const AppContent: React.FC = () => {
       if (printer) {
         // 1. Save Log
         try {
+          let correctDate = getVilniusShiftBoundaries().logicalDateString;
+          const currentHour = new Date().toLocaleString('en-US', { timeZone: 'Europe/Vilnius', hour12: false, hour: 'numeric' });
+          const h = parseInt(currentHour, 10);
+          
+          if (printer.vit.shift === 'Naktinė' && h >= 6 && h < 14) {
+             const d = new Date();
+             d.setDate(d.getDate() - 1);
+             correctDate = getVilniusShiftBoundaries(d.toISOString()).logicalDateString;
+          }
+
           await saveShiftLog({
             printerId: printer.id,
             printerName: printer.name,
             shift: printer.vit.shift,
             operatorName: printer.operatorName || user.name,
-            date: getVilniusShiftBoundaries().logicalDateString, // Correct Lithuanian logical date
+            date: correctDate,
             startedAt: printer.workStartedAt || new Date().toISOString(),
             finishedAt: new Date().toISOString(),
             productionAmount: production,
