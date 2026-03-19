@@ -367,6 +367,30 @@ export class SupabaseRepository implements StorageRepository {
         }
     }
 
+    async updateShiftLog(id: string, updates: Partial<PrinterLog>): Promise<void> {
+        // Map TS object to DB columns (snake_case)
+        const dbUpdates: any = {};
+        if (updates.productionAmount !== undefined) dbUpdates.production_amount = updates.productionAmount;
+        if (updates.defectsAmount !== undefined) dbUpdates.defects_amount = updates.defectsAmount;
+        if (updates.remainingAmount !== undefined) dbUpdates.remaining_amount = updates.remainingAmount;
+        if (updates.backlog !== undefined) dbUpdates.backlog = updates.backlog;
+        if (updates.defectsReason !== undefined) dbUpdates.defects_reason = updates.defectsReason;
+        if (updates.shift !== undefined) dbUpdates.shift = updates.shift;
+        if (updates.date !== undefined) dbUpdates.date = updates.date;
+        if (updates.robotDefects !== undefined) dbUpdates.robot_defects = updates.robotDefects;
+        if (updates.printingDefects !== undefined) dbUpdates.printing_defects = updates.printingDefects;
+
+        const { error } = await supabase
+            .from('printer_logs')
+            .update(dbUpdates)
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error updating shift log:', error);
+            throw error;
+        }
+    }
+
     async getShiftLogs(filters?: { printerId?: string, date?: string, shift?: string }): Promise<PrinterLog[]> {
         let query = supabase
             .from('printer_logs')

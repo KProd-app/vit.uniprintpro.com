@@ -37,11 +37,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
     resetPrinter,
     getFeedback,
     resolveFeedback,
-    clearAllData
+    clearAllData,
+    updateShiftLog
   } = usePrinters();
 
   // ... (existing state)
   const [editingTemplate, setEditingTemplate] = useState<ChecklistTemplate | PrinterData | undefined | 'NEW' | 'NEW_USER' | 'NEW_STATION'>(undefined);
+  const [editingLog, setEditingLog] = useState<any | null>(null);
   const [selectedInstructionPrinter, setSelectedInstructionPrinter] = useState<PrinterData | null>(null);
 
   const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS' | 'MESSAGES' | 'TV' | 'TRANSFERS_JOURNAL' | 'INSTRUCTIONS'>('PRINTERS');
@@ -163,6 +165,86 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
           printer={selectedInstructionPrinter}
           onClose={() => setSelectedInstructionPrinter(null)}
         />
+      )}
+
+      {/* Log Edit Modal Overlay */}
+      {editingLog && isSuperUser && (
+        <div className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-[32px] shadow-2xl max-w-lg w-full">
+            <h2 className="text-2xl font-black text-slate-800 uppercase mb-6">Redaguoti Pamainos Įrašą</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Pagaminta</label>
+                <input 
+                  type="number" 
+                  value={editingLog.productionAmount || ''} 
+                  onChange={e => setEditingLog({...editingLog, productionAmount: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Brokas</label>
+                <input 
+                  type="number" 
+                  value={editingLog.defectsAmount || ''} 
+                  onChange={e => setEditingLog({...editingLog, defectsAmount: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Liko Gaminti</label>
+                <input 
+                  type="number" 
+                  value={editingLog.remainingAmount || ''} 
+                  onChange={e => setEditingLog({...editingLog, remainingAmount: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Atsilikimas</label>
+                <input 
+                  type="number" 
+                  value={editingLog.backlog || ''} 
+                  onChange={e => setEditingLog({...editingLog, backlog: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-8">
+              <Button variant="outline" onClick={() => setEditingLog(null)} className="rounded-xl px-6">Atšaukti</Button>
+              <Button 
+                className="bg-mimaki-blue text-white rounded-xl px-8"
+                onClick={async () => {
+                  try {
+                    await updateShiftLog(editingLog.id, {
+                      productionAmount: Number(editingLog.productionAmount) || 0,
+                      defectsAmount: Number(editingLog.defectsAmount) || 0,
+                      remainingAmount: Number(editingLog.remainingAmount) || 0,
+                      backlog: Number(editingLog.backlog) || 0,
+                    });
+                    
+                    // Optimistic update locally
+                    setLogs(prevLogs => prevLogs.map(l => l.id === editingLog.id ? {...l, 
+                      productionAmount: Number(editingLog.productionAmount) || 0,
+                      defectsAmount: Number(editingLog.defectsAmount) || 0,
+                      remainingAmount: Number(editingLog.remainingAmount) || 0,
+                      backlog: Number(editingLog.backlog) || 0,
+                    } : l));
+                    
+                    setEditingLog(null);
+                    addToast?.("Įrašas sėkmingai atnaujintas!", "success");
+                  } catch (err: any) {
+                    addToast?.("Nepavyko atnaujinti: " + err.message, "error");
+                  }
+                }}
+              >
+                Išsaugoti
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       <header className="flex flex-col md:flex-row justify-between items-center mb-12 gap-6">
@@ -431,6 +513,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                   <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Gamyba / Brokas</th>
                   <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center">VIT</th>
                   <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Nozzle</th>
+                  {isSuperUser && <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Veiksmai</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -524,6 +607,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                           )}
                         </div>
                       </td>
+                      {isSuperUser && (
+                        <td className="p-6 text-center">
+                          <Button variant="ghost" size="icon" onClick={() => setEditingLog(log)} className="text-slate-400 hover:text-mimaki-blue hover:bg-slate-100 rounded-xl">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}

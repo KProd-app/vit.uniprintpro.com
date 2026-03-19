@@ -26,6 +26,7 @@ interface DataContextType {
 
     // Logs
     saveShiftLog: (log: Omit<PrinterLog, 'id'>) => Promise<void>;
+    updateShiftLog: (id: string, updates: Partial<PrinterLog>) => Promise<void>;
     getShiftLogs: (filters?: { printerId?: string, date?: string, shift?: string }) => Promise<PrinterLog[]>;
     getUsers: () => Promise<User[]>;
     updateUser: (id: string, data: Partial<User>) => Promise<void>;
@@ -108,14 +109,23 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     // 1. Auto-Log if active or has data
                     if (p.productionAmount || p.defectsAmount || p.status === PrinterStatus.WORKING) {
                         const previousShift = isDayShift ? 'Naktinė' : 'Dieninė';
+                        const actualShift = p.vit.shift || previousShift;
+                        
+                        // FIX: Correct date for auto-closed Night shifts. If it's morning (auto-closing night shift), use yesterday!
+                        let correctDate = getVilniusShiftBoundaries().logicalDateString;
+                        if (actualShift === 'Naktinė' && isDayShift) {
+                            const d = new Date();
+                            d.setDate(d.getDate() - 1);
+                            correctDate = getVilniusShiftBoundaries(d.toISOString()).logicalDateString;
+                        }
 
                         try {
                             await repository.saveShiftLog({
                                 printerId: p.id,
                                 printerName: p.name,
-                                shift: p.vit.shift || previousShift,
+                                shift: actualShift,
                                 operatorName: p.operatorName || 'Sistema (Auto)',
-                                date: getVilniusShiftBoundaries().logicalDateString,
+                                date: correctDate,
                                 startedAt: p.workStartedAt || new Date().toISOString(),
                                 finishedAt: new Date().toISOString(),
                                 productionAmount: p.productionAmount || 0,
@@ -317,6 +327,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await repository.saveShiftLog(log);
     }, []);
 
+    const updateShiftLog = useCallback(async (id: string, updates: Partial<PrinterLog>) => {
+        await repository.updateShiftLog(id, updates);
+    }, []);
+
     const getShiftLogs = useCallback(async (filters?: { printerId?: string, date?: string }) => {
         return await repository.getShiftLogs(filters);
     }, []);
@@ -377,6 +391,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             deleteChecklistTemplate,
             uploadFile,
             saveShiftLog,
+            updateShiftLog,
             getShiftLogs,
             getUsers,
             updateUser,
