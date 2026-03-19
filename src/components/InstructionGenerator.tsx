@@ -15,8 +15,8 @@ export const InstructionGenerator: React.FC<InstructionGeneratorProps> = ({ prin
 
     // Generate QR URLs
     const loginUrl = 'https://vit.uniprintpro.com';
-    const stationIdentifier = printer.qrCode || printer.id;
-    const stationUrl = `https://vit.uniprintpro.com/?station=${stationIdentifier}`;
+    const stationIdentifier = printer.qrCode?.trim() || printer.name.toLowerCase().replace(/\s+/g, '');
+    const stationUrl = `https://vit.uniprintpro.com/${encodeURIComponent(stationIdentifier)}`;
 
     const qrLoginSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(loginUrl)}&t=${mountTime}`;
     const qrStationSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(stationUrl)}&t=${mountTime}`;

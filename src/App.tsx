@@ -56,10 +56,20 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (user && printers.length > 0 && currentView === 'DASHBOARD') {
       const urlParams = new URLSearchParams(window.location.search);
-      const stationParam = urlParams.get('station');
+      let stationParam = urlParams.get('station');
+
+      const path = window.location.pathname;
+      if (!stationParam && path.length > 1 && !['/live', '/mlive', '/dlive', '/lenta', '/user'].includes(path)) {
+        stationParam = decodeURIComponent(path.substring(1));
+      }
 
       if (stationParam) {
-        const printerExists = printers.find(p => p.id === stationParam || p.qrCode === stationParam);
+        const normalizedParam = stationParam.toLowerCase().trim();
+        const printerExists = printers.find(p => 
+          p.id === stationParam || 
+          (p.qrCode && p.qrCode.toLowerCase().trim() === normalizedParam) ||
+          p.name.toLowerCase().replace(/\s+/g, '') === normalizedParam
+        );
         if (printerExists) {
           // Check if already working
           if (printerExists.status === PrinterStatus.READY_TO_WORK || printerExists.status === PrinterStatus.NOT_STARTED) {
