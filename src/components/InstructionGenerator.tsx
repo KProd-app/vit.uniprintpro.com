@@ -47,10 +47,10 @@ export const InstructionGenerator: React.FC<InstructionGeneratorProps> = ({ prin
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-900/90 z-[200] overflow-y-auto flex flex-col items-center py-10 px-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-slate-900/90 z-[200] overflow-y-auto flex flex-col items-center py-10 px-4 backdrop-blur-sm print:static print:block print:bg-white print:p-0 print:m-0 print:overflow-visible">
 
             {/* Top Controls */}
-            <div className="w-full max-w-[210mm] flex justify-between items-center mb-6">
+            <div className="w-full max-w-[210mm] flex justify-between items-center mb-6 print:hidden">
                 <h2 className="text-white text-2xl font-black uppercase tracking-widest">Instrukcijos Peržiūra</h2>
                 <div className="flex gap-4 border border-slate-700 bg-slate-800/80 p-2 rounded-2xl shadow-xl no-print">
                     <button
@@ -83,7 +83,7 @@ export const InstructionGenerator: React.FC<InstructionGeneratorProps> = ({ prin
             </div>
 
             {/* A4 Container Wrapper for centering and shadow */}
-            <div className="shadow-2xl ring-1 ring-slate-900/5 bg-white relative">
+            <div className="shadow-2xl ring-1 ring-slate-900/5 bg-white relative print:shadow-none print:ring-0 print:static print:w-full print:p-0 print:m-0">
                 <div ref={printRef} id="print-root" className="bg-white">
                     {printers.map((printer, index) => {
                         const loginUrl = 'https://vit.uniprintpro.com';
