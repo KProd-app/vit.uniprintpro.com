@@ -30,7 +30,8 @@ export const InstructionGenerator: React.FC<InstructionGeneratorProps> = ({ prin
                 pixelRatio: 2, // High resolution
                 backgroundColor: '#ffffff',
                 cacheBust: true,
-                imagePlaceholder: ''
+                imagePlaceholder: '',
+                skipFonts: true // Apsaugo nuo CORS klaidos dėl išorinių svetainių CSS failų.
             });
 
             const link = document.createElement('a');
