@@ -604,7 +604,21 @@
                     console.error("Error fetching logs:", lErr);
                     return;
                 }
-                if (lData) logs = lData;
+                
+                if (lData) {
+                    // HOTFIX: Ištaisyti neteisingai Supabase išsaugotas 'Naktinės' pamainos datas (išsaugota kaip Kovo 19 d., bet realiai priklauso Kovo 18 d.)
+                    // Kadangi negalėjome pakeisti DB dėl apsaugų (RLS), pataisome vizualumą skrydžio metu!
+                    for (var k = 0; k < lData.length; k++) {
+                        var log = lData[k];
+                        if (log.date === '2026-03-19' && log.shift === 'Naktinė') {
+                            var createdAtIso = log.created_at; 
+                            if (new Date(createdAtIso).getTime() < new Date('2026-03-19T14:00:00Z').getTime()) {
+                                log.date = '2026-03-18'; // Priskiriame vakardienai
+                            }
+                        }
+                    }
+                    logs = lData;
+                }
 
                 // Build rotating defect reasons directly from latest logs
                 // so BROKAI panel stays in sync with VIT form submissions.
