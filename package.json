@@ -23,6 +23,7 @@
     "lucide-react": "^0.563.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-qr-code": "^2.0.18",
     "tailwind-merge": "^3.4.0",
     "whatwg-fetch": "^3.6.20"
   },

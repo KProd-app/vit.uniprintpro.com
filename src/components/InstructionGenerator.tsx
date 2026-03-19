@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import * as htmlToImage from 'html-to-image';
 import { PrinterData } from '../types';
-import { Download, XCircle, Info } from 'lucide-react';
+import { XCircle, Download, Printer as PrinterIcon, Info } from 'lucide-react';
+import QRCode from 'react-qr-code';
 
 interface InstructionGeneratorProps {
     printers: PrinterData[];
@@ -89,8 +90,6 @@ export const InstructionGenerator: React.FC<InstructionGeneratorProps> = ({ prin
                         const loginUrl = 'https://vit.uniprintpro.com';
                         const stationIdentifier = printer.qrCode?.trim() || printer.name.toLowerCase().replace(/\s+/g, '');
                         const stationUrl = `https://vit.uniprintpro.com/${encodeURIComponent(stationIdentifier)}`;
-                        const qrLoginSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(loginUrl)}&t=${mountTime}`;
-                        const qrStationSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(stationUrl)}&t=${mountTime}`;
 
                         return (
                             <div
@@ -118,7 +117,9 @@ export const InstructionGenerator: React.FC<InstructionGeneratorProps> = ({ prin
                                     <section className="flex items-center gap-6 bg-slate-50 p-5 rounded-3xl border-2 border-slate-900 relative">
                                         <div className="absolute -top-3 -left-3 w-10 h-10 bg-slate-900 text-white rounded-full flex items-center justify-center text-xl font-black uppercase shadow-lg z-10">1</div>
                                         <div className="bg-white p-2 rounded-xl flex-shrink-0 border border-slate-200 shadow-md">
-                                            <img src={qrLoginSrc} alt="Login QR Code" className="w-[120px] h-[120px]" />
+                                            <div className="w-[120px] h-[120px]">
+                                                <QRCode value={loginUrl} size={120} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                                            </div>
                                         </div>
                                         <div>
                                             <h2 className="text-2xl font-black mb-1 text-slate-900 uppercase tracking-tight">Pirmas Prisijungimas</h2>
@@ -143,7 +144,9 @@ export const InstructionGenerator: React.FC<InstructionGeneratorProps> = ({ prin
                                             </p>
                                         </div>
                                         <div className="bg-white p-2 rounded-xl flex-shrink-0 border border-blue-200 shadow-md">
-                                            <img src={qrStationSrc} alt="Station QR Code" className="w-[120px] h-[120px]" />
+                                            <div className="w-[120px] h-[120px]">
+                                                <QRCode value={stationUrl} size={120} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                                            </div>
                                         </div>
                                     </section>
 
