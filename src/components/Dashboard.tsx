@@ -46,18 +46,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (detectedCodes && detectedCodes.length > 0) {
       const scannedValue = detectedCodes[0].rawValue;
 
-      // If the scanned value is a full URL containing '?station=', extract the station ID/QR code
+      // If the scanned value is a full URL containing '?station=', extract it. Otherwise use the pathname.
       let parsedStationValue = scannedValue;
       try {
         const url = new URL(scannedValue);
         const param = url.searchParams.get('station');
-        if (param) parsedStationValue = param;
+        if (param) {
+          parsedStationValue = param;
+        } else if (url.pathname.length > 1 && !['/live', '/mlive', '/dlive', '/lenta', '/user'].includes(url.pathname)) {
+          parsedStationValue = decodeURIComponent(url.pathname.substring(1));
+        }
       } catch (e) {
-        // Not a URL, use raw value
+        // Not a valid URL, use raw value
       }
 
-      // Find printer by ID OR by mapping the scanned QR code to the printer's qrCode field
-      const printer = printers.find(p => p.id === parsedStationValue || p.qrCode === parsedStationValue);
+      const normalizedParam = parsedStationValue.toLowerCase().trim();
+      // Find printer by ID OR mapping fields
+      const printer = printers.find(p => 
+        p.id === parsedStationValue || 
+        (p.qrCode && p.qrCode.toLowerCase().trim() === normalizedParam) ||
+        p.name.toLowerCase().replace(/\s+/g, '') === normalizedParam
+      );
       if (printer) {
         if (printer.status === PrinterStatus.WORKING) {
           // If scanning a working printer, maybe they want to join it or finish it? 
