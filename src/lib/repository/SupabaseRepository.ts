@@ -392,14 +392,19 @@ export class SupabaseRepository implements StorageRepository {
     }
 
     async deleteShiftLog(id: string): Promise<void> {
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('printer_logs')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .select();
 
         if (error) {
             console.error('Error deleting shift log:', error);
             throw error;
+        }
+
+        if (!data || data.length === 0) {
+            throw new Error("Supabase duomenų bazėje trūksta failų trynimo leidimų (nėra 'DELETE' RLS Policy 'printer_logs' lentelėje). Taip pat patikrinkite, ar įrašas realiai egzistuoja.");
         }
     }
 
