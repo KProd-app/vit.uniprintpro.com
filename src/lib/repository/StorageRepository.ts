@@ -31,6 +31,7 @@ export interface StorageRepository {
     // Logs
     saveShiftLog(log: Omit<PrinterLog, 'id'>): Promise<void>;
     updateShiftLog(id: string, updates: Partial<PrinterLog>): Promise<void>;
+    deleteShiftLog(id: string): Promise<void>;
     getShiftLogs(filters?: { printerId?: string, date?: string, shift?: string }): Promise<PrinterLog[]>;
 
     // Users

@@ -9,6 +9,10 @@ export class LocalStorageRepository implements StorageRepository {
         console.warn('Shift logs are not implemented for LocalStorage');
     }
 
+    async deleteShiftLog(id: string): Promise<void> {
+        console.warn('Shift logs are not implemented for LocalStorage');
+    }
+
     async getShiftLogs(filters?: { printerId?: string, date?: string }): Promise<PrinterLog[]> {
         console.warn('Shift logs are not implemented for LocalStorage');
         return [];

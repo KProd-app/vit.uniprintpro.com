@@ -25,8 +25,9 @@ interface DataContextType {
     uploadFile: (file: Blob, path: string) => Promise<string>;
 
     // Logs
-    saveShiftLog: (log: Omit<PrinterLog, 'id'>) => Promise<void>;
-    updateShiftLog: (id: string, updates: Partial<PrinterLog>) => Promise<void>;
+    saveShiftLog(log: Omit<PrinterLog, 'id'>): Promise<void>;
+    updateShiftLog(id: string, updates: Partial<PrinterLog>): Promise<void>;
+    deleteShiftLog(id: string): Promise<void>;
     getShiftLogs: (filters?: { printerId?: string, date?: string, shift?: string }) => Promise<PrinterLog[]>;
     getUsers: () => Promise<User[]>;
     updateUser: (id: string, data: Partial<User>) => Promise<void>;
@@ -331,6 +332,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await repository.updateShiftLog(id, updates);
     }, []);
 
+    const deleteShiftLog = useCallback(async (id: string) => {
+        await repository.deleteShiftLog(id);
+    }, []);
+
     const getShiftLogs = useCallback(async (filters?: { printerId?: string, date?: string }) => {
         return await repository.getShiftLogs(filters);
     }, []);
@@ -392,6 +397,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             uploadFile,
             saveShiftLog,
             updateShiftLog,
+            deleteShiftLog,
             getShiftLogs,
             getUsers,
             updateUser,

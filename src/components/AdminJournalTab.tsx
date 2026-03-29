@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PrinterLog } from '../types';
 import { usePrinters } from '../contexts/DataContext';
 import { getVilniusShiftBoundaries } from '../lib/utils';
-import { Edit, X, Search, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Factory, Package, AlertTriangle, ExternalLink } from 'lucide-react';
+import { Edit, Trash2, X, Search, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Factory, Package, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Button } from './ui/button';
 
 interface AdminJournalTabProps {
@@ -11,7 +11,7 @@ interface AdminJournalTabProps {
 }
 
 export const AdminJournalTab: React.FC<AdminJournalTabProps> = ({ isSuperUser, addToast }) => {
-  const { getShiftLogs, updateShiftLog } = usePrinters();
+  const { getShiftLogs, updateShiftLog, deleteShiftLog } = usePrinters();
   
   const [logs, setLogs] = useState<PrinterLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
@@ -22,6 +22,7 @@ export const AdminJournalTab: React.FC<AdminJournalTabProps> = ({ isSuperUser, a
   
   const [editingLog, setEditingLog] = useState<any | null>(null);
   const [selectedImg, setSelectedImg] = useState<string | null>(null);
+  const [deletingLog, setDeletingLog] = useState<PrinterLog | null>(null);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -339,12 +340,22 @@ export const AdminJournalTab: React.FC<AdminJournalTabProps> = ({ isSuperUser, a
                           </div>
 
                           {isSuperUser && (
-                            <Button 
-                              onClick={() => setEditingLog(log)} 
-                              className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-3 font-bold uppercase text-xs"
-                            >
-                              <Edit className="w-4 h-4 mr-2" /> Redaguoti Šį Įrašą
-                            </Button>
+                            <div className="flex gap-2 mt-4">
+                              <Button 
+                                onClick={() => setEditingLog(log)} 
+                                className="flex-1 bg-slate-900 hover:bg-slate-800 text-white rounded-xl py-3 font-bold uppercase text-xs"
+                              >
+                                <Edit className="w-4 h-4 mr-2" /> Redaguoti
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                onClick={() => setDeletingLog(log)} 
+                                className="shrink-0 border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl py-3 px-4"
+                                title="Ištrinti įrašą"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </Button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -422,6 +433,40 @@ export const AdminJournalTab: React.FC<AdminJournalTabProps> = ({ isSuperUser, a
                 }}
               >
                 Išsaugoti
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal Overlay */}
+      {deletingLog && isSuperUser && (
+        <div className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-[32px] shadow-2xl max-w-sm w-full text-center">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6 transform rotate-3">
+              <Trash2 className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-black text-slate-800 uppercase mb-2">Ištrinti įrašą?</h2>
+            <p className="text-sm text-slate-500 font-medium mb-8">
+              Ar tikrai norite negrįžtamai ištrinti šį gamybos žurnalo įrašą (<span className="font-bold text-slate-700">{deletingLog.printerName}</span> - pamainos pabaiga: <span className="font-bold text-slate-700">{deletingLog.finishedAt ? new Date(deletingLog.finishedAt).toLocaleDateString('lt-LT') : '-'}</span>)?
+            </p>
+            
+            <div className="flex justify-center gap-3">
+              <Button variant="outline" onClick={() => setDeletingLog(null)} className="rounded-xl px-6">Atšaukti</Button>
+              <Button 
+                className="bg-red-500 hover:bg-red-600 text-white rounded-xl px-8 shadow-sm shadow-red-200"
+                onClick={async () => {
+                  try {
+                    await deleteShiftLog(deletingLog.id);
+                    setLogs(prev => prev.filter(l => l.id !== deletingLog.id));
+                    setDeletingLog(null);
+                    addToast?.("Įrašas sėkmingai ištrintas!", "success");
+                  } catch (err: any) {
+                    addToast?.("Nepavyko ištrinti: " + err.message, "error");
+                  }
+                }}
+              >
+                Taip, Ištrinti
               </Button>
             </div>
           </div>

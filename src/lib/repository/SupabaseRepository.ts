@@ -391,6 +391,18 @@ export class SupabaseRepository implements StorageRepository {
         }
     }
 
+    async deleteShiftLog(id: string): Promise<void> {
+        const { error } = await supabase
+            .from('printer_logs')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting shift log:', error);
+            throw error;
+        }
+    }
+
     async getShiftLogs(filters?: { printerId?: string, date?: string, shift?: string }): Promise<PrinterLog[]> {
         let query = supabase
             .from('printer_logs')
