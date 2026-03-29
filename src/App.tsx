@@ -178,15 +178,17 @@ const AppContent: React.FC = () => {
         await contextUpdatePrinter(activePrinterId, {
           status: PrinterStatus.NOT_STARTED,
           workFinishedAt: new Date().toISOString(),
+          lastShiftReset: new Date().toISOString(),
           nextOperatorMessage: message,
           endShiftChecklist: endChecklist,
-          productionAmount: production,
+          productionAmount: 0,
           remainingAmount: remaining,
           backlog: backlog,
-          defectsAmount: defects,
-          defectsReason: defectsReason,
-          robotDefects: robotDefects || 0,
-          printingDefects: printDefects || 0,
+          defectsAmount: 0,
+          defectsReason: "",
+          robotDefects: 0,
+          printingDefects: 0,
+          vit: printer ? { ...printer.vit, confirmed: false, signature: '', checklist: {}, notes: '' } : undefined,
         });
         setView('DASHBOARD');
         setActivePrinterId(null);
