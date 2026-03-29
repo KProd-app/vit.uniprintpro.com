@@ -12,6 +12,7 @@ import { Button } from './ui/button';
 import { Plus, Settings, Printer, Users, Trash2, Edit, RotateCcw, MessageSquare, ExternalLink, X, QrCode, Monitor, Truck, BookOpen, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { AdminInstructions } from './AdminInstructions';
+import { AdminJournalTab } from './AdminJournalTab';
 
 // ... (existing code)
 
@@ -43,18 +44,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
 
   // ... (existing state)
   const [editingTemplate, setEditingTemplate] = useState<ChecklistTemplate | PrinterData | undefined | 'NEW' | 'NEW_USER' | 'NEW_STATION'>(undefined);
-  const [editingLog, setEditingLog] = useState<any | null>(null);
   const [selectedInstructionPrinters, setSelectedInstructionPrinters] = useState<PrinterData[]>([]);
 
   const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS' | 'MESSAGES' | 'TV' | 'TRANSFERS_JOURNAL' | 'INSTRUCTIONS'>('PRINTERS');
   const [users, setUsers] = useState<User[]>([]);
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loadingLogs, setLoadingLogs] = useState(true);
   // ...
-  const [shiftFilter, setShiftFilter] = useState('All');
-  const [dateFilter, setDateFilter] = useState<string>(getVilniusShiftBoundaries().logicalDateString); // Default to today's logical shift date
-  const [selectedImg, setSelectedImg] = useState<string | null>(null);
   const [newUserRole, setNewUserRole] = useState<'Admin' | 'Worker'>('Worker');
+  const [selectedImg, setSelectedImg] = useState<string | null>(null);
 
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
@@ -64,23 +60,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
   }, [getUsers]);
 
   useEffect(() => {
-    if (viewMode === 'JOURNAL') {
-      setLoadingLogs(true);
-      getShiftLogs({
-        shift: shiftFilter === 'All' ? undefined : shiftFilter,
-        date: dateFilter || undefined
-      }).then(data => {
-        setLogs(data);
-        setLoadingLogs(false);
-      });
-    } else if (viewMode === 'MESSAGES') {
+    if (viewMode === 'MESSAGES') {
       setLoadingFeedback(true);
       getFeedback().then(data => {
         setFeedback(data);
         setLoadingFeedback(false);
       });
     }
-  }, [getShiftLogs, shiftFilter, dateFilter, viewMode, getFeedback]);
+  }, [viewMode, getFeedback]);
 
   // Check if current user is 'uniprintpro' or has Admin role
   const isSuperUser = user?.role === UserRole.ADMIN || user?.name.toLowerCase().includes('uniprintpro');
@@ -167,85 +154,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
         />
       )}
 
-      {/* Log Edit Modal Overlay */}
-      {editingLog && isSuperUser && (
-        <div className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-4">
-          <div className="bg-white p-8 rounded-[32px] shadow-2xl max-w-lg w-full">
-            <h2 className="text-2xl font-black text-slate-800 uppercase mb-6">Redaguoti Pamainos Įrašą</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Pagaminta</label>
-                <input 
-                  type="number" 
-                  value={editingLog.productionAmount || ''} 
-                  onChange={e => setEditingLog({...editingLog, productionAmount: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Brokas</label>
-                <input 
-                  type="number" 
-                  value={editingLog.defectsAmount || ''} 
-                  onChange={e => setEditingLog({...editingLog, defectsAmount: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Liko Gaminti</label>
-                <input 
-                  type="number" 
-                  value={editingLog.remainingAmount || ''} 
-                  onChange={e => setEditingLog({...editingLog, remainingAmount: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Atsilikimas</label>
-                <input 
-                  type="number" 
-                  value={editingLog.backlog || ''} 
-                  onChange={e => setEditingLog({...editingLog, backlog: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold"
-                />
-              </div>
-            </div>
 
-            <div className="flex justify-end gap-3 mt-8">
-              <Button variant="outline" onClick={() => setEditingLog(null)} className="rounded-xl px-6">Atšaukti</Button>
-              <Button 
-                className="bg-mimaki-blue text-white rounded-xl px-8"
-                onClick={async () => {
-                  try {
-                    await updateShiftLog(editingLog.id, {
-                      productionAmount: Number(editingLog.productionAmount) || 0,
-                      defectsAmount: Number(editingLog.defectsAmount) || 0,
-                      remainingAmount: Number(editingLog.remainingAmount) || 0,
-                      backlog: Number(editingLog.backlog) || 0,
-                    });
-                    
-                    // Optimistic update locally
-                    setLogs(prevLogs => prevLogs.map(l => l.id === editingLog.id ? {...l, 
-                      productionAmount: Number(editingLog.productionAmount) || 0,
-                      defectsAmount: Number(editingLog.defectsAmount) || 0,
-                      remainingAmount: Number(editingLog.remainingAmount) || 0,
-                      backlog: Number(editingLog.backlog) || 0,
-                    } : l));
-                    
-                    setEditingLog(null);
-                    addToast?.("Įrašas sėkmingai atnaujintas!", "success");
-                  } catch (err: any) {
-                    addToast?.("Nepavyko atnaujinti: " + err.message, "error");
-                  }
-                }}
-              >
-                Išsaugoti
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ALL CONTENT EXCEPT MODALS GETS HIDDEN ON PRINT */}
       <div className={selectedInstructionPrinters.length > 0 ? 'print:hidden' : ''}>
@@ -456,151 +365,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
           </div>
         </div>
       ) : viewMode === 'JOURNAL' ? (
-        <div className="bg-white rounded-[40px] shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-            <h3 className="text-xl font-black text-slate-800 uppercase">Gamybos Žurnalas</h3>
-            <div className="flex gap-4 items-center">
-              {/* DATE FILTER */}
-              <div className="relative">
-                <input
-                  type="date"
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-mimaki-blue focus:border-mimaki-blue block p-2.5 font-bold uppercase"
-                />
-              </div>
-
-              {/* SHIFT FILTER */}
-              <select
-                value={shiftFilter}
-                onChange={(e) => setShiftFilter(e.target.value)}
-                className="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-mimaki-blue focus:border-mimaki-blue block p-2.5 font-bold uppercase"
-              >
-                <option value="All">Visos</option>
-                <option value="Dieninė">Dieninė (06:00-18:00)</option>
-                <option value="Naktinė">Naktinė (18:00-06:00)</option>
-              </select>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-100">
-                <tr>
-                  <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Data</th>
-                  <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Pamaina</th>
-                  <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Įrenginys</th>
-                  <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Operatorius</th>
-                  <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Gamyba / Brokas</th>
-                  <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center">VIT</th>
-                  <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Nozzle</th>
-                  {isSuperUser && <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Veiksmai</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {logs.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="p-10 text-center text-slate-400 italic">
-                      {loadingLogs ? 'Kraunama...' : 'Įrašų nerasta'}
-                    </td>
-                  </tr>
-                ) : (
-                  logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-6 font-bold text-slate-700">{log.date}</td>
-                      <td className="p-6 font-bold text-slate-700">{log.shift}</td>
-                      <td className="p-6 font-bold text-slate-900">{log.printerName}</td>
-                      <td className="p-6 text-slate-600">{log.operatorName}</td>
-                      <td className="p-6 text-right font-mono">
-                        {log.printerName.toLowerCase().includes('pakavimas') ? (
-                          <div className="flex flex-col items-end gap-1">
-                            <div className="flex items-center justify-end gap-2">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Robotas</span>
-                              <span className="font-bold text-amber-600 text-sm">{log.robotDefects || 0}</span>
-                            </div>
-                            <div className="flex items-center justify-end gap-2">
-                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Spauda</span>
-                              <span className="font-bold text-red-600 text-sm">{log.printingDefects || 0}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div>
-                              <span className="font-bold text-emerald-600" title="Pagaminta">{log.productionAmount}</span>
-                              <span className="text-slate-300 mx-1">/</span>
-                              <span className="font-bold text-red-500" title="Brokas">
-                                {log.productionAmount ? (
-                                  ((Number(log.defectsAmount) || 0) / (Number(log.productionAmount) || 0) * 100).toFixed(1) + '%'
-                                ) : (
-                                  (log.defectsAmount || 0)
-                                )}
-                              </span>
-                              {log.defectsReason && Number(log.productionAmount) > 0 && (((Number(log.defectsAmount) || 0) / Number(log.productionAmount)) * 100) > 5 && (
-                                <span className="ml-2 px-2 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-bold uppercase cursor-help" title={`Broko priežastis: ${log.defectsReason}`}>
-                                  Priežastis
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-slate-500 mt-1 flex gap-2">
-                              {Number(log.backlog) > 0 && <span title="Atsilikimas">Atsilikimas: <span className="text-orange-600 font-bold">{log.backlog}</span></span>}
-                              {Number(log.remainingAmount) > 0 && <span title="Liko gaminti">Liko: <span className="text-blue-600 font-bold">{log.remainingAmount}</span></span>}
-                            </div>
-                            {(Number(log.robotDefects) > 0 || Number(log.printingDefects) > 0) && (
-                              <div className="text-[10px] text-slate-400 mt-1">
-                                {Number(log.robotDefects) > 0 && <span>Robot: <span className="text-amber-600 font-bold">{log.robotDefects}</span> </span>}
-                                {Number(log.printingDefects) > 0 && <span>Spauda: <span className="text-red-700 font-bold">{log.printingDefects}</span></span>}
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </td>
-                      <td className="p-6 text-center">
-                        {log.vitData?.confirmed ? (
-                          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold uppercase">OK</span>
-                        ) : (
-                          <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold uppercase">Ne</span>
-                        )}
-                      </td>
-                      <td className="p-6 text-center">
-                        <div className="flex justify-center gap-1">
-                          {log.nozzleData?.url ? (
-                            <img
-                              src={log.nozzleData.url}
-                              className="w-10 h-10 object-cover rounded-lg border border-slate-200 cursor-zoom-in hover:scale-150 transition-transform"
-                              onClick={() => setSelectedImg(log.nozzleData.url)}
-                              alt="Nozzle"
-                            />
-                          ) : log.nozzleData?.mimakiFiles ? (
-                            <div className="flex -space-x-2 overflow-hidden">
-                              {Object.entries(log.nozzleData.mimakiFiles).map(([unit, file]: any) => (
-                                <img
-                                  key={unit}
-                                  src={file.url}
-                                  className="w-10 h-10 object-cover rounded-full border-2 border-white cursor-zoom-in hover:scale-150 transition-transform hover:z-10"
-                                  onClick={() => setSelectedImg(file.url)}
-                                  alt={`Nozzle ${unit}`}
-                                  title={`Blokas ${unit}`}
-                                />
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-slate-300 text-xs">-</span>
-                          )}
-                        </div>
-                      </td>
-                      {isSuperUser && (
-                        <td className="p-6 text-center">
-                          <Button variant="ghost" size="icon" onClick={() => setEditingLog(log)} className="text-slate-400 hover:text-mimaki-blue hover:bg-slate-100 rounded-xl">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      )}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <AdminJournalTab isSuperUser={isSuperUser} addToast={addToast} />
       ) : viewMode === 'USERS' ? (
         <div className="bg-white rounded-[40px] shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-8 border-b border-slate-100 flex justify-between items-center">
