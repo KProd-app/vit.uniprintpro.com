@@ -13,7 +13,7 @@ interface EndShiftProcessProps {
   printer: PrinterData;
   currentUser: User;
   checklistTemplates: ChecklistTemplate[];
-  onFinish: (message: string, checklist: { [key: string]: boolean }, production: number, defects: number, remaining: number, robotDefects?: number, printDefects?: number, backlog?: number, defectsReason?: string) => void;
+  onFinish: (message: string, checklist: { [key: string]: boolean }, production: number, defects: number, remaining: number, robotDefects?: number, printDefects?: number, backlog?: number, defectsReason?: string, glueDefects?: number) => void;
   onCancel: () => void;
   addToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
@@ -48,6 +48,7 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
   // Packing specific inputs
   const [robotDefects, setRobotDefects] = useState<string>(printer.robotDefects?.toString() || '');
   const [printingDefects, setPrintingDefects] = useState<string>(printer.printingDefects?.toString() || '');
+  const [glueDefects, setGlueDefects] = useState<string>(printer.glueDefects?.toString() || '');
 
   const [confirmed, setConfirmed] = useState(false);
 
@@ -85,10 +86,12 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
     let def = 0;
     let robotDef = 0;
     let printDef = 0;
+    let glueDef = 0;
 
     if (isPackingStation) {
       robotDef = parseFloat(robotDefects);
       printDef = parseFloat(printingDefects);
+      glueDef = parseFloat(glueDefects);
 
       if (isNaN(robotDef) || robotDef < 0) {
         addToast("Įveskite korektišką roboto brokų kiekį!", "error");
@@ -96,6 +99,10 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
       }
       if (isNaN(printDef) || printDef < 0) {
         addToast("Įveskite korektišką spaudos brokų kiekį!", "error");
+        return;
+      }
+      if (isNaN(glueDef) || glueDef < 0) {
+        addToast("Įveskite korektišką klijų broko kiekį!", "error");
         return;
       }
       // For packing, production might not be relevant or calculated differently?
@@ -147,7 +154,7 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
     const remFinal = parseFloat(remainingAmount) || 0;
     const backFinal = parseFloat(backlogAmount) || 0;
 
-    onFinish(message, checklist, prod, def, remFinal, robotDef, printDef, backFinal, finalDefectsReason);
+    onFinish(message, checklist, prod, def, remFinal, robotDef, printDef, backFinal, finalDefectsReason, glueDef);
   };
 
   return (
@@ -236,7 +243,7 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
               </div>
 
               {isPackingStation ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   {/* Robot Defects */}
                   <div className="bg-amber-50/50 p-10 rounded-[3rem] border border-amber-100 flex flex-col focus-within:ring-4 focus-within:ring-amber-500/20 transition-all shadow-inner">
                     <h3 className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-4">Roboto Brokas</h3>
@@ -267,6 +274,22 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
                       />
                     </div>
                     <p className="text-red-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt.</p>
+                  </div>
+
+                  {/* Glue Defects */}
+                  <div className="bg-yellow-50/50 p-10 rounded-[3rem] border border-yellow-100 flex flex-col focus-within:ring-4 focus-within:ring-yellow-500/20 transition-all shadow-inner">
+                    <h3 className="text-[10px] font-black text-yellow-600 uppercase tracking-widest mb-4">Klijų Brokas</h3>
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="number"
+                        value={glueDefects}
+                        onChange={(e) => setGlueDefects(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="0"
+                        className="w-full bg-transparent border-none p-0 font-black text-6xl text-yellow-900 focus:ring-0 outline-none text-center placeholder-yellow-900/20"
+                      />
+                    </div>
+                    <p className="text-yellow-600/60 text-[10px] font-black uppercase tracking-widest mt-6 text-center">vnt. / g.</p>
                   </div>
                 </div>
               ) : (
@@ -381,7 +404,7 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
               <Button
                 size="lg"
                 onClick={handleComplete}
-                disabled={isPackingStation ? (robotDefects === '' || printingDefects === '') : (productionAmount === '' || defectsAmount === '' || remainingAmount === '')}
+                disabled={isPackingStation ? (robotDefects === '' || printingDefects === '' || glueDefects === '') : (productionAmount === '' || defectsAmount === '' || remainingAmount === '')}
                 className="flex-[2] uppercase tracking-widest font-black text-lg bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-500/30 rounded-3xl h-auto py-4 whitespace-normal"
               >
                 BAIGTI PAMAINĄ

@@ -129,7 +129,7 @@ const AppContent: React.FC = () => {
     setView('END_SHIFT');
   };
 
-  const handleCompleteEndShift = async (message: string, endChecklist: { [key: string]: boolean }, production: number, defects: number, remaining: number, robotDefects?: number, printDefects?: number, backlog?: number, defectsReason?: string) => {
+  const handleCompleteEndShift = async (message: string, endChecklist: { [key: string]: boolean }, production: number, defects: number, remaining: number, robotDefects?: number, printDefects?: number, backlog?: number, defectsReason?: string, glueDefects?: number) => {
     if (activePrinterId && user) {
       const printer = printers.find(p => p.id === activePrinterId);
       if (printer) {
@@ -159,6 +159,7 @@ const AppContent: React.FC = () => {
             defectsReason: defectsReason,
             robotDefects: robotDefects || 0,
             printingDefects: printDefects || 0,
+            glueDefects: glueDefects || 0,
             vitData: printer.vit,
             nozzleData: {
               url: printer.nozzleFile?.url,
@@ -188,6 +189,7 @@ const AppContent: React.FC = () => {
           defectsReason: "",
           robotDefects: 0,
           printingDefects: 0,
+          glueDefects: 0,
           vit: printer ? { ...printer.vit, confirmed: false, signature: '', checklist: {}, notes: '' } : undefined,
         });
         setView('DASHBOARD');

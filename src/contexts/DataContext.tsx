@@ -118,6 +118,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                                 defectsAmount: p.defectsAmount || 0,
                                 robotDefects: p.robotDefects || 0,
                                 printingDefects: p.printingDefects || 0,
+                                glueDefects: p.glueDefects || 0,
                                 vitData: p.vit,
                                 nozzleData: {
                                     url: p.nozzleFile?.url,
@@ -158,6 +159,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         defectsAmount: 0,
                         robotDefects: 0,
                         printingDefects: 0,
+                        glueDefects: 0,
 
                         // Default remainingAmount to 0 if undefined, but ideally we KEEP it if it exists. 
                         // However, wait, if shift rotates, remaining amount is still remaining right? YES.

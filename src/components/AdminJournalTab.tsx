@@ -52,6 +52,7 @@ export const AdminJournalTab: React.FC<AdminJournalTabProps> = ({ isSuperUser, a
     let totalDefects = 0;
     let totalRobot = 0;
     let totalPrint = 0;
+    let totalGlue = 0;
     let recordsWithAlerts = 0;
     
     filteredLogs.forEach(log => {
@@ -60,6 +61,7 @@ export const AdminJournalTab: React.FC<AdminJournalTabProps> = ({ isSuperUser, a
       if (isPackaging) {
         totalRobot += Number(log.robotDefects || 0);
         totalPrint += Number(log.printingDefects || 0);
+        totalGlue += Number(log.glueDefects || 0);
       } else {
         const prod = Number(log.productionAmount || 0);
         const def = Number(log.defectsAmount || 0);
@@ -74,7 +76,7 @@ export const AdminJournalTab: React.FC<AdminJournalTabProps> = ({ isSuperUser, a
 
     const defectRate = totalProd > 0 ? ((totalDefects / totalProd) * 100).toFixed(1) : '0.0';
     
-    return { totalProd, totalDefects, defectRate, totalRobot, totalPrint, recordsWithAlerts };
+    return { totalProd, totalDefects, defectRate, totalRobot, totalPrint, totalGlue, recordsWithAlerts };
   }, [filteredLogs]);
 
   return (
@@ -108,9 +110,9 @@ export const AdminJournalTab: React.FC<AdminJournalTabProps> = ({ isSuperUser, a
             <Package className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Roboto / Spaudos Br.</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Roboto / Spaudos / Klijų</p>
             <p className="text-xl font-black text-slate-800">
-              <span className="text-amber-600">{stats.totalRobot}</span> / <span className="text-red-500">{stats.totalPrint}</span>
+              <span className="text-amber-600">{stats.totalRobot}</span> / <span className="text-red-500">{stats.totalPrint}</span> / <span className="text-yellow-600">{stats.totalGlue}</span>
             </p>
           </div>
         </div>
@@ -220,6 +222,10 @@ export const AdminJournalTab: React.FC<AdminJournalTabProps> = ({ isSuperUser, a
                             <div className="bg-red-50 px-4 py-2 rounded-xl border border-red-100">
                               <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">Spauda</p>
                               <p className="font-black text-red-700 text-lg">{log.printingDefects || 0}</p>
+                            </div>
+                            <div className="bg-yellow-50 px-4 py-2 rounded-xl border border-yellow-100">
+                              <p className="text-[9px] font-black text-yellow-500 uppercase tracking-widest">Klijai</p>
+                              <p className="font-black text-yellow-700 text-lg">{log.glueDefects || 0}</p>
                             </div>
                           </div>
                         ) : (

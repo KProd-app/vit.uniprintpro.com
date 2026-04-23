@@ -75,20 +75,33 @@ export class SupabaseRepository implements StorageRepository {
             mimakiNozzleFiles: {}
         } as unknown as PrinterState;
 
-        return data.map((row: any) => ({
-            id: row.id,
-            name: row.name,
-            status: this.normalizeStatus(row.status),
-            ...defaultState, // 1. Apply defaults
-            ...row.config,   // 2. config overrides (if any name collision, though unlikely)
-            assignedMimakiUnits: row.config?.assigned_mimaki_units || row.config?.assignedMimakiUnits || [],
-            hasNozzleCheck: row.config?.has_nozzle_check ?? row.config?.hasNozzleCheck ?? false,
-            checklistTemplateId: row.config?.checklist_template_id || row.config?.checklistTemplateId || undefined,
-            endShiftChecklistId: row.config?.end_shift_checklist_id || row.config?.endShiftChecklistId || undefined,
-            qrCode: row.config?.qr_code || row.config?.qrCode || undefined,
-            requireDateOnNozzle: row.config?.require_date_on_nozzle || false,
-            ...row.state     // 3. DB state overrides defaults
-        }));
+        return data.map((row: any) => {
+            // CLEANUP: Ištriname senas išdėstymo šiukšles iš state, kad jos neperrašytų config
+            const state = { ...row.state };
+            delete state.endShiftChecklistId;
+            delete state.checklistTemplateId;
+            delete state.isMimaki;
+            delete state.hasVarnish;
+            delete state.hasWhiteInk;
+            delete state.hasNozzleCheck;
+            delete state.assignedMimakiUnits;
+            delete state.qrCode;
+
+            return {
+                id: row.id,
+                name: row.name,
+                status: this.normalizeStatus(row.status),
+                ...defaultState, // 1. Apply defaults
+                ...row.config,   // 2. config overrides (if any name collision, though unlikely)
+                assignedMimakiUnits: row.config?.assigned_mimaki_units || row.config?.assignedMimakiUnits || [],
+                hasNozzleCheck: row.config?.has_nozzle_check ?? row.config?.hasNozzleCheck ?? false,
+                checklistTemplateId: row.config?.checklist_template_id || row.config?.checklistTemplateId || undefined,
+                endShiftChecklistId: row.config?.end_shift_checklist_id || row.config?.endShiftChecklistId || undefined,
+                qrCode: row.config?.qr_code || row.config?.qrCode || undefined,
+                requireDateOnNozzle: row.config?.require_date_on_nozzle || false,
+                ...state     // 3. DB state overrides defaults
+            };
+        });
     }
 
     private normalizeStatus(status: string): PrinterStatus {
@@ -352,6 +365,7 @@ export class SupabaseRepository implements StorageRepository {
             defects_reason: log.defectsReason || null,  // Nauja broko priežastis
             robot_defects: log.robotDefects || 0,
             printing_defects: log.printingDefects || 0,
+            glue_defects: log.glueDefects || 0,
             vit_data: log.vitData,
             nozzle_data: log.nozzleData,
             next_operator_message: log.nextOperatorMessage
@@ -379,6 +393,7 @@ export class SupabaseRepository implements StorageRepository {
         if (updates.date !== undefined) dbUpdates.date = updates.date;
         if (updates.robotDefects !== undefined) dbUpdates.robot_defects = updates.robotDefects;
         if (updates.printingDefects !== undefined) dbUpdates.printing_defects = updates.printingDefects;
+        if (updates.glueDefects !== undefined) dbUpdates.glue_defects = updates.glueDefects;
 
         const { error } = await supabase
             .from('printer_logs')
@@ -447,6 +462,7 @@ export class SupabaseRepository implements StorageRepository {
             defectsReason: row.defects_reason,      // Nauja broko priežastis
             robotDefects: row.robot_defects,
             printingDefects: row.printing_defects,
+            glueDefects: row.glue_defects,
             vitData: row.vit_data,
             nozzleData: row.nozzle_data,
             nextOperatorMessage: row.next_operator_message

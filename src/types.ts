@@ -93,6 +93,7 @@ export interface PrinterState {
   defectsReason?: string;   // Nauja broko priežastis
   robotDefects?: number;
   printingDefects?: number;
+  glueDefects?: number;     // Naujas klijų brokas pakavimui
   nextOperatorMessage?: string;
   endShiftChecklist?: { [key: string]: boolean };
 
@@ -130,6 +131,7 @@ export interface PrinterLog {
   defectsReason?: string;   // Nauja broko priežastis
   robotDefects?: number;
   printingDefects?: number;
+  glueDefects?: number;     // Klijų brokas
   vitData: VITData;
   nozzleData: {
     url?: string;
