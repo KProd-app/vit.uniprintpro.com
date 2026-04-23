@@ -1,5 +1,6 @@
 import { PrinterData, PrinterStatus, ChecklistTemplate } from '../types';
 import { INITIAL_VIT_CHECKLIST } from '../constants';
+import { getApplicableItems, getCurrentDayOfWeek } from './checklistUtils';
 
 export const isMaintenanceDone = (printer: PrinterData): boolean => {
     return printer.maintenanceDone;
@@ -21,7 +22,6 @@ export const areNozzlesReady = (printer: PrinterData): boolean => {
 
     return printer.nozzlePrintDone && unitsReady;
 };
-
 export const isVITChecklistComplete = (printer: PrinterData, checklistTemplates?: ChecklistTemplate[]): boolean => {
     if (!printer.vit.shift) return false;
 
@@ -34,8 +34,12 @@ export const isVITChecklistComplete = (printer: PrinterData, checklistTemplates?
         }
     }
 
-    // Check if all items in the checklist are true
-    const allChecked = expectedItems.every(item => printer.vit.checklist[item]);
+    // Filter items based on schedule (day of week and shift)
+    const currentDay = getCurrentDayOfWeek();
+    const applicableItems = getApplicableItems(expectedItems, currentDay, printer.vit.shift);
+
+    // Check if all applicable items in the checklist are true
+    const allChecked = applicableItems.length > 0 ? applicableItems.every(item => printer.vit.checklist[item]) : true;
 
     // Check other requirements
     return allChecked &&

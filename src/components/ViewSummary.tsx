@@ -2,6 +2,7 @@
 import React from 'react';
 import { PrinterData, PrinterStatus, ChecklistTemplate } from '../types';
 import { INITIAL_VIT_CHECKLIST } from '../constants';
+import { parseChecklistItem } from '../lib/checklistUtils';
 
 interface ViewSummaryProps {
   printer: PrinterData;
@@ -125,7 +126,7 @@ export const ViewSummary: React.FC<ViewSummaryProps> = ({ printer, checklistTemp
                     ) : (
                       <div className="w-5 h-5 rounded-full border border-slate-200"></div>
                     )}
-                    <span className={printer.vit.checklist[item] ? 'text-slate-800' : 'text-slate-300 line-through'}>{item}</span>
+                    <span className={printer.vit.checklist[item] ? 'text-slate-800' : 'text-slate-300 line-through'}>{parseChecklistItem(item).text}</span>
                   </div>
                 ))}
               </div>

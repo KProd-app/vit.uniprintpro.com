@@ -6,7 +6,8 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Label } from './ui/label';
 import { Check, X, ClipboardList, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getVilniusShiftBoundaries } from '@/lib/utils';
+import { getApplicableItems, getCurrentDayOfWeek, parseChecklistItem } from '../lib/checklistUtils';
 
 interface EndShiftProcessProps {
   printer: PrinterData;
@@ -52,14 +53,14 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
 
   const isPackingStation = printer.name.toLowerCase().includes('pakavimas');
 
-  // Determine which checklist items to use
   const activeChecklistItems = React.useMemo(() => {
+    let items = DEFAULT_END_SHIFT_CHECKLIST;
     if (printer.endShiftChecklistId) {
       const template = checklistTemplates.find(t => t.id === printer.endShiftChecklistId);
-      if (template) return template.items;
+      if (template) items = template.items;
     }
-    return DEFAULT_END_SHIFT_CHECKLIST;
-  }, [printer.endShiftChecklistId, checklistTemplates]);
+    return getApplicableItems(items, getCurrentDayOfWeek(), printer.vit.shift || getVilniusShiftBoundaries().currentShiftName);
+  }, [printer.endShiftChecklistId, checklistTemplates, printer.vit.shift]);
 
   const toggleCheck = (item: string) => {
     setChecklist(prev => ({ ...prev, [item]: !prev[item] }));
@@ -174,7 +175,9 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
               <div>
                 <Label className="uppercase tracking-widest mb-6 block text-[10px] font-black text-slate-400 pl-2">Sutvarkymo punktų žymėjimas</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {activeChecklistItems.map(item => (
+                  {activeChecklistItems.map(item => {
+                    const parsedText = parseChecklistItem(item).text;
+                    return (
                     <div
                       key={item}
                       onClick={() => toggleCheck(item)}
@@ -186,9 +189,9 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
                       <div className={cn("w-8 h-8 rounded-xl border flex items-center justify-center transition-colors", checklist[item] ? "bg-emerald-500 border-emerald-500" : "border-slate-300 bg-white group-hover:border-mimaki-blue")}>
                         {checklist[item] && <Check className="w-5 h-5 text-white" />}
                       </div>
-                      <span className={cn("ml-4 font-bold transition-colors", checklist[item] ? "text-emerald-900" : "text-slate-600 group-hover:text-mimaki-dark")}>{item}</span>
+                      <span className={cn("ml-4 font-bold transition-colors", checklist[item] ? "text-emerald-900" : "text-slate-600 group-hover:text-mimaki-dark")}>{parsedText}</span>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
 

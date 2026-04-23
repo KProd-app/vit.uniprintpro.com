@@ -10,6 +10,7 @@ import { Input } from './ui/input';
 import { ArrowLeft, ArrowRight, Camera, Check, AlertTriangle, Printer, Info, CheckCircle2, ChevronRight, X, Play } from 'lucide-react';
 import { cn, base64ToBlob, getVilniusShiftBoundaries } from '@/lib/utils';
 import { canStartWork } from '@/lib/validation';
+import { getApplicableItems, getCurrentDayOfWeek, parseChecklistItem } from '../lib/checklistUtils';
 
 interface SetupProcessProps {
   printer: PrinterData;
@@ -403,24 +404,32 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                   </div>
                   <div className="space-y-3">
                     {(() => {
-                      // Determine which items to show
+                      // Determine which items to show based on schedule
                       const assignedTemplate = checklistTemplates.find(t => t.id === localPrinter.checklistTemplateId);
-                      const itemsToShow = assignedTemplate ? assignedTemplate.items : INITIAL_VIT_CHECKLIST;
+                      let itemsToShow = assignedTemplate ? assignedTemplate.items : INITIAL_VIT_CHECKLIST;
+                      itemsToShow = getApplicableItems(itemsToShow, getCurrentDayOfWeek(), localPrinter.vit.shift);
 
-                      return itemsToShow.map(item => (
-                        <label key={item} className={cn(
-                          "flex items-center p-5 rounded-3xl border transition-all cursor-pointer",
-                          localPrinter.vit.checklist[item] ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50/50 border-transparent hover:border-slate-200"
-                        )}>
-                          <input
-                            type="checkbox"
-                            checked={localPrinter.vit.checklist[item] || false}
-                            onChange={() => toggleVITCheck(item)}
-                            className="w-6 h-6 rounded-lg accent-emerald-600"
-                          />
-                          <span className={cn("ml-4 font-bold text-sm", localPrinter.vit.checklist[item] ? "text-emerald-900" : "text-slate-600")}>{item}</span>
-                        </label>
-                      ));
+                      if (itemsToShow.length === 0) {
+                          return <div className="p-5 text-center text-slate-500 font-bold bg-slate-50 rounded-3xl border border-slate-100">Šiai pamainai papildomų užduočių nėra</div>;
+                      }
+
+                      return itemsToShow.map(item => {
+                          const parsedText = parseChecklistItem(item).text;
+                          return (
+                            <label key={item} className={cn(
+                              "flex items-center p-5 rounded-3xl border transition-all cursor-pointer",
+                              localPrinter.vit.checklist[item] ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50/50 border-transparent hover:border-slate-200"
+                            )}>
+                              <input
+                                type="checkbox"
+                                checked={localPrinter.vit.checklist[item] || false}
+                                onChange={() => toggleVITCheck(item)}
+                                className="w-6 h-6 rounded-lg accent-emerald-600"
+                              />
+                              <span className={cn("ml-4 font-bold text-sm", localPrinter.vit.checklist[item] ? "text-emerald-900" : "text-slate-600")}>{parsedText}</span>
+                            </label>
+                          );
+                      });
                     })()}
                   </div>
                 </div>
@@ -576,8 +585,9 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                   if (currentStepId === 'vit') {
                     if (localPrinter.vit.signature.length < 3) return addToast("Įrašykite pilną vardą", "error");
                     const assignedTemplate = checklistTemplates.find(t => t.id === localPrinter.checklistTemplateId);
-                    const itemsToShow = assignedTemplate ? assignedTemplate.items : INITIAL_VIT_CHECKLIST;
-                    const allChecked = itemsToShow.every(item => localPrinter.vit.checklist[item]);
+                    let itemsToShow = assignedTemplate ? assignedTemplate.items : INITIAL_VIT_CHECKLIST;
+                    itemsToShow = getApplicableItems(itemsToShow, getCurrentDayOfWeek(), localPrinter.vit.shift);
+                    const allChecked = itemsToShow.length > 0 ? itemsToShow.every(item => localPrinter.vit.checklist[item]) : true;
                     if (!allChecked) return addToast("Pažymėkite visas varneles!", "error");
                     updateVIT({ confirmed: true });
                   }
