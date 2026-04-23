@@ -169,13 +169,13 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
         </div>
       )}
 
-      <header className="mb-8 flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={selectedPrinter ? () => handleSelectPrinter(null as any) : onClose} className="rounded-full bg-white shadow-sm">
+      <header className="mb-6 md:mb-8 flex items-center gap-3 md:gap-4">
+        <Button variant="ghost" size="icon" onClick={selectedPrinter ? () => handleSelectPrinter(null as any) : onClose} className="rounded-full bg-white shadow-sm h-10 w-10">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </Button>
         <div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-800 uppercase tracking-tighter">Dažų Pildymas</h1>
-          <p className="text-slate-500 font-medium">{selectedPrinter ? selectedPrinter.name : 'Pasirinkite spausdintuvą'}</p>
+          <h1 className="text-xl md:text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none">Dažų Pildymas</h1>
+          <p className="text-sm md:text-base text-slate-500 font-medium mt-1">{selectedPrinter ? selectedPrinter.name : 'Pasirinkite spausdintuvą'}</p>
         </div>
       </header>
 
@@ -210,53 +210,50 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
 
                  return (
                     <Card key={ink.id} className={`border-2 transition-all ${isTakingAction ? 'border-mimaki-blue shadow-md' : 'border-slate-200'}`}>
-                       <CardHeader className={`pb-4 border-b ${isTakingAction ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
+                       <CardHeader className={`p-4 md:p-5 border-b ${isTakingAction ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
                           <div className="flex justify-between items-center">
                              <div>
-                                <CardTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">{ink.name}</CardTitle>
-                                <div className="text-sm text-slate-500 font-medium mt-1">Likutis: <strong className={ink.inventory <= 0 ? 'text-red-500' : 'text-emerald-600'}>{ink.inventory} vnt.</strong></div>
+                                <CardTitle className="text-lg md:text-xl font-black text-slate-800 uppercase tracking-tight">{ink.name}</CardTitle>
+                                <div className="text-xs md:text-sm text-slate-500 font-medium mt-0.5">Likutis: <strong className={ink.inventory <= 0 ? 'text-red-500' : 'text-emerald-600'}>{ink.inventory} vnt.</strong></div>
                              </div>
                              {state.qrVerified && (
-                                <div className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full flex items-center text-xs font-bold uppercase">
-                                   <Check className="w-3 h-3 mr-1" /> QR Patvirtinta
+                                <div className="bg-emerald-100 text-emerald-600 px-2.5 py-1 rounded-full flex items-center text-[10px] md:text-xs font-bold uppercase shadow-sm">
+                                   <Check className="w-3 h-3 mr-1" /> Patvirtinta
                                 </div>
                              )}
                           </div>
                        </CardHeader>
-                       <CardContent className="pt-6 space-y-6">
-                          {/* Action Selection */}
-                          <div className="grid grid-cols-3 gap-2 md:gap-4">
-                             <Button
-                                variant="outline"
-                                className={`h-auto py-4 flex flex-col items-center justify-center gap-2 border-2 ${state.action === 'NONE' ? 'border-slate-400 bg-slate-100 text-slate-700' : 'border-slate-100 text-slate-400'}`}
+                       <CardContent className="p-4 md:p-5 space-y-4">
+                          {/* Action Selection Segmented Control */}
+                          <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner overflow-hidden">
+                             <button
+                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${state.action === 'NONE' ? 'bg-white text-slate-800 shadow-sm font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
                                 onClick={() => handleActionSelect(ink, 'NONE')}
                              >
-                                <span className="font-bold text-xs uppercase tracking-wider">Nepildoma</span>
-                             </Button>
-                             <Button
-                                variant="outline"
-                                className={`h-auto py-4 flex flex-col items-center justify-center gap-2 border-2 ${state.action === 'STARTED_BOTTLE' ? 'border-mimaki-blue bg-blue-50 text-mimaki-blue' : 'border-slate-100 text-slate-400'}`}
+                                <span className="text-[10px] md:text-xs uppercase tracking-wider">Nepildoma</span>
+                             </button>
+                             <button
+                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${state.action === 'STARTED_BOTTLE' ? 'bg-mimaki-blue text-white shadow-md font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
                                 onClick={() => handleActionSelect(ink, 'STARTED_BOTTLE')}
                              >
-                                <Droplet className="w-5 h-5 mb-1" />
-                                <span className="font-bold text-xs uppercase tracking-wider text-center">Pradėtas</span>
-                             </Button>
-                             <Button
-                                variant="outline"
-                                className={`h-auto py-4 flex flex-col items-center justify-center gap-2 border-2 ${state.action === 'NEW_BOTTLE' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-slate-100 text-slate-400'}`}
+                                <Droplet className={`w-4 h-4 ${state.action === 'STARTED_BOTTLE' ? 'opacity-100' : 'opacity-70'}`} />
+                                <span className="text-[10px] md:text-xs uppercase tracking-wider">Pradėtas</span>
+                             </button>
+                             <button
+                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${state.action === 'NEW_BOTTLE' ? 'bg-emerald-500 text-white shadow-md font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
                                 onClick={() => handleActionSelect(ink, 'NEW_BOTTLE')}
                              >
-                                <Plus className="w-5 h-5 mb-1" />
-                                <span className="font-bold text-xs uppercase tracking-wider text-center">Naujas</span>
-                             </Button>
+                                <Plus className={`w-4 h-4 ${state.action === 'NEW_BOTTLE' ? 'opacity-100' : 'opacity-70'}`} />
+                                <span className="text-[10px] md:text-xs uppercase tracking-wider">Naujas</span>
+                             </button>
                           </div>
 
                           {/* Action Verification & Photo */}
                           {isTakingAction && (
-                             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 animate-in fade-in slide-in-from-top-2">
+                             <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 animate-in fade-in slide-in-from-top-2">
                                 {state.action === 'NEW_BOTTLE' && !state.qrVerified ? (
-                                   <Button onClick={() => setScanningInk(ink)} className="w-full h-16 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold uppercase tracking-widest text-sm flex gap-3 shadow-lg mb-4 animate-pulse">
-                                      <QrIcon className="w-5 h-5" /> Nuskenuokite Barkodą
+                                   <Button onClick={() => setScanningInk(ink)} className="w-full h-14 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold uppercase tracking-widest text-[11px] md:text-sm flex gap-2 shadow-lg mb-2 animate-pulse">
+                                      <QrIcon className="w-4 h-4" /> Nuskenuokite Barkodą
                                    </Button>
                                 ) : (
                                    <div className="flex flex-col items-center justify-center">
@@ -280,10 +277,10 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
                                       ) : (
                                         <button
                                           onClick={() => fileInputRefs.current[ink.id]?.click()}
-                                          className="w-full py-8 border-2 border-dashed border-mimaki-blue/50 bg-blue-50/50 rounded-xl flex flex-col items-center justify-center text-mimaki-blue hover:bg-blue-100 transition-all"
+                                          className="w-full py-6 md:py-8 border-2 border-dashed border-mimaki-blue/50 bg-blue-50/50 rounded-xl flex flex-col items-center justify-center text-mimaki-blue hover:bg-blue-100 transition-all"
                                         >
-                                          <Camera className="w-8 h-8 mb-2" />
-                                          <span className="font-bold uppercase text-xs tracking-wider">Nufotografuoti Butelį</span>
+                                          <Camera className="w-6 h-6 md:w-8 md:h-8 mb-2" />
+                                          <span className="font-bold uppercase text-[10px] md:text-xs tracking-wider">Nufotografuoti Butelį</span>
                                         </button>
                                       )}
                                    </div>
