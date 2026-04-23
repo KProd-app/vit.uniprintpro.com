@@ -233,12 +233,12 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
 
               {/* Message for next operator */}
               <div>
-                <Label className="uppercase tracking-widest mb-6 block text-[10px] font-black text-slate-400 pl-2">Žinutė kitam operatoriui</Label>
+                <Label className="uppercase tracking-widest mb-6 block text-[10px] font-black text-slate-400 pl-2">Perdavimas / Gedimai</Label>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   className="w-full p-6 bg-white border border-slate-200 rounded-[2rem] font-bold text-slate-900 focus:ring-2 focus:ring-mimaki-blue/20 outline-none h-32 resize-none placeholder:text-slate-400 transition-all shadow-inner"
-                  placeholder="Pvz.: Viskas veikia puikiai, palikau pilnas talpas!"
+                  placeholder="Čia galite parašyti spausdintuvo perdavimą. Pvz. Kas neveikė, kas nutiko negerai ir panašiai"
                 />
               </div>
 
