@@ -65,23 +65,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 repository.getChecklistTemplates()
             ]);
 
-            // Seed default checklists if missing
-            const existingNames = new Set(checklistsData.map(c => c.name));
-            const newTemplates = DEFAULT_TEMPLATES.filter(t => !existingNames.has(t.name));
-
-            let finalChecklists = checklistsData;
-
-            if (newTemplates.length > 0) {
-                console.log(`Seeding ${newTemplates.length} default checklists...`);
-                // Run sequentially or parallel? Parallel is fine for Supabase usually, but let's be safe
-                for (const t of newTemplates) {
-                    await repository.saveChecklistTemplate(t as any);
-                }
-                finalChecklists = await repository.getChecklistTemplates();
-            }
-
             setPrinters(printersData);
-            setChecklistTemplates(finalChecklists);
+            setChecklistTemplates(checklistsData);
             setLoading(false);
         };
         init();
