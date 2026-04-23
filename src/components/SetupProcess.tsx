@@ -414,19 +414,41 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                       }
 
                       return itemsToShow.map(item => {
-                          const parsedText = parseChecklistItem(item).text;
+                          const parsedItem = parseChecklistItem(item);
+                          const parsedText = parsedItem.text;
+                          const isSpecialItem = (parsedItem.days && parsedItem.days.length > 0) || (parsedItem.shifts && parsedItem.shifts.length > 0);
+                          const isChecked = localPrinter.vit.checklist[item] || false;
+
                           return (
                             <label key={item} className={cn(
-                              "flex items-center p-5 rounded-3xl border transition-all cursor-pointer",
-                              localPrinter.vit.checklist[item] ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50/50 border-transparent hover:border-slate-200"
+                              "flex items-center p-5 rounded-3xl border transition-all cursor-pointer relative overflow-hidden",
+                              isChecked 
+                                ? "bg-emerald-50/50 border-emerald-300 shadow-sm" 
+                                : isSpecialItem
+                                  ? "bg-amber-50/50 border-amber-400 shadow-md animate-[pulse_2s_ease-in-out_infinite] hover:border-amber-500 hover:scale-[1.02]"
+                                  : "bg-slate-50/50 border-transparent hover:border-slate-200"
                             )}>
+                              {/* Special Item Badge */}
+                              {isSpecialItem && !isChecked && (
+                                <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500 text-white text-[9px] font-black uppercase tracking-widest rounded-bl-xl rounded-tr-3xl shadow-sm z-0">
+                                  {parsedItem.days && parsedItem.days.length > 0 ? "Savaitės" : "Pamainos"} Užduotis
+                                </div>
+                              )}
+
                               <input
                                 type="checkbox"
-                                checked={localPrinter.vit.checklist[item] || false}
+                                checked={isChecked}
                                 onChange={() => toggleVITCheck(item)}
-                                className="w-6 h-6 rounded-lg accent-emerald-600"
+                                className="w-6 h-6 rounded-lg accent-emerald-600 relative z-10"
                               />
-                              <span className={cn("ml-4 font-bold text-sm", localPrinter.vit.checklist[item] ? "text-emerald-900" : "text-slate-600")}>{parsedText}</span>
+                              <span className={cn(
+                                "ml-4 font-bold text-sm relative z-10 pr-20", 
+                                isChecked 
+                                  ? "text-emerald-900" 
+                                  : isSpecialItem
+                                    ? "text-amber-900"
+                                    : "text-slate-600"
+                              )}>{parsedText}</span>
                             </label>
                           );
                       });

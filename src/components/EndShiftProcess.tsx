@@ -183,20 +183,49 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
                 <Label className="uppercase tracking-widest mb-6 block text-[10px] font-black text-slate-400 pl-2">Sutvarkymo punktų žymėjimas</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {activeChecklistItems.map(item => {
-                    const parsedText = parseChecklistItem(item).text;
+                    const parsedItem = parseChecklistItem(item);
+                    const parsedText = parsedItem.text;
+                    const isSpecialItem = (parsedItem.days && parsedItem.days.length > 0) || (parsedItem.shifts && parsedItem.shifts.length > 0);
+                    const isChecked = checklist[item];
+
                     return (
                     <div
                       key={item}
                       onClick={() => toggleCheck(item)}
                       className={cn(
-                        "flex items-center p-5 rounded-3xl border transition-all cursor-pointer select-none group",
-                        checklist[item] ? "bg-emerald-50/50 border-emerald-500 shadow-md" : "bg-slate-50 border-transparent hover:border-slate-200"
+                        "flex items-center p-5 rounded-3xl border transition-all cursor-pointer select-none group relative overflow-hidden",
+                        isChecked 
+                          ? "bg-emerald-50/50 border-emerald-500 shadow-md" 
+                          : isSpecialItem
+                            ? "bg-amber-50/50 border-amber-400 shadow-lg animate-[pulse_2s_ease-in-out_infinite] hover:border-amber-500 hover:scale-[1.02]"
+                            : "bg-slate-50 border-transparent hover:border-slate-200"
                       )}
                     >
-                      <div className={cn("w-8 h-8 rounded-xl border flex items-center justify-center transition-colors", checklist[item] ? "bg-emerald-500 border-emerald-500" : "border-slate-300 bg-white group-hover:border-mimaki-blue")}>
-                        {checklist[item] && <Check className="w-5 h-5 text-white" />}
+                      {/* Special Item Badge */}
+                      {isSpecialItem && !isChecked && (
+                        <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500 text-white text-[9px] font-black uppercase tracking-widest rounded-bl-xl rounded-tr-3xl shadow-sm">
+                          {parsedItem.days && parsedItem.days.length > 0 ? "Savaitės" : "Pamainos"} Užduotis
+                        </div>
+                      )}
+
+                      <div className={cn(
+                        "w-8 h-8 rounded-xl border flex items-center justify-center transition-colors relative z-10", 
+                        isChecked 
+                          ? "bg-emerald-500 border-emerald-500" 
+                          : isSpecialItem
+                            ? "border-amber-400 bg-white group-hover:border-amber-500"
+                            : "border-slate-300 bg-white group-hover:border-mimaki-blue"
+                      )}>
+                        {isChecked && <Check className="w-5 h-5 text-white" />}
                       </div>
-                      <span className={cn("ml-4 font-bold transition-colors", checklist[item] ? "text-emerald-900" : "text-slate-600 group-hover:text-mimaki-dark")}>{parsedText}</span>
+                      <span className={cn(
+                        "ml-4 font-bold transition-colors relative z-10 pr-20", 
+                        isChecked 
+                          ? "text-emerald-900" 
+                          : isSpecialItem
+                            ? "text-amber-900 group-hover:text-amber-950"
+                            : "text-slate-600 group-hover:text-mimaki-dark"
+                      )}>{parsedText}</span>
                     </div>
                   )})}
                 </div>
