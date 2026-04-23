@@ -841,7 +841,20 @@
 
                 var st = formatStatus(p.status);
                 var maintDone = p.state && p.state.vit && p.state.vit.confirmed;
-                var nozzleDone = p.state && p.state.nozzleFile && p.state.nozzleFile.url;
+                var nozzleDone = false;
+                if (p.state) {
+                    if (p.state.nozzleFile && p.state.nozzleFile.url) {
+                        nozzleDone = true;
+                    } else if (p.state.mimakiNozzleFiles) {
+                        var mKeys = Object.keys(p.state.mimakiNozzleFiles);
+                        for (var mk = 0; mk < mKeys.length; mk++) {
+                            if (p.state.mimakiNozzleFiles[mKeys[mk]] && p.state.mimakiNozzleFiles[mKeys[mk]].url) {
+                                nozzleDone = true;
+                                break;
+                            }
+                        }
+                    }
+                }
 
                 html += '<div class="printer-row">';
 
