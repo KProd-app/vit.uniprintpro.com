@@ -57,6 +57,7 @@ export interface PrinterConfig {
   endShiftChecklistId?: string; // Link to specific END shift checklist
   qrCode?: string; // Optional custom QR code value (defaults to ID if not set)
   requireDateOnNozzle?: boolean; // Controls if operator must write date on nozzle check
+  inkInventory?: number; // Dažų likutis (butelių skaičius)
 }
 
 // Dynamic state that changes during the shift
@@ -112,7 +113,7 @@ export interface ChecklistTemplate {
   items: string[];
 }
 
-export type ViewType = 'LOGIN' | 'DASHBOARD' | 'SETUP' | 'SUMMARY' | 'ADMIN' | 'END_SHIFT' | 'LIVE' | 'LIVE_MOBILE' | 'LIVE_DESKTOP' | 'LENTA' | 'USER_TV';
+export type ViewType = 'LOGIN' | 'DASHBOARD' | 'SETUP' | 'SUMMARY' | 'ADMIN' | 'END_SHIFT' | 'LIVE' | 'LIVE_MOBILE' | 'LIVE_DESKTOP' | 'LENTA' | 'USER_TV' | 'INK_REFILL';
 
 
 export interface PrinterLog {
@@ -138,4 +139,20 @@ export interface PrinterLog {
     mimakiFiles?: Record<number, NozzleFile>;
   };
   nextOperatorMessage?: string;
+}
+
+export interface AppSetting {
+  key: string;
+  value: any;
+}
+
+export interface InkLog {
+  id: string;
+  printerId: string;
+  printerName: string;
+  operatorName: string;
+  action: 'STARTED_BOTTLE' | 'NEW_BOTTLE' | 'ADDED_INVENTORY';
+  quantityChange: number;
+  photoUrl?: string;
+  createdAt: string;
 }

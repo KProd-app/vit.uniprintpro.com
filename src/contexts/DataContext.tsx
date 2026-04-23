@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, PrinterStatus, User, Feedback } from '../types';
+import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, PrinterStatus, User, Feedback, InkLog, AppSetting } from '../types';
 import { supabase } from '../lib/supabase';
 import { getVilniusShiftBoundaries } from '../lib/utils';
 import { StorageRepository } from '../lib/repository/StorageRepository';
@@ -23,6 +23,7 @@ interface DataContextType {
 
     // Files
     uploadFile: (file: Blob, path: string) => Promise<string>;
+    uploadInkPhoto: (file: Blob, path: string) => Promise<string>;
 
     // Logs
     saveShiftLog(log: Omit<PrinterLog, 'id'>): Promise<void>;
@@ -33,6 +34,13 @@ interface DataContextType {
     updateUser: (id: string, data: Partial<User>) => Promise<void>;
     deleteUser: (id: string) => Promise<void>;
     createUser: (user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }) => Promise<void>;
+    
+    // Ink Management & Settings
+    getSettings: () => Promise<AppSetting[]>;
+    updateSetting: (key: string, value: any) => Promise<void>;
+    getInkLogs: () => Promise<InkLog[]>;
+    addInkLog: (log: Omit<InkLog, 'id' | 'createdAt'>) => Promise<void>;
+
     // Feedback
     saveFeedback: (feedback: Omit<Feedback, 'id' | 'createdAt'>) => Promise<void>;
     getFeedback: () => Promise<Feedback[]>;
@@ -343,6 +351,26 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await repository.createUser(user);
     }, []);
 
+    const getSettings = useCallback(async () => {
+        return await repository.getSettings();
+    }, []);
+
+    const updateSetting = useCallback(async (key: string, value: any) => {
+        await repository.updateSetting(key, value);
+    }, []);
+
+    const getInkLogs = useCallback(async () => {
+        return await repository.getInkLogs();
+    }, []);
+
+    const addInkLog = useCallback(async (log: Omit<InkLog, 'id' | 'createdAt'>) => {
+        await repository.addInkLog(log);
+    }, []);
+
+    const uploadInkPhoto = useCallback(async (file: Blob, path: string) => {
+        return await repository.uploadInkPhoto(file, path);
+    }, []);
+
     const saveFeedback = useCallback(async (feedback: Omit<Feedback, 'id' | 'createdAt'>) => {
         await repository.saveFeedback(feedback);
     }, []);
@@ -390,6 +418,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             updateUser,
             deleteUser,
             createUser,
+            getSettings,
+            updateSetting,
+            getInkLogs,
+            addInkLog,
+            uploadInkPhoto,
             saveFeedback,
             getFeedback,
             resolveFeedback,

@@ -1,4 +1,4 @@
-import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, User, Feedback } from '../../types';
+import { PrinterData, PrinterConfig, ChecklistTemplate, PrinterLog, User, Feedback, InkLog, AppSetting } from '../../types';
 
 export interface StorageRepository {
     /**
@@ -22,6 +22,11 @@ export interface StorageRepository {
      * Upload a file and return the public URL
      */
     uploadFile(file: Blob, path: string): Promise<string>;
+    
+    /**
+     * Upload an ink photo and return public URL
+     */
+    uploadInkPhoto(file: Blob, path: string): Promise<string>;
 
     // Checklists
     getChecklistTemplates(): Promise<ChecklistTemplate[]>;
@@ -33,12 +38,17 @@ export interface StorageRepository {
     updateShiftLog(id: string, updates: Partial<PrinterLog>): Promise<void>;
     deleteShiftLog(id: string): Promise<void>;
     getShiftLogs(filters?: { printerId?: string, date?: string, shift?: string }): Promise<PrinterLog[]>;
-
     // Users
     getUsers(): Promise<User[]>;
     updateUser(id: string, data: Partial<User>): Promise<void>;
     deleteUser(id: string): Promise<void>;
     createUser(user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }): Promise<void>;
+
+    // Ink Management & Settings
+    getInkLogs(): Promise<InkLog[]>;
+    addInkLog(log: Omit<InkLog, 'id' | 'createdAt'>): Promise<void>;
+    getSettings(): Promise<AppSetting[]>;
+    updateSetting(key: string, value: any): Promise<void>;
 
     // Feedback
     saveFeedback(feedback: Omit<Feedback, 'id' | 'createdAt'>): Promise<void>;

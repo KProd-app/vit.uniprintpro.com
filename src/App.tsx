@@ -18,6 +18,7 @@ import { MobileLiveDashboard } from './components/MobileLiveDashboard';
 import { DesktopLiveDashboard } from './components/DesktopLiveDashboard';
 import { MorningBoard } from './components/MorningBoard';
 import { UserTVPanel } from './components/UserTVPanel';
+import { InkRefillTool } from './components/InkRefillTool';
 import { getVilniusShiftBoundaries } from './lib/utils';
 
 // Inner component to use Auth and Data contexts
@@ -272,6 +273,15 @@ const AppContent: React.FC = () => {
           currentUser={user}
           onLogout={handleLogout}
           onGoToAdmin={() => setView('ADMIN')}
+          onOpenInkTool={() => setView('INK_REFILL')}
+        />
+      )}
+
+      {currentView === 'INK_REFILL' && user && (
+        <InkRefillTool
+          printers={printers}
+          onClose={() => setView('DASHBOARD')}
+          addToast={addToast}
         />
       )}
 

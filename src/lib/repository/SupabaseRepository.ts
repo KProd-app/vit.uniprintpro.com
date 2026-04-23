@@ -1,5 +1,5 @@
 import { StorageRepository } from './StorageRepository';
-import { PrinterData, PrinterConfig, PrinterStatus, PrinterState, ChecklistTemplate, PrinterLog, User, UserRole, Feedback } from '../../types';
+import { PrinterData, PrinterConfig, PrinterStatus, PrinterState, ChecklistTemplate, PrinterLog, User, UserRole, Feedback, InkLog, AppSetting } from '../../types';
 import { supabase } from '../supabase';
 
 export class SupabaseRepository implements StorageRepository {
@@ -99,6 +99,7 @@ export class SupabaseRepository implements StorageRepository {
                 endShiftChecklistId: row.config?.end_shift_checklist_id || row.config?.endShiftChecklistId || undefined,
                 qrCode: row.config?.qr_code || row.config?.qrCode || undefined,
                 requireDateOnNozzle: row.config?.require_date_on_nozzle || false,
+                inkInventory: row.config?.ink_inventory ?? row.config?.inkInventory ?? 0,
                 ...state     // 3. DB state overrides defaults
             };
         });
@@ -133,7 +134,7 @@ export class SupabaseRepository implements StorageRepository {
         const configUpdates: any = { ...current.config };
         const stateUpdates: any = { ...current.state };
 
-        const configKeys = ['isMimaki', 'assignedMimakiUnits', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'endShiftChecklistId', 'hasNozzleCheck', 'qrCode', 'requireDateOnNozzle'];
+        const configKeys = ['isMimaki', 'assignedMimakiUnits', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'endShiftChecklistId', 'hasNozzleCheck', 'qrCode', 'requireDateOnNozzle', 'inkInventory'];
         const topLevelKeys = ['name', 'status', 'type'];
 
         Object.entries(updates).forEach(([key, value]) => {
@@ -155,6 +156,8 @@ export class SupabaseRepository implements StorageRepository {
                     configUpdates['qr_code'] = value;
                 } else if (key === 'assignedMimakiUnits') {
                     configUpdates['assigned_mimaki_units'] = value;
+                } else if (key === 'inkInventory') {
+                    configUpdates['ink_inventory'] = value;
                 } else {
                     configUpdates[key] = value;
                 }
@@ -252,10 +255,13 @@ export class SupabaseRepository implements StorageRepository {
                 const config: any = {};
                 const state: any = {};
 
-                const configKeys = ['isMimaki', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'requireDateOnNozzle'];
+                const configKeys = ['isMimaki', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'requireDateOnNozzle', 'inkInventory'];
                 Object.entries(p).forEach(([key, value]) => {
                     if (['id', 'name', 'status', 'type'].includes(key)) return;
-                    if (configKeys.includes(key)) config[key] = value;
+                    if (configKeys.includes(key)) {
+                        if (key === 'inkInventory') config['ink_inventory'] = value;
+                        else config[key] = value;
+                    }
                     else state[key] = value;
                 });
 
@@ -343,6 +349,25 @@ export class SupabaseRepository implements StorageRepository {
 
         const { data: { publicUrl } } = supabase.storage
             .from('nozzle-checks')
+            .getPublicUrl(data.path);
+
+        return publicUrl;
+    }
+
+    async uploadInkPhoto(file: Blob, path: string): Promise<string> {
+        const { data, error } = await supabase.storage
+            .from('ink-photos')
+            .upload(path, file, {
+                upsert: true
+            });
+
+        if (error) {
+            console.error('Error uploading ink photo:', error);
+            throw error;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+            .from('ink-photos')
             .getPublicUrl(data.path);
 
         return publicUrl;
@@ -567,6 +592,75 @@ export class SupabaseRepository implements StorageRepository {
         }
 
         console.log('User created successfully:', authData.user?.id);
+    }
+
+    // Ink Management & Settings
+    async getSettings(): Promise<AppSetting[]> {
+        const { data, error } = await supabase
+            .from('app_settings')
+            .select('*');
+
+        if (error) {
+            console.error('Error fetching settings:', error);
+            return [];
+        }
+
+        return data.map((row: any) => ({
+            key: row.key,
+            value: row.value
+        }));
+    }
+
+    async updateSetting(key: string, value: any): Promise<void> {
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+
+        if (error) {
+            console.error('Error updating setting:', error);
+            throw error;
+        }
+    }
+
+    async getInkLogs(): Promise<InkLog[]> {
+        const { data, error } = await supabase
+            .from('ink_logs')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching ink logs:', error);
+            return [];
+        }
+
+        return data.map((row: any) => ({
+            id: row.id,
+            printerId: row.printer_id,
+            printerName: row.printer_name,
+            operatorName: row.operator_name,
+            action: row.action,
+            quantityChange: row.quantity_change,
+            photoUrl: row.photo_url,
+            createdAt: row.created_at
+        }));
+    }
+
+    async addInkLog(log: Omit<InkLog, 'id' | 'createdAt'>): Promise<void> {
+        const { error } = await supabase
+            .from('ink_logs')
+            .insert({
+                printer_id: log.printerId,
+                printer_name: log.printerName,
+                operator_name: log.operatorName,
+                action: log.action,
+                quantity_change: log.quantityChange,
+                photo_url: log.photoUrl
+            });
+
+        if (error) {
+            console.error('Error adding ink log:', error);
+            throw error;
+        }
     }
 
     async saveFeedback(feedback: Omit<Feedback, 'id' | 'createdAt'>): Promise<void> {

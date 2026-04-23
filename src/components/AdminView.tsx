@@ -9,10 +9,11 @@ import { InstructionGenerator } from './InstructionGenerator';
 import { AdminTVPanel } from './AdminTVPanel';
 import { TransfersJournal } from './TransfersJournal';
 import { Button } from './ui/button';
-import { Plus, Settings, Printer, Users, Trash2, Edit, RotateCcw, MessageSquare, ExternalLink, X, QrCode, Monitor, Truck, BookOpen, Check } from 'lucide-react';
+import { Plus, Settings, Printer, Users, Trash2, Edit, RotateCcw, MessageSquare, ExternalLink, X, QrCode, Monitor, Truck, BookOpen, Check, Droplet } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { AdminInstructions } from './AdminInstructions';
 import { AdminJournalTab } from './AdminJournalTab';
+import { AdminInkTab } from './AdminInkTab';
 
 // ... (existing code)
 
@@ -46,7 +47,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
   const [editingTemplate, setEditingTemplate] = useState<ChecklistTemplate | PrinterData | undefined | 'NEW' | 'NEW_USER' | 'NEW_STATION'>(undefined);
   const [selectedInstructionPrinters, setSelectedInstructionPrinters] = useState<PrinterData[]>([]);
 
-  const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS' | 'MESSAGES' | 'TV' | 'TRANSFERS_JOURNAL' | 'INSTRUCTIONS'>('PRINTERS');
+  const [viewMode, setViewMode] = useState<'PRINTERS' | 'CHECKLISTS' | 'JOURNAL' | 'USERS' | 'MESSAGES' | 'TV' | 'TRANSFERS_JOURNAL' | 'INSTRUCTIONS' | 'INK'>('PRINTERS');
   const [users, setUsers] = useState<User[]>([]);
   // ...
   const [newUserRole, setNewUserRole] = useState<'Admin' | 'Worker'>('Worker');
@@ -169,7 +170,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                     viewMode === 'TV' ? 'TV Ekrano Duomenų Istorija' :
                       viewMode === 'TRANSFERS_JOURNAL' ? 'Visi Registruoti Pervežimai' :
                         viewMode === 'INSTRUCTIONS' ? 'Sistemos Naudojimo Instrukcija' :
-                          'Vartotojų Valdymas'}
+                          viewMode === 'INK' ? 'Dažų Inventoriaus Valdymas' :
+                            'Vartotojų Valdymas'}
           </p>
         </div>
 
@@ -204,6 +206,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
               className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'INSTRUCTIONS' ? 'bg-amber-500 text-white shadow-md' : 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'}`}
             >
               <BookOpen className="w-4 h-4" /> Instrukcija
+            </button>
+            <button
+              onClick={() => setViewMode('INK')}
+              className={`px-3 lg:px-4 py-2 lg:py-2.5 rounded-xl font-bold uppercase text-[10px] lg:text-xs flex items-center gap-1.5 transition-all whitespace-nowrap ${viewMode === 'INK' ? 'bg-emerald-500 text-white shadow-md' : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'}`}
+            >
+              <Droplet className="w-4 h-4" /> Dažai
             </button>
 
             {/* Super User Tabs */}
@@ -242,7 +250,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
         </div>
       </header>
 
-      {viewMode === 'MESSAGES' && isUniprintProUser ? (
+      {viewMode === 'INK' ? (
+        <AdminInkTab printers={printers} addToast={addToast} />
+      ) : viewMode === 'MESSAGES' && isUniprintProUser ? (
         <div className="bg-white rounded-[40px] shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-8 border-b border-slate-100">
             <h3 className="text-xl font-black text-slate-800 uppercase">Vartotojų Atsiliepimai ir Klaidos</h3>

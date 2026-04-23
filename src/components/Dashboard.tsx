@@ -6,6 +6,7 @@ import { StatusBadge } from './ui/badge';
 import { LogOut, Settings, RotateCcw, FileText, Play, CheckCircle, Square, QrCode, List } from 'lucide-react';
 import { Timer } from './Timer';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import { usePrinters } from '../contexts/DataContext';
 
 interface DashboardProps {
   printers: PrinterData[];
@@ -16,11 +17,15 @@ interface DashboardProps {
   currentUser: User;
   onLogout: () => void;
   onGoToAdmin: () => void;
+  onOpenInkTool: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
-  printers, onStart, onFinishWork, onView, onReset, currentUser, onLogout, onGoToAdmin
+  printers, onStart, onFinishWork, onView, onReset, currentUser, onLogout, onGoToAdmin, onOpenInkTool
 }) => {
+  const { getSettings } = usePrinters();
+  const [inkQrCode, setInkQrCode] = useState<string>('INK_TOOL_123');
+
   // Find assigned printer(s) for current user
   const myPrinters = printers.filter(p =>
     p.operatorName === currentUser.name &&
@@ -42,6 +47,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   }, [showScanner]);
 
+  useEffect(() => {
+    getSettings().then(settings => {
+      const inkSetting = settings.find(s => s.key === 'inkToolQrCode');
+      if (inkSetting && typeof inkSetting.value === 'string') {
+        setInkQrCode(inkSetting.value);
+      }
+    });
+  }, [getSettings]);
+
   const handleScan = (detectedCodes: any) => {
     if (detectedCodes && detectedCodes.length > 0) {
       const scannedValue = detectedCodes[0].rawValue;
@@ -61,6 +75,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
 
       const normalizedParam = parsedStationValue.toLowerCase().trim();
+
+      // Patikriname ar skenuotas Dažų įrankio kodas
+      if (
+        scannedValue === inkQrCode || 
+        parsedStationValue === inkQrCode || 
+        normalizedParam === inkQrCode.toLowerCase()
+      ) {
+         onOpenInkTool();
+         setShowScanner(false);
+         return;
+      }
+
       // Find printer by ID OR mapping fields
       const printer = printers.find(p => 
         p.id === parsedStationValue || 
