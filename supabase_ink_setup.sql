@@ -62,3 +62,8 @@ CREATE POLICY "Authenticated users can update their ink photos" ON storage.objec
 
 CREATE POLICY "Authenticated users can delete ink photos" ON storage.objects
     FOR DELETE USING (bucket_id = 'ink-photos' AND auth.role() = 'authenticated');
+
+-- 4. Update Ink Logs for Multi-Ink Support
+ALTER TABLE public.ink_logs
+    ADD COLUMN IF NOT EXISTS ink_id TEXT,
+    ADD COLUMN IF NOT EXISTS ink_name TEXT;

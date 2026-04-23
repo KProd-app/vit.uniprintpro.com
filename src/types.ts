@@ -44,6 +44,13 @@ export interface NozzleFile {
   timestamp: string;
 }
 
+export interface PrinterInk {
+  id: string; // Unikalus ID dažui (pvz., generuojamas UUID ar timestamp)
+  name: string; // Pavadinimas, pvz., "Cyan", "Magenta"
+  qrCode: string; // Barkodas/QR kodas, kuris skenuojamas imant naują butelį
+  inventory: number; // Likutis buteliais
+}
+
 // Static configuration that doesn't change during operation
 export interface PrinterConfig {
   id: string;
@@ -57,7 +64,8 @@ export interface PrinterConfig {
   endShiftChecklistId?: string; // Link to specific END shift checklist
   qrCode?: string; // Optional custom QR code value (defaults to ID if not set)
   requireDateOnNozzle?: boolean; // Controls if operator must write date on nozzle check
-  inkInventory?: number; // Dažų likutis (butelių skaičius)
+  inkInventory?: number; // Senas likutis (paliekamas suderinamumui, jei kur nors dar naudojama)
+  inks?: PrinterInk[]; // Keli skirtingi dažai šiam spausdintuvui
 }
 
 // Dynamic state that changes during the shift
@@ -150,6 +158,8 @@ export interface InkLog {
   id: string;
   printerId: string;
   printerName: string;
+  inkId?: string;
+  inkName?: string;
   operatorName: string;
   action: 'STARTED_BOTTLE' | 'NEW_BOTTLE' | 'ADDED_INVENTORY';
   quantityChange: number;

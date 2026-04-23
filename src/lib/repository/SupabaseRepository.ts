@@ -134,7 +134,7 @@ export class SupabaseRepository implements StorageRepository {
         const configUpdates: any = { ...current.config };
         const stateUpdates: any = { ...current.state };
 
-        const configKeys = ['isMimaki', 'assignedMimakiUnits', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'endShiftChecklistId', 'hasNozzleCheck', 'qrCode', 'requireDateOnNozzle', 'inkInventory'];
+        const configKeys = ['isMimaki', 'assignedMimakiUnits', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'endShiftChecklistId', 'hasNozzleCheck', 'qrCode', 'requireDateOnNozzle', 'inkInventory', 'inks'];
         const topLevelKeys = ['name', 'status', 'type'];
 
         Object.entries(updates).forEach(([key, value]) => {
@@ -255,7 +255,7 @@ export class SupabaseRepository implements StorageRepository {
                 const config: any = {};
                 const state: any = {};
 
-                const configKeys = ['isMimaki', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'requireDateOnNozzle', 'inkInventory'];
+                const configKeys = ['isMimaki', 'hasWhiteInk', 'hasVarnish', 'checklistTemplateId', 'requireDateOnNozzle', 'inkInventory', 'inks'];
                 Object.entries(p).forEach(([key, value]) => {
                     if (['id', 'name', 'status', 'type'].includes(key)) return;
                     if (configKeys.includes(key)) {
@@ -637,6 +637,8 @@ export class SupabaseRepository implements StorageRepository {
             id: row.id,
             printerId: row.printer_id,
             printerName: row.printer_name,
+            inkId: row.ink_id,
+            inkName: row.ink_name,
             operatorName: row.operator_name,
             action: row.action,
             quantityChange: row.quantity_change,
@@ -651,6 +653,8 @@ export class SupabaseRepository implements StorageRepository {
             .insert({
                 printer_id: log.printerId,
                 printer_name: log.printerName,
+                ink_id: log.inkId,
+                ink_name: log.inkName,
                 operator_name: log.operatorName,
                 action: log.action,
                 quantity_change: log.quantityChange,

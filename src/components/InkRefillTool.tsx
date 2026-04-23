@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { PrinterData } from '../types';
+import { PrinterData, PrinterInk } from '../types';
 import { usePrinters } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Button } from './ui/button';
-import { ArrowLeft, Camera, Droplet, Plus, Upload, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Camera, Droplet, Plus, CheckCircle, QrCode as QrIcon, X, Check } from 'lucide-react';
+import { Scanner } from '@yudiel/react-qr-scanner';
 
 interface InkRefillToolProps {
   printers: PrinterData[];
@@ -12,84 +13,133 @@ interface InkRefillToolProps {
   addToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
+interface InkActionState {
+  action: 'STARTED_BOTTLE' | 'NEW_BOTTLE' | 'NONE';
+  photo?: File;
+  preview?: string;
+  qrVerified?: boolean;
+}
+
 export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose, addToast }) => {
   const { user } = useAuth();
   const { updatePrinter, addInkLog, uploadInkPhoto } = usePrinters();
   
   const [selectedPrinter, setSelectedPrinter] = useState<PrinterData | null>(null);
-  const [actionType, setActionType] = useState<'STARTED_BOTTLE' | 'NEW_BOTTLE' | null>(null);
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [inkStates, setInkStates] = useState<Record<string, InkActionState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Scanner Modal State
+  const [scanningInk, setScanningInk] = useState<PrinterInk | null>(null);
+
+  // Hidden file inputs refs
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleSelectPrinter = (printer: PrinterData) => {
     setSelectedPrinter(printer);
-    setActionType(null);
-    setPhoto(null);
-    setPhotoPreview(null);
+    const initialStates: Record<string, InkActionState> = {};
+    (printer.inks || []).forEach(ink => {
+      initialStates[ink.id] = { action: 'NONE' };
+    });
+    setInkStates(initialStates);
   };
 
-  const handleActionSelect = (action: 'STARTED_BOTTLE' | 'NEW_BOTTLE') => {
-    if (action === 'NEW_BOTTLE' && selectedPrinter && (selectedPrinter.inkInventory || 0) <= 0) {
-      addToast("Klaida! Inventoriuje nėra naujų butelių (0). Praneškite pamainos meistrui.", "error");
-      // Let them still take a photo? User said: "jei inventorius yra 0 turi išmesti klaidą kad reikia pranešti teamlead, o admin puslapyje klaida dingsta kai užkeliamas kiekis dazu."
-      // So if inventory is 0, we allow logging but maybe leave inventory at 0 or -1? If -1, admin sees it.
-      // Let's set it to -1 so admin sees the negative balance and fixes it. 
-      // But user said: "turi mažėti -1 bet jei inventorius yra 0 turi išmesti klaidą kad reikia pranešti teamlead". 
-      // I will allow them to continue but warn them, or block? "turi išmesti klaidą kad reikia pranešti teamlead".
-      // I will block it. Let's see. If blocked, they can't log the new bottle. Or I show the error and still allow them to log so the physical bottle is accounted for. Let's allow and show error toast.
+  const handleActionSelect = (ink: PrinterInk, action: 'STARTED_BOTTLE' | 'NEW_BOTTLE' | 'NONE') => {
+    const currentState = inkStates[ink.id];
+    
+    // If selecting new bottle, reset verified state
+    if (action === 'NEW_BOTTLE') {
+       if (ink.inventory <= 0) {
+           addToast(`Klaida! Dažų "${ink.name}" likutis yra 0. Pirmiausia adminas turi pridėti inventorių.`, 'error');
+           return;
+       }
+       setInkStates(prev => ({ ...prev, [ink.id]: { ...prev[ink.id], action, qrVerified: false }}));
+       setScanningInk(ink);
+    } else {
+       setInkStates(prev => ({ ...prev, [ink.id]: { ...prev[ink.id], action, qrVerified: false }}));
     }
-    setActionType(action);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleScanSuccess = (text: string) => {
+    if (!scanningInk) return;
+    
+    if (text === scanningInk.qrCode) {
+      addToast(`Barkodas atpažintas: ${scanningInk.name}`, 'success');
+      setInkStates(prev => ({ ...prev, [scanningInk.id]: { ...prev[scanningInk.id], qrVerified: true }}));
+      setScanningInk(null);
+    } else {
+      addToast(`Neteisingas barkodas! Laukiamas: ${scanningInk.qrCode}, Gautas: ${text}`, 'error');
+    }
+  };
+
+  const handleFileChange = (inkId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      setPhoto(file);
-      setPhotoPreview(URL.createObjectURL(file));
+      setInkStates(prev => ({ 
+          ...prev, 
+          [inkId]: { ...prev[inkId], photo: file, preview: URL.createObjectURL(file) }
+      }));
     }
   };
 
   const handleSubmit = async () => {
-    if (!selectedPrinter || !actionType || !photo || !user) {
-      addToast("Prašome užpildyti visus laukus ir įkelti nuotrauką.", "error");
+    if (!selectedPrinter || !user) return;
+
+    // Validate
+    const activeInks = selectedPrinter.inks?.filter(i => inkStates[i.id].action !== 'NONE') || [];
+    if (activeInks.length === 0) {
+      addToast("Pasirinkite bent vieną dažą pildymui.", "error");
       return;
     }
 
-    const currentInventory = selectedPrinter.inkInventory || 0;
-    if (actionType === 'NEW_BOTTLE' && currentInventory <= 0) {
-      addToast("DĖMESIO: Naudojamas neregistruotas butelis! Praneškite meistrui.", "error");
+    for (const ink of activeInks) {
+      const state = inkStates[ink.id];
+      if (state.action === 'NEW_BOTTLE' && !state.qrVerified) {
+         addToast(`Būtina nuskenuoti "${ink.name}" dažų barkodą!`, "error");
+         return;
+      }
+      if (!state.photo) {
+         addToast(`Būtina nufotografuoti "${ink.name}" dažų butelį!`, "error");
+         return;
+      }
     }
 
     setIsSubmitting(true);
     try {
-      // 1. Upload photo
-      const path = `${selectedPrinter.id}/${new Date().getTime()}_${photo.name}`;
-      const photoUrl = await uploadInkPhoto(photo, path);
+      let currentInks = [...(selectedPrinter.inks || [])];
 
-      // 2. Update inventory if NEW_BOTTLE
-      const quantityChange = actionType === 'NEW_BOTTLE' ? -1 : 0;
-      if (quantityChange !== 0) {
-        await updatePrinter(selectedPrinter.id, {
-          inkInventory: currentInventory + quantityChange
+      for (const ink of activeInks) {
+        const state = inkStates[ink.id];
+        
+        // 1. Upload photo
+        const path = `${selectedPrinter.id}/${ink.id}_${new Date().getTime()}_${state.photo!.name}`;
+        const photoUrl = await uploadInkPhoto(state.photo!, path);
+
+        // 2. Adjust inventory
+        const quantityChange = state.action === 'NEW_BOTTLE' ? -1 : 0;
+        if (quantityChange !== 0) {
+           currentInks = currentInks.map(i => i.id === ink.id ? { ...i, inventory: i.inventory + quantityChange } : i);
+        }
+
+        // 3. Create log
+        await addInkLog({
+          printerId: selectedPrinter.id,
+          printerName: selectedPrinter.name,
+          inkId: ink.id,
+          inkName: ink.name,
+          operatorName: user.name,
+          action: state.action as 'STARTED_BOTTLE' | 'NEW_BOTTLE',
+          quantityChange,
+          photoUrl
         });
       }
 
-      // 3. Create log
-      await addInkLog({
-        printerId: selectedPrinter.id,
-        printerName: selectedPrinter.name,
-        operatorName: user.name,
-        action: actionType,
-        quantityChange,
-        photoUrl
-      });
+      // Update printer config once with all inventory changes
+      await updatePrinter(selectedPrinter.id, { inks: currentInks });
 
-      addToast("Dažų pildymas sėkmingai užregistruotas!", "success");
+      addToast("Visi dažų pildymai sėkmingai užregistruoti!", "success");
       onClose();
     } catch (error) {
-      console.error("Error submitting ink refill:", error);
+      console.error("Error submitting ink refill batch:", error);
       addToast("Klaida išsaugant duomenis. Bandykite dar kartą.", "error");
     } finally {
       setIsSubmitting(false);
@@ -97,13 +147,34 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-10 max-w-[800px] mx-auto animate-in fade-in duration-300">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-10 max-w-[800px] mx-auto animate-in fade-in duration-300 relative">
+      
+      {/* Scanner Modal */}
+      {scanningInk && (
+        <div className="fixed inset-0 bg-black/90 z-[200] flex flex-col">
+          <div className="flex justify-between items-center p-4 bg-black/50 text-white">
+            <h3 className="font-bold text-lg">Skenuoti: {scanningInk.name}</h3>
+            <Button variant="ghost" size="icon" onClick={() => setScanningInk(null)} className="text-white hover:bg-white/20">
+               <X className="w-6 h-6" />
+            </Button>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center p-4">
+             <div className="w-full max-w-sm aspect-square bg-black rounded-2xl overflow-hidden border-2 border-mimaki-blue shadow-[0_0_30px_rgba(30,136,229,0.3)]">
+                <Scanner onScan={(result) => handleScanSuccess(result[0].rawValue)} />
+             </div>
+             <p className="text-white/60 mt-8 text-center text-sm font-medium">
+               Paimkite naują <strong className="text-white">{scanningInk.name}</strong> butelį ir nukreipkite kamerą į jo barkodą. Laukiamas kodas: {scanningInk.qrCode}
+             </p>
+          </div>
+        </div>
+      )}
+
       <header className="mb-8 flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={selectedPrinter ? () => handleSelectPrinter(null as any) : onClose} className="rounded-full bg-white shadow-sm">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </Button>
         <div>
-          <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tighter">Dažų Pildymas</h1>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-800 uppercase tracking-tighter">Dažų Pildymas</h1>
           <p className="text-slate-500 font-medium">{selectedPrinter ? selectedPrinter.name : 'Pasirinkite spausdintuvą'}</p>
         </div>
       </header>
@@ -115,96 +186,139 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-lg text-slate-800">{p.name}</h3>
-                  <p className="text-sm text-slate-500">Likutis: <span className={(p.inkInventory || 0) <= 0 ? 'text-red-500 font-bold' : 'text-emerald-500 font-bold'}>{p.inkInventory || 0} vnt.</span></p>
+                  <p className="text-sm text-slate-500 font-medium mt-1">
+                     Dažų rūšys: <span className="font-bold text-slate-700">{p.inks?.length || 0}</span>
+                  </p>
                 </div>
-                <Droplet className={`w-8 h-8 ${(p.inkInventory || 0) > 0 ? 'text-mimaki-blue' : 'text-slate-300'}`} />
+                <Droplet className={`w-8 h-8 ${(p.inks?.length || 0) > 0 ? 'text-mimaki-blue' : 'text-slate-300'}`} />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="uppercase tracking-widest text-slate-500 text-sm">Veiksmas</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
-              <Button
-                variant="outline"
-                className={`h-24 flex flex-col items-center justify-center gap-2 border-2 ${actionType === 'STARTED_BOTTLE' ? 'border-mimaki-blue bg-blue-50 text-mimaki-blue' : 'border-slate-200 text-slate-600'}`}
-                onClick={() => handleActionSelect('STARTED_BOTTLE')}
-              >
-                <Droplet className="w-6 h-6" />
-                <span>Pradėtas butelis</span>
-              </Button>
-              <Button
-                variant="outline"
-                className={`h-24 flex flex-col items-center justify-center gap-2 border-2 ${actionType === 'NEW_BOTTLE' ? 'border-mimaki-blue bg-blue-50 text-mimaki-blue' : 'border-slate-200 text-slate-600'}`}
-                onClick={() => handleActionSelect('NEW_BOTTLE')}
-              >
-                <Plus className="w-6 h-6" />
-                <span>Imti naują butelį</span>
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="space-y-6 pb-24">
+           {(!selectedPrinter.inks || selectedPrinter.inks.length === 0) ? (
+              <div className="bg-white p-8 rounded-2xl text-center shadow-sm border border-slate-100">
+                <Droplet className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-slate-700">Dažų nėra</h3>
+                <p className="text-slate-500">Šiam spausdintuvui nėra priskirtų dažų. Administratorius turi juos pridėti per "DAŽAI" skiltį.</p>
+              </div>
+           ) : (
+              selectedPrinter.inks.map(ink => {
+                 const state = inkStates[ink.id] || { action: 'NONE' };
+                 const isTakingAction = state.action !== 'NONE';
 
-          {actionType && (
-            <Card className="animate-in fade-in slide-in-from-bottom-4">
-              <CardHeader>
-                <CardTitle className="uppercase tracking-widest text-slate-500 text-sm">Nuotrauka</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center justify-center">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    className="hidden"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                  />
-                  {photoPreview ? (
-                    <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-lg group">
-                      <img src={photoPreview} alt="Ink bottle" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Button onClick={() => fileInputRef.current?.click()} variant="secondary">
-                          <Camera className="w-4 h-4 mr-2" /> Perfokuoti
-                        </Button>
+                 return (
+                    <Card key={ink.id} className={`border-2 transition-all ${isTakingAction ? 'border-mimaki-blue shadow-md' : 'border-slate-200'}`}>
+                       <CardHeader className={`pb-4 border-b ${isTakingAction ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
+                          <div className="flex justify-between items-center">
+                             <div>
+                                <CardTitle className="text-xl font-black text-slate-800 uppercase tracking-tight">{ink.name}</CardTitle>
+                                <div className="text-sm text-slate-500 font-medium mt-1">Likutis: <strong className={ink.inventory <= 0 ? 'text-red-500' : 'text-emerald-600'}>{ink.inventory} vnt.</strong></div>
+                             </div>
+                             {state.qrVerified && (
+                                <div className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full flex items-center text-xs font-bold uppercase">
+                                   <Check className="w-3 h-3 mr-1" /> QR Patvirtinta
+                                </div>
+                             )}
+                          </div>
+                       </CardHeader>
+                       <CardContent className="pt-6 space-y-6">
+                          {/* Action Selection */}
+                          <div className="grid grid-cols-3 gap-2 md:gap-4">
+                             <Button
+                                variant="outline"
+                                className={`h-auto py-4 flex flex-col items-center justify-center gap-2 border-2 ${state.action === 'NONE' ? 'border-slate-400 bg-slate-100 text-slate-700' : 'border-slate-100 text-slate-400'}`}
+                                onClick={() => handleActionSelect(ink, 'NONE')}
+                             >
+                                <span className="font-bold text-xs uppercase tracking-wider">Nepildoma</span>
+                             </Button>
+                             <Button
+                                variant="outline"
+                                className={`h-auto py-4 flex flex-col items-center justify-center gap-2 border-2 ${state.action === 'STARTED_BOTTLE' ? 'border-mimaki-blue bg-blue-50 text-mimaki-blue' : 'border-slate-100 text-slate-400'}`}
+                                onClick={() => handleActionSelect(ink, 'STARTED_BOTTLE')}
+                             >
+                                <Droplet className="w-5 h-5 mb-1" />
+                                <span className="font-bold text-xs uppercase tracking-wider text-center">Pradėtas</span>
+                             </Button>
+                             <Button
+                                variant="outline"
+                                className={`h-auto py-4 flex flex-col items-center justify-center gap-2 border-2 ${state.action === 'NEW_BOTTLE' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-slate-100 text-slate-400'}`}
+                                onClick={() => handleActionSelect(ink, 'NEW_BOTTLE')}
+                             >
+                                <Plus className="w-5 h-5 mb-1" />
+                                <span className="font-bold text-xs uppercase tracking-wider text-center">Naujas</span>
+                             </Button>
+                          </div>
+
+                          {/* Action Verification & Photo */}
+                          {isTakingAction && (
+                             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 animate-in fade-in slide-in-from-top-2">
+                                {state.action === 'NEW_BOTTLE' && !state.qrVerified ? (
+                                   <Button onClick={() => setScanningInk(ink)} className="w-full h-16 bg-slate-800 hover:bg-slate-700 rounded-xl font-bold uppercase tracking-widest text-sm flex gap-3 shadow-lg mb-4 animate-pulse">
+                                      <QrIcon className="w-5 h-5" /> Nuskenuokite Barkodą
+                                   </Button>
+                                ) : (
+                                   <div className="flex flex-col items-center justify-center">
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        className="hidden"
+                                        ref={(el) => fileInputRefs.current[ink.id] = el}
+                                        onChange={(e) => handleFileChange(ink.id, e)}
+                                      />
+                                      {state.preview ? (
+                                        <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-md group">
+                                          <img src={state.preview} alt="Ink bottle" className="w-full h-full object-cover" />
+                                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <Button onClick={() => fileInputRefs.current[ink.id]?.click()} variant="secondary">
+                                              <Camera className="w-4 h-4 mr-2" /> Perfokuoti
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          onClick={() => fileInputRefs.current[ink.id]?.click()}
+                                          className="w-full py-8 border-2 border-dashed border-mimaki-blue/50 bg-blue-50/50 rounded-xl flex flex-col items-center justify-center text-mimaki-blue hover:bg-blue-100 transition-all"
+                                        >
+                                          <Camera className="w-8 h-8 mb-2" />
+                                          <span className="font-bold uppercase text-xs tracking-wider">Nufotografuoti Butelį</span>
+                                        </button>
+                                      )}
+                                   </div>
+                                )}
+                             </div>
+                          )}
+                       </CardContent>
+                    </Card>
+                 )
+              })
+           )}
+
+           {selectedPrinter.inks && selectedPrinter.inks.length > 0 && (
+             <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 flex justify-center z-50">
+               <div className="w-full max-w-[800px]">
+                 <Button 
+                    className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 shadow-xl uppercase tracking-widest" 
+                    disabled={isSubmitting || !selectedPrinter.inks.some(i => inkStates[i.id]?.action !== 'NONE')}
+                    onClick={handleSubmit}
+                 >
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Išsaugoma...
                       </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full aspect-video border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center text-slate-500 hover:text-mimaki-blue hover:border-mimaki-blue hover:bg-blue-50 transition-all"
-                    >
-                      <Camera className="w-12 h-12 mb-4 opacity-50" />
-                      <span className="font-bold">Nufotografuoti dažų butelį</span>
-                      <span className="text-sm font-normal mt-1 opacity-70">Privaloma užfiksuoti etiketę</span>
-                    </button>
-                  )}
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button 
-                  className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600" 
-                  disabled={!photo || isSubmitting}
-                  onClick={handleSubmit}
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Išsaugoma...
-                    </div>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-5 h-5 mr-2" />
-                      Patvirtinti pildymą
-                    </>
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Patvirtinti ir Išsaugoti
+                      </>
+                    )}
+                 </Button>
+               </div>
+             </div>
+           )}
         </div>
       )}
     </div>
