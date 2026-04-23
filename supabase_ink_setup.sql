@@ -51,7 +51,7 @@ VALUES ('ink-photos', 'ink-photos', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Policies for ink-photos bucket (Allow public read, allow authenticated upload)
-CREATE POLICY "Public Access" ON storage.objects
+CREATE POLICY "Public Access for ink-photos" ON storage.objects
     FOR SELECT USING (bucket_id = 'ink-photos');
 
 CREATE POLICY "Authenticated users can upload ink photos" ON storage.objects
