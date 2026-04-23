@@ -337,21 +337,87 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {checklistTemplates.map(template => (
-              <div key={template.id} className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200 hover:shadow-md transition-all cursor-pointer group" onClick={() => setEditingTemplate(template)}>
-                <div className="flex justify-between items-start mb-6">
-                  <h3 className="text-xl font-black text-slate-800">{template.name}</h3>
-                  <Settings className="w-5 h-5 text-slate-300 group-hover:text-mimaki-blue transition-colors" />
+            {Object.entries(
+              checklistTemplates.reduce((acc, template) => {
+                // Extract base name, removing "(Pradžia)" or "(Pabaiga)"
+                const match = template.name.match(/^(.*?)\s*(\(Pradžia\)|\(Pabaiga\))?$/i);
+                const baseName = match && match[1] ? match[1].trim() : template.name.trim();
+
+                if (!acc[baseName]) {
+                  acc[baseName] = { START: [], END: [], UNKNOWN: [] };
+                }
+                if (template.type === 'START') acc[baseName].START.push(template);
+                else if (template.type === 'END') acc[baseName].END.push(template);
+                else acc[baseName].UNKNOWN.push(template);
+
+                return acc;
+              }, {} as Record<string, { START: ChecklistTemplate[], END: ChecklistTemplate[], UNKNOWN: ChecklistTemplate[] }>)
+            ).sort(([a], [b]) => a.localeCompare(b)).map(([baseName, groups]) => (
+              <div key={baseName} className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-200">
+                <div className="flex justify-between items-start mb-6 pb-4 border-b border-slate-100">
+                  <h3 className="text-xl font-black text-slate-800 uppercase">{baseName}</h3>
                 </div>
-                <div className="space-y-2">
-                  {template.items.slice(0, 5).map((item, i) => (
-                    <div key={i} className="flex items-center text-sm text-slate-500">
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-300 mr-2"></div>
-                      <span className="truncate">{item}</span>
+                
+                <div className="space-y-6">
+                  {/* Pradžios Checklistai */}
+                  <div>
+                    <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-3">Pradžios (Start)</h4>
+                    {groups.START.length > 0 ? (
+                      <div className="space-y-2">
+                        {groups.START.map(t => (
+                          <div 
+                            key={t.id} 
+                            onClick={() => setEditingTemplate(t)} 
+                            className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-emerald-200 hover:shadow-md cursor-pointer group flex justify-between items-center transition-all"
+                          >
+                            <span className="text-sm font-bold text-slate-700 truncate mr-2">{t.name}</span>
+                            <Settings className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 shrink-0" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic font-medium px-2">Nėra pradžios šablono</p>
+                    )}
+                  </div>
+
+                  {/* Pabaigos Checklistai */}
+                  <div>
+                    <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-3">Pabaigos (End)</h4>
+                    {groups.END.length > 0 ? (
+                      <div className="space-y-2">
+                        {groups.END.map(t => (
+                          <div 
+                            key={t.id} 
+                            onClick={() => setEditingTemplate(t)} 
+                            className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-rose-200 hover:shadow-md cursor-pointer group flex justify-between items-center transition-all"
+                          >
+                            <span className="text-sm font-bold text-slate-700 truncate mr-2">{t.name}</span>
+                            <Settings className="w-4 h-4 text-slate-300 group-hover:text-rose-500 shrink-0" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 italic font-medium px-2">Nėra pabaigos šablono</p>
+                    )}
+                  </div>
+
+                  {/* Kiti Checklistai */}
+                  {groups.UNKNOWN.length > 0 && (
+                    <div>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Kiti</h4>
+                        <div className="space-y-2">
+                          {groups.UNKNOWN.map(t => (
+                            <div 
+                              key={t.id} 
+                              onClick={() => setEditingTemplate(t)} 
+                              className="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-slate-300 hover:shadow-md cursor-pointer group flex justify-between items-center transition-all"
+                            >
+                              <span className="text-sm font-bold text-slate-700 truncate mr-2">{t.name}</span>
+                              <Settings className="w-4 h-4 text-slate-300 group-hover:text-slate-500 shrink-0" />
+                            </div>
+                          ))}
+                        </div>
                     </div>
-                  ))}
-                  {template.items.length > 5 && (
-                    <p className="text-xs font-bold text-slate-400 uppercase mt-2 pt-2 border-t border-slate-50">+ dar {template.items.length - 5}</p>
                   )}
                 </div>
               </div>
@@ -359,7 +425,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
 
             {checklistTemplates.length === 0 && (
               <div className="col-span-full py-20 text-center border-4 border-dashed border-slate-200 rounded-[40px]">
-                <p className="text-slate-400 font-bold uppercase">Nėra sukurtų šablonų</p>
+                <p className="text-slate-400 font-bold uppercase tracking-widest">Nėra sukurtų šablonų</p>
               </div>
             )}
           </div>
