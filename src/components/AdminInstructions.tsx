@@ -36,7 +36,7 @@ export const AdminInstructions: React.FC = () => {
                                 <strong className="text-slate-800">Greitieji veiksmai (užvedus pelytę kortelės kampe):</strong>
                                 <br />- 🔄 <strong>Nunulinti:</strong> Jei darbuotojas per klaidą pradėjo pamainą, atšaukite visus veiksmus.
                                 <br />- 📷 <strong>QR Kodas:</strong> Atsisiųsite to įrenginio instrukcijas atspausdinimui (PDF formatu).
-                                <br />- ✏️ <strong>Redaguoti:</strong> Pakeisite pačio įrenginio pavadinimą ir tipą (spauda/klijų robotas/pakavimas/kita).
+                                <br />- ✏️ <strong>Redaguoti:</strong> Pakeisite pačio įrenginio pavadinimą ir tipą (spauda/pakavimas/kita).
                             </li>
                         </ul>
                     </div>

@@ -562,7 +562,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                       <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Operatorius</p>
                       <p className="font-bold text-slate-800 truncate text-sm">{printer.operatorName || '—'}</p>
                     </div>
-                    {printer.name.toLowerCase().includes('pakavimas') || printer.name.toLowerCase().includes('klijų robot') ? (
+                    {printer.name.toLowerCase().includes('pakavimas') ? (
                       <>
                         <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
                           <p className="text-[10px] font-black text-amber-500 uppercase mb-1">Roboto Brokas</p>
@@ -610,7 +610,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                       </>
                     )}
                     <div className="bg-slate-50 p-4 rounded-2xl flex flex-col justify-center border border-slate-100">
-                      {printer.name.toLowerCase().includes('pakavimas') || printer.name.toLowerCase().includes('klijų robot') ? null : (
+                      {printer.name.toLowerCase().includes('pakavimas') ? null : (
                         <div className="mb-2">
                           <p className="text-[9px] font-black text-orange-500 uppercase mb-0.5">Atsilikimas</p>
                           <input

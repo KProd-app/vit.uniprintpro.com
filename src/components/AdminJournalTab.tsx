@@ -56,7 +56,7 @@ export const AdminJournalTab: React.FC<AdminJournalTabProps> = ({ isSuperUser, a
     let recordsWithAlerts = 0;
     
     filteredLogs.forEach(log => {
-      const isPackaging = log.printerName.toLowerCase().includes('pakavimas') || log.printerName.toLowerCase().includes('klijų robot');
+      const isPackaging = log.printerName.toLowerCase().includes('pakavimas');
       
       if (isPackaging) {
         totalRobot += Number(log.robotDefects || 0);
@@ -189,7 +189,7 @@ export const AdminJournalTab: React.FC<AdminJournalTabProps> = ({ isSuperUser, a
           ) : (
             <div className="space-y-4">
               {filteredLogs.map(log => {
-                const isPackaging = log.printerName.toLowerCase().includes('pakavimas') || log.printerName.toLowerCase().includes('klijų robot');
+                const isPackaging = log.printerName.toLowerCase().includes('pakavimas');
                 const prod = Number(log.productionAmount || 0);
                 const def = Number(log.defectsAmount || 0);
                 const isHighDefect = !isPackaging && prod > 0 && (def / prod) > 0.05;
