@@ -68,9 +68,7 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
   // Helper functions
   const updateVIT = (updates: Partial<VITData>) => {
     const newVit = { ...localPrinter.vit, ...updates };
-    const newData = { vit: newVit };
-    setLocalPrinter(prev => ({ ...prev, ...newData }));
-    onSave(newData);
+    setLocalPrinter(prev => ({ ...prev, vit: newVit }));
   };
 
   const areNozzlesReady = () => {
@@ -148,9 +146,7 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
   const toggleMimakiUnit = (unit: number) => {
     const current = localPrinter.selectedMimakiUnits || [];
     const next = current.includes(unit) ? current.filter(u => u !== unit) : [...current, unit].sort();
-    const newData = { selectedMimakiUnits: next };
-    setLocalPrinter(prev => ({ ...prev, ...newData }));
-    onSave(newData);
+    setLocalPrinter(prev => ({ ...prev, selectedMimakiUnits: next }));
   };
 
   const canFinish = canStartWork(localPrinter, checklistTemplates);
@@ -592,8 +588,11 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                 size="lg"
                 onClick={() => {
                   const currentStepId = stepsList[step]?.id;
-                  if (localPrinter.isMimaki && currentStepId === 'mimaki-select' && (localPrinter.selectedMimakiUnits?.length || 0) === 0) {
-                    return addToast("Pasirinkite bent vieną bloką!", "error");
+                  if (localPrinter.isMimaki && currentStepId === 'mimaki-select') {
+                    if ((localPrinter.selectedMimakiUnits?.length || 0) === 0) {
+                      return addToast("Pasirinkite bent vieną bloką!", "error");
+                    }
+                    onSave({ selectedMimakiUnits: localPrinter.selectedMimakiUnits });
                   }
                   if (currentStepId === 'intro' && !localPrinter.handoverVerified) {
                     const val = parseFloat(tempRemaining);
@@ -611,7 +610,9 @@ export const SetupProcess: React.FC<SetupProcessProps> = ({ printer, currentUser
                     itemsToShow = getApplicableItems(itemsToShow, getCurrentDayOfWeek(), localPrinter.vit.shift);
                     const allChecked = itemsToShow.length > 0 ? itemsToShow.every(item => localPrinter.vit.checklist[item]) : true;
                     if (!allChecked) return addToast("Pažymėkite visas varneles!", "error");
-                    updateVIT({ confirmed: true });
+                    const newVit = { ...localPrinter.vit, confirmed: true };
+                    setLocalPrinter(prev => ({ ...prev, vit: newVit }));
+                    onSave({ vit: newVit });
                   }
                   if (currentStepId === 'nozzle') {
                     const newData = { nozzlePrintDone: true };
