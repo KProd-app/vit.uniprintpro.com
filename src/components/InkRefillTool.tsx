@@ -195,6 +195,9 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
       if (selectedPrinter.id.startsWith(MIMAKI_GROUP_ID)) {
          const mimakiIds = printers.filter(p => p.isMimaki).map(p => p.id);
          await Promise.all(mimakiIds.map(id => updatePrinter(id, { inks: currentInks })));
+      } else if (selectedPrinter.name.toLowerCase().includes('dacen')) {
+         const dacenIds = printers.filter(p => p.name.toLowerCase().includes('dacen')).map(p => p.id);
+         await Promise.all(dacenIds.map(id => updatePrinter(id, { inks: currentInks })));
       } else {
          await updatePrinter(basePrinterId, { inks: currentInks });
       }
