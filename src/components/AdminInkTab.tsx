@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Droplet, Plus, Save, QrCode, Search, History, Settings2, Trash2 } from 'lucide-react';
 import { getVilniusShiftBoundaries } from '../lib/utils';
+import { getAdminInkPrinters, syncGroupedInks } from '../lib/inkGrouping';
 
 export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: string, t: 'success'|'error') => void }> = ({ printers, addToast }) => {
   const { getSettings, updateSetting, getInkLogs, updatePrinter } = usePrinters();
@@ -16,6 +17,8 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
   
   const [shiftFilter, setShiftFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState<string>(getVilniusShiftBoundaries().logicalDateString);
+
+  const groupedPrinters = getAdminInkPrinters(printers);
 
   const [selectedPrinter, setSelectedPrinter] = useState<PrinterData | null>(null);
   
@@ -82,7 +85,7 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
     const updatedInks = [...currentInks, newInk];
 
     try {
-      await updatePrinter(selectedPrinter.id, { inks: updatedInks });
+      await syncGroupedInks(selectedPrinter.id, updatedInks, printers, updatePrinter);
       addToast?.('Dažas pridėtas', 'success');
       // Update local state to reflect UI changes immediately
       setSelectedPrinter({ ...selectedPrinter, inks: updatedInks });
@@ -102,7 +105,7 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
     const updatedInks = currentInks.filter(i => i.id !== inkId);
 
     try {
-      await updatePrinter(selectedPrinter.id, { inks: updatedInks });
+      await syncGroupedInks(selectedPrinter.id, updatedInks, printers, updatePrinter);
       addToast?.('Dažas ištrintas', 'success');
       setSelectedPrinter({ ...selectedPrinter, inks: updatedInks });
     } catch (e) {
@@ -116,7 +119,7 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
      const updatedInks = currentInks.map(i => i.id === inkId ? { ...i, inventory: newValue } : i);
 
      try {
-       await updatePrinter(selectedPrinter.id, { inks: updatedInks });
+       await syncGroupedInks(selectedPrinter.id, updatedInks, printers, updatePrinter);
        setSelectedPrinter({ ...selectedPrinter, inks: updatedInks });
      } catch(e) {
        addToast?.('Klaida atnaujinant likutį', 'error');
@@ -250,13 +253,13 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {printers.map(p => {
-                  const inksCount = p.inks?.length || 0;
-                  const hasZeroInventory = p.inks?.some(i => i.inventory <= 0);
+                {groupedPrinters.map(printer => {
+                  const inksCount = printer.inks?.length || 0;
+                  const hasZeroInventory = printer.inks?.some(i => i.inventory <= 0);
 
                   return (
-                    <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-4 font-bold text-slate-700 text-sm">{p.name}</td>
+                    <tr key={printer.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-4 font-bold text-slate-700 text-sm">{printer.name}</td>
                       <td className="p-4">
                         {inksCount === 0 ? (
                            <span className="text-xs font-bold text-slate-300">Nepriskirta</span>
@@ -268,7 +271,7 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
                       </td>
                       <td className="p-4 text-right">
                         <Button 
-                          onClick={() => setSelectedPrinter(p)}
+                          onClick={() => setSelectedPrinter(printer)}
                           variant="outline"
                           className="h-8 px-4 border-slate-200 text-slate-600 hover:text-mimaki-blue hover:border-mimaki-blue/30 rounded-xl"
                         >

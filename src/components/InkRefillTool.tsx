@@ -7,6 +7,7 @@ import { Button } from './ui/button';
 import { ArrowLeft, Camera, Droplet, Plus, CheckCircle, QrCode as QrIcon, X, Check } from 'lucide-react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { getVilniusShiftBoundaries } from '../lib/utils';
+import { getUserInkPrinters, MIMAKI_GROUP_ID } from '../lib/inkGrouping';
 
 interface InkRefillToolProps {
   printers: PrinterData[];
@@ -28,20 +29,21 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
   const [selectedPrinter, setSelectedPrinter] = useState<PrinterData | null>(null);
   const [inkStates, setInkStates] = useState<Record<string, InkActionState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectingMimakiUnit, setSelectingMimakiUnit] = useState<PrinterData | null>(null);
   
-  const [completedPrinters, setCompletedPrinters] = useState<string[]>(() => {
+  const [completedActions, setCompletedActions] = useState<Record<string, Record<string, string>>>(() => {
      try {
-         if (!user?.id) return [];
-         const saved = localStorage.getItem(`ink_completed_v1_${user.id}`);
+         if (!user?.id) return {};
+         const saved = localStorage.getItem(`ink_completed_v2_${user.id}`);
          if (saved) {
              const parsed = JSON.parse(saved);
-             // Keep state if less than 14 hours old (typical max shift)
+             // Keep state if less than 14 hours old
              if (Date.now() - parsed.timestamp < 14 * 60 * 60 * 1000) {
-                 return parsed.printers || [];
+                 return parsed.actions || {};
              }
          }
      } catch (e) {}
-     return [];
+     return {};
   });
   
   // Scanner Modal State
@@ -51,12 +53,34 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleSelectPrinter = (printer: PrinterData) => {
+    if (printer.id === MIMAKI_GROUP_ID && !printer.name.includes('Mimaki ')) {
+       setSelectingMimakiUnit(printer);
+       return;
+    }
+
     setSelectedPrinter(printer);
     const initialStates: Record<string, InkActionState> = {};
+    const previousActions = completedActions[printer.id] || {};
+    
     (printer.inks || []).forEach(ink => {
-      initialStates[ink.id] = { action: 'NONE' };
+      if (previousActions[ink.id]) {
+         initialStates[ink.id] = { action: previousActions[ink.id] as any };
+      } else {
+         initialStates[ink.id] = { action: 'NONE' };
+      }
     });
     setInkStates(initialStates);
+  };
+
+  const handleMimakiUnitSelect = (unit: number) => {
+     if (!selectingMimakiUnit) return;
+     const newPrinter: PrinterData = {
+        ...selectingMimakiUnit,
+        id: `${MIMAKI_GROUP_ID}-${unit}`,
+        name: `Mimaki ${unit}`
+     };
+     setSelectingMimakiUnit(null);
+     handleSelectPrinter(newPrinter);
   };
 
   const handleActionSelect = (ink: PrinterInk, action: 'STARTED_BOTTLE' | 'NEW_BOTTLE' | 'NONE') => {
@@ -100,14 +124,25 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
   const handleSubmit = async () => {
     if (!selectedPrinter || !user) return;
 
-    // Validate
-    const activeInks = selectedPrinter.inks?.filter(i => inkStates[i.id].action !== 'NONE') || [];
-    if (activeInks.length === 0) {
-      addToast("Pasirinkite bent vieną dažą pildymui.", "error");
+    // Validate: only look at inks that are active and NOT previously completed
+    const previousActions = completedActions[selectedPrinter.id] || {};
+    const newActiveInks = selectedPrinter.inks?.filter(i => {
+       const state = inkStates[i.id];
+       return state.action !== 'NONE' && !previousActions[i.id];
+    }) || [];
+
+    if (newActiveInks.length === 0) {
+      // If they are just viewing and clicked "Uždaryti", just close
+      const hasAnyNewAction = selectedPrinter.inks?.some(i => inkStates[i.id].action !== 'NONE' && !previousActions[i.id]);
+      if (!hasAnyNewAction) {
+         setSelectedPrinter(null);
+         return;
+      }
+      addToast("Pasirinkite bent vieną naują dažą pildymui.", "error");
       return;
     }
 
-    for (const ink of activeInks) {
+    for (const ink of newActiveInks) {
       const state = inkStates[ink.id];
       if (state.action === 'NEW_BOTTLE' && !state.qrVerified) {
          addToast(`Būtina nuskenuoti "${ink.name}" dažų barkodą!`, "error");
@@ -122,8 +157,9 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
     setIsSubmitting(true);
     try {
       let currentInks = [...(selectedPrinter.inks || [])];
+      let newCompletedActions = { ...(completedActions[selectedPrinter.id] || {}) };
 
-      for (const ink of activeInks) {
+      for (const ink of newActiveInks) {
         const state = inkStates[ink.id];
         
         // 1. Upload photo
@@ -151,18 +187,33 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
           shift: currentShiftName,
           logicalDate: logicalDateString
         });
+        
+        newCompletedActions[ink.id] = state.action;
       }
 
       // Update printer config once with all inventory changes
-      await updatePrinter(selectedPrinter.id, { inks: currentInks });
+      // If it's a virtual unit like mimaki-group-3, we need to update the base mimaki group
+      const basePrinterId = selectedPrinter.id.startsWith(MIMAKI_GROUP_ID) ? MIMAKI_GROUP_ID : selectedPrinter.id;
+      // We don't have syncGroupedInks here easily, but wait, updatePrinter on Mimaki will only update one?
+      // Wait, InkRefillTool shouldn't update inventory on virtual IDs. 
+      // We'll dispatch updatePrinter. Let's just find the original Mimaki printers and update them.
+      if (selectedPrinter.id.startsWith(MIMAKI_GROUP_ID)) {
+         const mimakiIds = printers.filter(p => p.isMimaki).map(p => p.id);
+         await Promise.all(mimakiIds.map(id => updatePrinter(id, { inks: currentInks })));
+      } else {
+         await updatePrinter(basePrinterId, { inks: currentInks });
+      }
 
       // Mark printer as completed for this shift
-      const newCompleted = Array.from(new Set([...completedPrinters, selectedPrinter.id]));
-      setCompletedPrinters(newCompleted);
+      const newActions = {
+         ...completedActions,
+         [selectedPrinter.id]: newCompletedActions
+      };
+      setCompletedActions(newActions);
       if (user?.id) {
-         localStorage.setItem(`ink_completed_v1_${user.id}`, JSON.stringify({
+         localStorage.setItem(`ink_completed_v2_${user.id}`, JSON.stringify({
             timestamp: Date.now(),
-            printers: newCompleted
+            actions: newActions
          }));
       }
 
@@ -200,19 +251,38 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
       )}
 
       <header className="mb-6 md:mb-8 flex items-center gap-3 md:gap-4">
-        <Button variant="ghost" size="icon" onClick={selectedPrinter ? () => handleSelectPrinter(null as any) : onClose} className="rounded-full bg-white shadow-sm h-10 w-10">
+        <Button variant="ghost" size="icon" onClick={selectedPrinter ? () => handleSelectPrinter(null as any) : (selectingMimakiUnit ? () => setSelectingMimakiUnit(null) : onClose)} className="rounded-full bg-white shadow-sm h-10 w-10">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </Button>
         <div>
           <h1 className="text-xl md:text-3xl font-black text-slate-800 uppercase tracking-tighter leading-none">Dažų Pildymas</h1>
-          <p className="text-sm md:text-base text-slate-500 font-medium mt-1">{selectedPrinter ? selectedPrinter.name : 'Pasirinkite spausdintuvą'}</p>
+          <p className="text-sm md:text-base text-slate-500 font-medium mt-1">{selectedPrinter ? selectedPrinter.name : (selectingMimakiUnit ? 'Pasirinkite įrenginį' : 'Pasirinkite spausdintuvą')}</p>
         </div>
       </header>
 
-      {!selectedPrinter ? (
+      {selectingMimakiUnit ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(unit => {
+             const unitId = `${MIMAKI_GROUP_ID}-${unit}`;
+             const isCompleted = !!completedActions[unitId] && Object.keys(completedActions[unitId]).length > 0;
+             return (
+               <Button key={unit} variant="outline" onClick={() => handleMimakiUnitSelect(unit)} className={`h-24 text-xl font-black rounded-2xl border-2 transition-all ${isCompleted ? 'border-emerald-500 text-emerald-600 bg-emerald-50' : 'border-slate-200 text-slate-700 hover:border-mimaki-blue hover:text-mimaki-blue'}`}>
+                 MIMAKI {unit}
+                 {isCompleted && <Droplet className="w-5 h-5 ml-2 text-emerald-500 fill-emerald-500/20" />}
+               </Button>
+             );
+          })}
+        </div>
+      ) : !selectedPrinter ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {printers.map(p => {
-            const isCompleted = completedPrinters.includes(p.id);
+          {getUserInkPrinters(printers).map(p => {
+            let isCompleted = false;
+            if (p.id === MIMAKI_GROUP_ID) {
+               // Check if any mimaki unit is completed
+               isCompleted = [1,2,3,4,5,6,7,8].some(u => !!completedActions[`${MIMAKI_GROUP_ID}-${u}`] && Object.keys(completedActions[`${MIMAKI_GROUP_ID}-${u}`]).length > 0);
+            } else {
+               isCompleted = !!completedActions[p.id] && Object.keys(completedActions[p.id]).length > 0;
+            }
             return (
               <Card key={p.id} className="bg-white dark:bg-white hover:border-mimaki-blue cursor-pointer transition-all hover:shadow-lg" onClick={() => handleSelectPrinter(p)}>
                 <CardContent className="p-6 flex items-center justify-between">
@@ -238,16 +308,25 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
               </div>
            ) : (
               selectedPrinter.inks.map(ink => {
+                 const previousActions = completedActions[selectedPrinter.id] || {};
+                 const isPreviouslyCompleted = !!previousActions[ink.id];
                  const state = inkStates[ink.id] || { action: 'NONE' };
-                 const isTakingAction = state.action !== 'NONE';
+                 // if it's completed before, the action is frozen to the previous action
+                 const currentAction = isPreviouslyCompleted ? previousActions[ink.id] : state.action;
+                 const isTakingAction = currentAction !== 'NONE';
 
                  return (
-                    <Card key={ink.id} className={`bg-white dark:bg-white border-2 transition-all ${isTakingAction ? 'border-mimaki-blue shadow-md' : 'border-slate-200'}`}>
+                    <Card key={ink.id} className={`bg-white dark:bg-white border-2 transition-all ${isTakingAction ? 'border-mimaki-blue shadow-md' : 'border-slate-200'} ${isPreviouslyCompleted ? 'opacity-80 grayscale-[30%]' : ''}`}>
                        <CardHeader className={`p-4 md:p-5 border-b ${isTakingAction ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
                           <div className="flex justify-between items-center">
                              <div>
                                 <h3 className="text-lg md:text-xl font-black text-slate-800 uppercase tracking-tight">{ink.name}</h3>
-                                <div className="text-xs md:text-sm text-slate-500 font-medium mt-0.5">Likutis: <strong className={ink.inventory <= 0 ? 'text-red-500' : 'text-emerald-600'}>{ink.inventory} vnt.</strong></div>
+                                <div className="text-xs md:text-sm text-slate-500 font-medium mt-0.5 flex gap-2 items-center">
+                                  <span>Likutis: <strong className={ink.inventory <= 0 ? 'text-red-500' : 'text-emerald-600'}>{ink.inventory} vnt.</strong></span>
+                                  {isPreviouslyCompleted && (
+                                     <span className="text-emerald-600 font-black tracking-widest text-[10px] uppercase ml-2 bg-emerald-100 px-2 py-0.5 rounded-full">Jau pildyta</span>
+                                  )}
+                                </div>
                              </div>
                              {state.qrVerified && (
                                 <div className="bg-emerald-100 text-emerald-600 px-2.5 py-1 rounded-full flex items-center text-[10px] md:text-xs font-bold uppercase shadow-sm">
@@ -258,31 +337,31 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
                        </CardHeader>
                        <CardContent className="p-4 md:p-5 space-y-4">
                           {/* Action Selection Segmented Control */}
-                          <div className="flex bg-slate-100 p-1 rounded-xl shadow-inner overflow-hidden">
+                          <div className={`flex bg-slate-100 p-1 rounded-xl shadow-inner overflow-hidden ${isPreviouslyCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
                              <button
-                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${state.action === 'NONE' ? 'bg-white text-slate-800 shadow-sm font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
+                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${currentAction === 'NONE' ? 'bg-white text-slate-800 shadow-sm font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
                                 onClick={() => handleActionSelect(ink, 'NONE')}
                              >
                                 <span className="text-[10px] md:text-xs uppercase tracking-wider">Nepildoma</span>
                              </button>
                              <button
-                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${state.action === 'STARTED_BOTTLE' ? 'bg-mimaki-blue text-white shadow-md font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
+                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${currentAction === 'STARTED_BOTTLE' ? 'bg-mimaki-blue text-white shadow-md font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
                                 onClick={() => handleActionSelect(ink, 'STARTED_BOTTLE')}
                              >
-                                <Droplet className={`w-4 h-4 ${state.action === 'STARTED_BOTTLE' ? 'opacity-100' : 'opacity-70'}`} />
+                                <Droplet className={`w-4 h-4 ${currentAction === 'STARTED_BOTTLE' ? 'opacity-100' : 'opacity-70'}`} />
                                 <span className="text-[10px] md:text-xs uppercase tracking-wider">Pradėtas</span>
                              </button>
                              <button
-                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${state.action === 'NEW_BOTTLE' ? 'bg-emerald-500 text-white shadow-md font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
+                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${currentAction === 'NEW_BOTTLE' ? 'bg-emerald-500 text-white shadow-md font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
                                 onClick={() => handleActionSelect(ink, 'NEW_BOTTLE')}
                              >
-                                <Plus className={`w-4 h-4 ${state.action === 'NEW_BOTTLE' ? 'opacity-100' : 'opacity-70'}`} />
+                                <Plus className={`w-4 h-4 ${currentAction === 'NEW_BOTTLE' ? 'opacity-100' : 'opacity-70'}`} />
                                 <span className="text-[10px] md:text-xs uppercase tracking-wider">Naujas</span>
                              </button>
                           </div>
 
                           {/* Action Verification & Photo */}
-                          {isTakingAction && (
+                          {isTakingAction && !isPreviouslyCompleted && (
                              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 animate-in fade-in slide-in-from-top-2">
                                 {state.action === 'NEW_BOTTLE' && !state.qrVerified ? (
                                    <Button onClick={() => setScanningInk(ink)} className="w-full h-14 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold uppercase tracking-widest text-[11px] md:text-sm flex gap-2 shadow-lg mb-2 animate-pulse">
@@ -329,23 +408,41 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
            {selectedPrinter.inks && selectedPrinter.inks.length > 0 && (
              <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 flex justify-center z-50">
                <div className="w-full max-w-[800px]">
-                 <Button 
-                    className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 shadow-xl uppercase tracking-widest" 
-                    disabled={isSubmitting || !selectedPrinter.inks.some(i => inkStates[i.id]?.action !== 'NONE')}
-                    onClick={handleSubmit}
-                 >
-                    {isSubmitting ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Išsaugoma...
-                      </div>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        Patvirtinti ir Išsaugoti
-                      </>
-                    )}
-                 </Button>
+                 {(() => {
+                    const previousActions = completedActions[selectedPrinter.id] || {};
+                    const hasAnyNewAction = selectedPrinter.inks.some(i => inkStates[i.id]?.action !== 'NONE' && !previousActions[i.id]);
+
+                    if (!hasAnyNewAction) {
+                       return (
+                          <Button 
+                             className="w-full h-14 text-lg font-bold bg-slate-800 hover:bg-slate-900 shadow-xl uppercase tracking-widest text-white" 
+                             onClick={() => setSelectedPrinter(null)}
+                          >
+                             Uždaryti / Grįžti
+                          </Button>
+                       );
+                    }
+
+                    return (
+                       <Button 
+                          className="w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-600 shadow-xl uppercase tracking-widest" 
+                          disabled={isSubmitting}
+                          onClick={handleSubmit}
+                       >
+                          {isSubmitting ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Išsaugoma...
+                            </div>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-5 h-5 mr-2" />
+                              Patvirtinti ir Išsaugoti
+                            </>
+                          )}
+                       </Button>
+                    );
+                 })()}
                </div>
              </div>
            )}
