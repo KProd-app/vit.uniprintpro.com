@@ -136,7 +136,7 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
            currentInks = currentInks.map(i => i.id === ink.id ? { ...i, inventory: i.inventory + quantityChange } : i);
         }
 
-        const { currentShift, logicalDateString } = getVilniusShiftBoundaries();
+        const { currentShiftName, logicalDateString } = getVilniusShiftBoundaries();
 
         // 3. Create log
         await addInkLog({
@@ -148,7 +148,7 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
           action: state.action as 'STARTED_BOTTLE' | 'NEW_BOTTLE',
           quantityChange,
           photoUrl,
-          shift: currentShift,
+          shift: currentShiftName,
           logicalDate: logicalDateString
         });
       }
