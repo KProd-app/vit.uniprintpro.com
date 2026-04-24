@@ -79,9 +79,9 @@ export const MOCK_PRINTERS: PrinterData[] = [
   },
 ];
 export const DEFAULT_TEMPLATES = [
-  // UV Pakavimas
+  // Klijų robotas
   {
-    name: "UV pakavimas (Pradžia)",
+    name: "Klijų robotas (Pradžia)",
     type: "START",
     items: [
       "Patikrinti darbo vietos švarą",
@@ -96,7 +96,7 @@ export const DEFAULT_TEMPLATES = [
     ]
   },
   {
-    name: "UV pakavimas (Pabaiga)",
+    name: "Klijų robotas (Pabaiga)",
     type: "END",
     items: [
       "Nuvalyti darbo stalą",

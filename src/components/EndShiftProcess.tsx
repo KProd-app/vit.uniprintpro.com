@@ -52,7 +52,7 @@ export const EndShiftProcess: React.FC<EndShiftProcessProps> = ({ printer, curre
 
   const [confirmed, setConfirmed] = useState(false);
 
-  const isPackingStation = printer.name.toLowerCase().includes('pakavimas');
+  const isPackingStation = printer.name.toLowerCase().includes('pakavimas') || printer.name.toLowerCase().includes('klijų robot');
 
   const activeChecklistItems = React.useMemo(() => {
     let items = DEFAULT_END_SHIFT_CHECKLIST;

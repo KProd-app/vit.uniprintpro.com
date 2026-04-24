@@ -153,6 +153,7 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
     try {
       let currentInks = [...(selectedPrinter.inks || [])];
       let newCompletedActions = { ...(completedActions[selectedPrinter.id] || {}) };
+      const { currentShiftName, logicalDateString } = getVilniusShiftBoundaries();
 
       for (const ink of newActiveInks) {
         const state = inkStates[ink.id];
@@ -163,15 +164,18 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
 
         // 2. Adjust inventory
         const quantityChange = state.action === 'NEW_BOTTLE' ? -1 : 0;
-        if (quantityChange !== 0) {
-           currentInks = currentInks.map(i => i.id === ink.id ? { ...i, inventory: i.inventory + quantityChange } : i);
+        const currentInv = currentInks.find(i => i.id === ink.id)?.inventory || 0;
+        if (state.action === 'NEW_BOTTLE') {
+           currentInks = currentInks.map(i => i.id === ink.id ? { ...i, inventory: Math.max(0, currentInv - 1) } : i);
         }
 
-        const { currentShiftName, logicalDateString } = getVilniusShiftBoundaries();
+        const actualPrinterId = selectedPrinter.id.startsWith(MIMAKI_GROUP_ID) 
+           ? printers.find(p => p.isMimaki)?.id || selectedPrinter.id 
+           : selectedPrinter.id;
 
         // 3. Create log
         await addInkLog({
-          printerId: selectedPrinter.id,
+          printerId: actualPrinterId,
           printerName: selectedPrinter.name,
           inkId: ink.id,
           inkName: ink.name,
