@@ -63,11 +63,7 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
     const previousActions = completedActions[printer.id] || {};
     
     (printer.inks || []).forEach(ink => {
-      if (previousActions[ink.id]) {
-         initialStates[ink.id] = { action: previousActions[ink.id] as any };
-      } else {
-         initialStates[ink.id] = { action: 'NONE' };
-      }
+      initialStates[ink.id] = { action: 'NONE' };
     });
     setInkStates(initialStates);
   };
@@ -124,16 +120,15 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
   const handleSubmit = async () => {
     if (!selectedPrinter || !user) return;
 
-    // Validate: only look at inks that are active and NOT previously completed
-    const previousActions = completedActions[selectedPrinter.id] || {};
+    // Validate: only look at inks that are active
     const newActiveInks = selectedPrinter.inks?.filter(i => {
        const state = inkStates[i.id];
-       return state.action !== 'NONE' && !previousActions[i.id];
+       return state.action !== 'NONE';
     }) || [];
 
     if (newActiveInks.length === 0) {
       // If they are just viewing and clicked "Uždaryti", just close
-      const hasAnyNewAction = selectedPrinter.inks?.some(i => inkStates[i.id].action !== 'NONE' && !previousActions[i.id]);
+      const hasAnyNewAction = selectedPrinter.inks?.some(i => inkStates[i.id].action !== 'NONE');
       if (!hasAnyNewAction) {
          setSelectedPrinter(null);
          return;
@@ -311,12 +306,10 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
                  const previousActions = completedActions[selectedPrinter.id] || {};
                  const isPreviouslyCompleted = !!previousActions[ink.id];
                  const state = inkStates[ink.id] || { action: 'NONE' };
-                 // if it's completed before, the action is frozen to the previous action
-                 const currentAction = isPreviouslyCompleted ? previousActions[ink.id] : state.action;
-                 const isTakingAction = currentAction !== 'NONE';
+                 const isTakingAction = state.action !== 'NONE';
 
                  return (
-                    <Card key={ink.id} className={`bg-white dark:bg-white border-2 transition-all ${isTakingAction ? 'border-mimaki-blue shadow-md' : 'border-slate-200'} ${isPreviouslyCompleted ? 'opacity-80 grayscale-[30%]' : ''}`}>
+                    <Card key={ink.id} className={`bg-white dark:bg-white border-2 transition-all ${isTakingAction ? 'border-mimaki-blue shadow-md' : 'border-slate-200'} ${(isPreviouslyCompleted && !isTakingAction) ? 'opacity-80 grayscale-[30%]' : ''}`}>
                        <CardHeader className={`p-4 md:p-5 border-b ${isTakingAction ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
                           <div className="flex justify-between items-center">
                              <div>
@@ -324,7 +317,9 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
                                 <div className="text-xs md:text-sm text-slate-500 font-medium mt-0.5 flex gap-2 items-center">
                                   <span>Likutis: <strong className={ink.inventory <= 0 ? 'text-red-500' : 'text-emerald-600'}>{ink.inventory} vnt.</strong></span>
                                   {isPreviouslyCompleted && (
-                                     <span className="text-emerald-600 font-black tracking-widest text-[10px] uppercase ml-2 bg-emerald-100 px-2 py-0.5 rounded-full">Jau pildyta</span>
+                                     <span className="text-emerald-600 font-black tracking-widest text-[10px] uppercase ml-2 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                        Jau pildyta: {previousActions[ink.id] === 'NEW_BOTTLE' ? 'Naujas' : 'Pradėtas'}
+                                     </span>
                                   )}
                                 </div>
                              </div>
@@ -337,31 +332,31 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
                        </CardHeader>
                        <CardContent className="p-4 md:p-5 space-y-4">
                           {/* Action Selection Segmented Control */}
-                          <div className={`flex bg-slate-100 p-1 rounded-xl shadow-inner overflow-hidden ${isPreviouslyCompleted ? 'opacity-60 pointer-events-none' : ''}`}>
+                          <div className={`flex bg-slate-100 p-1 rounded-xl shadow-inner overflow-hidden`}>
                              <button
-                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${currentAction === 'NONE' ? 'bg-white text-slate-800 shadow-sm font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
+                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${state.action === 'NONE' ? 'bg-white text-slate-800 shadow-sm font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
                                 onClick={() => handleActionSelect(ink, 'NONE')}
                              >
                                 <span className="text-[10px] md:text-xs uppercase tracking-wider">Nepildoma</span>
                              </button>
                              <button
-                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${currentAction === 'STARTED_BOTTLE' ? 'bg-mimaki-blue text-white shadow-md font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
+                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${state.action === 'STARTED_BOTTLE' ? 'bg-mimaki-blue text-white shadow-md font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
                                 onClick={() => handleActionSelect(ink, 'STARTED_BOTTLE')}
                              >
-                                <Droplet className={`w-4 h-4 ${currentAction === 'STARTED_BOTTLE' ? 'opacity-100' : 'opacity-70'}`} />
+                                <Droplet className={`w-4 h-4 ${state.action === 'STARTED_BOTTLE' ? 'opacity-100' : 'opacity-70'}`} />
                                 <span className="text-[10px] md:text-xs uppercase tracking-wider">Pradėtas</span>
                              </button>
                              <button
-                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${currentAction === 'NEW_BOTTLE' ? 'bg-emerald-500 text-white shadow-md font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
+                                className={`flex-1 py-3 px-1 flex flex-col items-center justify-center gap-1 rounded-lg transition-all ${state.action === 'NEW_BOTTLE' ? 'bg-emerald-500 text-white shadow-md font-black' : 'text-slate-400 font-semibold hover:text-slate-600'}`}
                                 onClick={() => handleActionSelect(ink, 'NEW_BOTTLE')}
                              >
-                                <Plus className={`w-4 h-4 ${currentAction === 'NEW_BOTTLE' ? 'opacity-100' : 'opacity-70'}`} />
+                                <Plus className={`w-4 h-4 ${state.action === 'NEW_BOTTLE' ? 'opacity-100' : 'opacity-70'}`} />
                                 <span className="text-[10px] md:text-xs uppercase tracking-wider">Naujas</span>
                              </button>
                           </div>
 
                           {/* Action Verification & Photo */}
-                          {isTakingAction && !isPreviouslyCompleted && (
+                          {isTakingAction && (
                              <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 animate-in fade-in slide-in-from-top-2">
                                 {state.action === 'NEW_BOTTLE' && !state.qrVerified ? (
                                    <Button onClick={() => setScanningInk(ink)} className="w-full h-14 bg-slate-800 hover:bg-slate-700 rounded-lg font-bold uppercase tracking-widest text-[11px] md:text-sm flex gap-2 shadow-lg mb-2 animate-pulse">
@@ -409,8 +404,7 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
              <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 flex justify-center z-50">
                <div className="w-full max-w-[800px]">
                  {(() => {
-                    const previousActions = completedActions[selectedPrinter.id] || {};
-                    const hasAnyNewAction = selectedPrinter.inks.some(i => inkStates[i.id]?.action !== 'NONE' && !previousActions[i.id]);
+                    const hasAnyNewAction = selectedPrinter.inks.some(i => inkStates[i.id]?.action !== 'NONE');
 
                     if (!hasAnyNewAction) {
                        return (

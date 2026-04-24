@@ -7,8 +7,8 @@ export function getAdminInkPrinters(printers: PrinterData[]): PrinterData[] {
   const result: PrinterData[] = [];
   
   const mimakiPrinters = printers.filter(p => p.isMimaki);
-  const dacenPrinters = printers.filter(p => p.id.toLowerCase().includes('dacen'));
-  const otherPrinters = printers.filter(p => !p.isMimaki && !p.id.toLowerCase().includes('dacen'));
+  const dacenPrinters = printers.filter(p => p.name.toLowerCase().includes('dacen'));
+  const otherPrinters = printers.filter(p => !p.isMimaki && !p.name.toLowerCase().includes('dacen'));
 
   // Combine Mimaki
   if (mimakiPrinters.length > 0) {
@@ -81,7 +81,7 @@ export async function syncGroupedInks(
       promises.push(updatePrinter(id, { inks: newInks }));
     }
   } else if (groupId === DACEN_GROUP_ID) {
-    const dacenIds = allPrinters.filter(p => p.id.toLowerCase().includes('dacen')).map(p => p.id);
+    const dacenIds = allPrinters.filter(p => p.name.toLowerCase().includes('dacen')).map(p => p.id);
     for (const id of dacenIds) {
       promises.push(updatePrinter(id, { inks: newInks }));
     }
