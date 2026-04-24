@@ -28,6 +28,21 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
   const [inkStates, setInkStates] = useState<Record<string, InkActionState>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  const [completedPrinters, setCompletedPrinters] = useState<string[]>(() => {
+     try {
+         if (!user?.id) return [];
+         const saved = localStorage.getItem(`ink_completed_v1_${user.id}`);
+         if (saved) {
+             const parsed = JSON.parse(saved);
+             // Keep state if less than 14 hours old (typical max shift)
+             if (Date.now() - parsed.timestamp < 14 * 60 * 60 * 1000) {
+                 return parsed.printers || [];
+             }
+         }
+     } catch (e) {}
+     return [];
+  });
+  
   // Scanner Modal State
   const [scanningInk, setScanningInk] = useState<PrinterInk | null>(null);
 
@@ -136,8 +151,18 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
       // Update printer config once with all inventory changes
       await updatePrinter(selectedPrinter.id, { inks: currentInks });
 
+      // Mark printer as completed for this shift
+      const newCompleted = Array.from(new Set([...completedPrinters, selectedPrinter.id]));
+      setCompletedPrinters(newCompleted);
+      if (user?.id) {
+         localStorage.setItem(`ink_completed_v1_${user.id}`, JSON.stringify({
+            timestamp: Date.now(),
+            printers: newCompleted
+         }));
+      }
+
       addToast("Visi dažų pildymai sėkmingai užregistruoti!", "success");
-      onClose();
+      setSelectedPrinter(null);
     } catch (error) {
       console.error("Error submitting ink refill batch:", error);
       addToast("Klaida išsaugant duomenis. Bandykite dar kartą.", "error");
@@ -181,19 +206,22 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
 
       {!selectedPrinter ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {printers.map(p => (
-            <Card key={p.id} className="bg-white dark:bg-white hover:border-mimaki-blue cursor-pointer transition-all hover:shadow-lg" onClick={() => handleSelectPrinter(p)}>
-              <CardContent className="p-6 flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-lg text-slate-800">{p.name}</h3>
-                  <p className="text-sm text-slate-500 font-medium mt-1">
-                     Dažų rūšys: <span className="font-bold text-slate-700">{p.inks?.length || 0}</span>
-                  </p>
-                </div>
-                <Droplet className={`w-8 h-8 ${(p.inks?.length || 0) > 0 ? 'text-mimaki-blue' : 'text-slate-300'}`} />
-              </CardContent>
-            </Card>
-          ))}
+          {printers.map(p => {
+            const isCompleted = completedPrinters.includes(p.id);
+            return (
+              <Card key={p.id} className="bg-white dark:bg-white hover:border-mimaki-blue cursor-pointer transition-all hover:shadow-lg" onClick={() => handleSelectPrinter(p)}>
+                <CardContent className="p-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-lg text-slate-800">{p.name}</h3>
+                    <p className="text-sm text-slate-500 font-medium mt-1">
+                       Dažų rūšys: <span className="font-bold text-slate-700">{p.inks?.length || 0}</span>
+                    </p>
+                  </div>
+                  <Droplet className={`w-8 h-8 transition-colors ${isCompleted ? 'text-emerald-500 fill-emerald-500/20' : ((p.inks?.length || 0) > 0 ? 'text-mimaki-blue' : 'text-slate-300')}`} />
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <div className="space-y-6 pb-24">
