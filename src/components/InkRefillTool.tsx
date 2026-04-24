@@ -24,7 +24,7 @@ interface InkActionState {
 
 export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose, addToast }) => {
   const { user } = useAuth();
-  const { updatePrinter, addInkLog, uploadInkPhoto } = usePrinters();
+  const { updatePrinter, addInkLog, uploadInkPhoto, printers: rawPrinters } = usePrinters();
   
   const [selectedPrinter, setSelectedPrinter] = useState<PrinterData | null>(null);
   const [inkStates, setInkStates] = useState<Record<string, InkActionState>>({});
@@ -170,7 +170,7 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
         }
 
         const actualPrinterId = selectedPrinter.id.startsWith(MIMAKI_GROUP_ID) 
-           ? printers.find(p => p.isMimaki)?.id || selectedPrinter.id 
+           ? rawPrinters.find(p => p.isMimaki)?.id || selectedPrinter.id 
            : selectedPrinter.id;
 
         // 3. Create log
