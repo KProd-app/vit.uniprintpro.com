@@ -622,11 +622,17 @@ export class SupabaseRepository implements StorageRepository {
         }
     }
 
-    async getInkLogs(): Promise<InkLog[]> {
-        const { data, error } = await supabase
-            .from('ink_logs')
-            .select('*')
-            .order('created_at', { ascending: false });
+    async getInkLogs(filters?: { shift?: string, date?: string }): Promise<InkLog[]> {
+        let query = supabase.from('ink_logs').select('*').order('created_at', { ascending: false });
+
+        if (filters?.shift && filters.shift !== 'All') {
+            query = query.eq('shift', filters.shift);
+        }
+        if (filters?.date) {
+            query = query.eq('logical_date', filters.date);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
             console.error('Error fetching ink logs:', error);
@@ -643,7 +649,9 @@ export class SupabaseRepository implements StorageRepository {
             action: row.action,
             quantityChange: row.quantity_change,
             photoUrl: row.photo_url,
-            createdAt: row.created_at
+            createdAt: row.created_at,
+            shift: row.shift,
+            logicalDate: row.logical_date
         }));
     }
 
@@ -658,7 +666,9 @@ export class SupabaseRepository implements StorageRepository {
                 operator_name: log.operatorName,
                 action: log.action,
                 quantity_change: log.quantityChange,
-                photo_url: log.photoUrl
+                photo_url: log.photoUrl,
+                shift: log.shift,
+                logical_date: log.logicalDate
             });
 
         if (error) {

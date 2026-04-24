@@ -4,6 +4,7 @@ import { usePrinters } from '../contexts/DataContext';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Droplet, Plus, Save, QrCode, Search, History, Settings2, Trash2 } from 'lucide-react';
+import { getVilniusShiftBoundaries } from '../lib/utils';
 
 export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: string, t: 'success'|'error') => void }> = ({ printers, addToast }) => {
   const { getSettings, updateSetting, getInkLogs, updatePrinter } = usePrinters();
@@ -12,6 +13,9 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
   const [qrCode, setQrCode] = useState('');
   const [isSavingQr, setIsSavingQr] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const [shiftFilter, setShiftFilter] = useState('All');
+  const [dateFilter, setDateFilter] = useState<string>(getVilniusShiftBoundaries().logicalDateString);
 
   const [selectedPrinter, setSelectedPrinter] = useState<PrinterData | null>(null);
   
@@ -21,22 +25,34 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
   const [newInkInv, setNewInkInv] = useState<number | ''>('');
 
   useEffect(() => {
-    loadData();
+    loadSettings();
   }, []);
 
-  const loadData = async () => {
-    try {
-      const fetchedLogs = await getInkLogs();
-      setLogs(fetchedLogs || []);
+  useEffect(() => {
+    loadLogs();
+  }, [shiftFilter, dateFilter]);
 
+  const loadSettings = async () => {
+    try {
       const fetchedSettings = await getSettings();
       setSettings(fetchedSettings || []);
       const qrSetting = fetchedSettings?.find(s => s.key === 'inkToolQrCode');
       if (qrSetting) {
         setQrCode(qrSetting.value);
       }
+    } catch (e) {}
+  };
+
+  const loadLogs = async () => {
+    try {
+      const fetchedLogs = await getInkLogs({
+        shift: shiftFilter === 'All' ? undefined : shiftFilter,
+        date: dateFilter || undefined
+      });
+      setLogs(fetchedLogs || []);
+
     } catch (error) {
-      console.error("Error loading ink tab data:", error);
+      console.error("Error loading ink logs:", error);
     }
   };
 
@@ -274,15 +290,34 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
           <CardTitle className="flex items-center gap-2 text-slate-700">
             <History className="w-5 h-5" /> Dažų Naudojimo Žurnalas
           </CardTitle>
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Ieškoti žurnale..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mimaki-blue/50 w-full md:w-64"
+              />
+            </div>
+            
             <input
-              type="text"
-              placeholder="Ieškoti žurnale..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mimaki-blue/50 w-64"
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-mimaki-blue focus:border-mimaki-blue block p-2 py-2 font-bold uppercase min-w-[140px]"
             />
+
+            <select
+              value={shiftFilter}
+              onChange={(e) => setShiftFilter(e.target.value)}
+              className="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-mimaki-blue focus:border-mimaki-blue block p-2 py-2 font-bold uppercase min-w-[130px]"
+            >
+              <option value="All">Visos</option>
+              <option value="Dieninė">Dieninė (06-18)</option>
+              <option value="Naktinė">Naktinė (18-06)</option>
+            </select>
           </div>
         </CardHeader>
         <div className="overflow-x-auto">

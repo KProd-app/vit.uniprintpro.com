@@ -38,7 +38,7 @@ interface DataContextType {
     // Ink Management & Settings
     getSettings: () => Promise<AppSetting[]>;
     updateSetting: (key: string, value: any) => Promise<void>;
-    getInkLogs: () => Promise<InkLog[]>;
+    getInkLogs: (filters?: { shift?: string, date?: string }) => Promise<InkLog[]>;
     addInkLog: (log: Omit<InkLog, 'id' | 'createdAt'>) => Promise<void>;
 
     // Feedback
@@ -359,8 +359,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await repository.updateSetting(key, value);
     }, []);
 
-    const getInkLogs = useCallback(async () => {
-        return await repository.getInkLogs();
+    const getInkLogs = useCallback(async (filters?: { shift?: string, date?: string }) => {
+        return await repository.getInkLogs(filters);
     }, []);
 
     const addInkLog = useCallback(async (log: Omit<InkLog, 'id' | 'createdAt'>) => {

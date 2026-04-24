@@ -165,4 +165,6 @@ export interface InkLog {
   quantityChange: number;
   photoUrl?: string;
   createdAt: string;
+  shift?: string;
+  logicalDate?: string;
 }

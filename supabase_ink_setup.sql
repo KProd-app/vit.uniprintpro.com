@@ -67,3 +67,8 @@ CREATE POLICY "Authenticated users can delete ink photos" ON storage.objects
 ALTER TABLE public.ink_logs
     ADD COLUMN IF NOT EXISTS ink_id TEXT,
     ADD COLUMN IF NOT EXISTS ink_name TEXT;
+
+-- 5. Update Ink Logs for Shift Tracking
+ALTER TABLE public.ink_logs
+    ADD COLUMN IF NOT EXISTS shift TEXT,
+    ADD COLUMN IF NOT EXISTS logical_date TEXT;

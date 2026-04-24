@@ -45,7 +45,7 @@ export interface StorageRepository {
     createUser(user: { name: string; role: 'Admin' | 'Worker'; pin?: string; password?: string }): Promise<void>;
 
     // Ink Management & Settings
-    getInkLogs(): Promise<InkLog[]>;
+    getInkLogs(filters?: { shift?: string, date?: string }): Promise<InkLog[]>;
     addInkLog(log: Omit<InkLog, 'id' | 'createdAt'>): Promise<void>;
     getSettings(): Promise<AppSetting[]>;
     updateSetting(key: string, value: any): Promise<void>;

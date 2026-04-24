@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card'
 import { Button } from './ui/button';
 import { ArrowLeft, Camera, Droplet, Plus, CheckCircle, QrCode as QrIcon, X, Check } from 'lucide-react';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import { getVilniusShiftBoundaries } from '../lib/utils';
 
 interface InkRefillToolProps {
   printers: PrinterData[];
@@ -135,6 +136,8 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
            currentInks = currentInks.map(i => i.id === ink.id ? { ...i, inventory: i.inventory + quantityChange } : i);
         }
 
+        const { currentShift, logicalDateString } = getVilniusShiftBoundaries();
+
         // 3. Create log
         await addInkLog({
           printerId: selectedPrinter.id,
@@ -144,7 +147,9 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
           operatorName: user.name,
           action: state.action as 'STARTED_BOTTLE' | 'NEW_BOTTLE',
           quantityChange,
-          photoUrl
+          photoUrl,
+          shift: currentShift,
+          logicalDate: logicalDateString
         });
       }
 
