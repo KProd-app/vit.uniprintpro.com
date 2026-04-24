@@ -39,7 +39,8 @@ export function getUserInkPrinters(printers: PrinterData[]): PrinterData[] {
   const result: PrinterData[] = [];
   
   const mimakiPrinters = printers.filter(p => p.isMimaki);
-  const otherPrinters = printers.filter(p => !p.isMimaki);
+  const dacenPrinters = printers.filter(p => p.name.toLowerCase().includes('dacen'));
+  const otherPrinters = printers.filter(p => !p.isMimaki && !p.name.toLowerCase().includes('dacen'));
 
   // Combine Mimaki ONLY for users
   if (mimakiPrinters.length > 0) {
@@ -52,7 +53,17 @@ export function getUserInkPrinters(printers: PrinterData[]): PrinterData[] {
     });
   }
 
-  // Users see separate Dacen printers, so we don't group them here
+  // Users see separate Dacen printers, but they MUST share the same combined inks!
+  if (dacenPrinters.length > 0) {
+    const combinedDacenInks = combineInks(dacenPrinters);
+    dacenPrinters.forEach(dacen => {
+      result.push({
+        ...dacen,
+        inks: combinedDacenInks
+      });
+    });
+  }
+
   return [...result, ...otherPrinters];
 }
 
