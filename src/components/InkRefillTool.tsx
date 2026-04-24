@@ -213,7 +213,7 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
                        <CardHeader className={`p-4 md:p-5 border-b ${isTakingAction ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
                           <div className="flex justify-between items-center">
                              <div>
-                                <CardTitle className="text-lg md:text-xl font-black text-slate-800 uppercase tracking-tight">{ink.name}</CardTitle>
+                                <h3 className="text-lg md:text-xl font-black text-slate-800 uppercase tracking-tight">{ink.name}</h3>
                                 <div className="text-xs md:text-sm text-slate-500 font-medium mt-0.5">Likutis: <strong className={ink.inventory <= 0 ? 'text-red-500' : 'text-emerald-600'}>{ink.inventory} vnt.</strong></div>
                              </div>
                              {state.qrVerified && (
