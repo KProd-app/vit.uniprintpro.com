@@ -64,7 +64,15 @@ export function getUserInkPrinters(printers: PrinterData[]): PrinterData[] {
     });
   }
 
-  return [...result, ...otherPrinters];
+  // Rename Pakavimas to Klijų robotas for the UI display
+  const finalOtherPrinters = otherPrinters.map(p => {
+    if (p.name.toLowerCase().includes('pakavimas')) {
+      return { ...p, name: p.name.replace(/pakavimas/i, 'Klijų robotas') };
+    }
+    return p;
+  });
+
+  return [...result, ...finalOtherPrinters];
 }
 
 // Helper to get unique inks across a group of printers
