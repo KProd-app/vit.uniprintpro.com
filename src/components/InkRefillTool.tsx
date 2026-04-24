@@ -182,7 +182,7 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
       {!selectedPrinter ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {printers.map(p => (
-            <Card key={p.id} className="hover:border-mimaki-blue cursor-pointer transition-all hover:shadow-lg" onClick={() => handleSelectPrinter(p)}>
+            <Card key={p.id} className="bg-white dark:bg-white hover:border-mimaki-blue cursor-pointer transition-all hover:shadow-lg" onClick={() => handleSelectPrinter(p)}>
               <CardContent className="p-6 flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-lg text-slate-800">{p.name}</h3>
@@ -209,7 +209,7 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
                  const isTakingAction = state.action !== 'NONE';
 
                  return (
-                    <Card key={ink.id} className={`border-2 transition-all ${isTakingAction ? 'border-mimaki-blue shadow-md' : 'border-slate-200'}`}>
+                    <Card key={ink.id} className={`bg-white dark:bg-white border-2 transition-all ${isTakingAction ? 'border-mimaki-blue shadow-md' : 'border-slate-200'}`}>
                        <CardHeader className={`p-4 md:p-5 border-b ${isTakingAction ? 'bg-blue-50/50 border-blue-100' : 'bg-slate-50 border-slate-100'}`}>
                           <div className="flex justify-between items-center">
                              <div>
