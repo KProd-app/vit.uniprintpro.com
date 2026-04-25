@@ -121,3 +121,36 @@ body {
         display: none !important;
     }
 }
+
+/* Spring 3D Animations */
+@keyframes fall {
+    0% {
+        transform: translateY(-10vh);
+    }
+    100% {
+        transform: translateY(110vh);
+    }
+}
+
+@keyframes sway {
+    0% {
+        transform: translateX(0px) rotateZ(0deg) rotateX(0deg) rotateY(0deg);
+    }
+    33% {
+        transform: translateX(30px) rotateZ(30deg) rotateX(45deg) rotateY(45deg);
+    }
+    66% {
+        transform: translateX(-30px) rotateZ(-30deg) rotateX(20deg) rotateY(-45deg);
+    }
+    100% {
+        transform: translateX(0px) rotateZ(0deg) rotateX(0deg) rotateY(0deg);
+    }
+}
+
+.animate-fall {
+    animation: fall linear infinite;
+}
+
+.animate-sway {
+    animation: sway ease-in-out infinite;
+}

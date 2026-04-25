@@ -20,6 +20,7 @@ import { MorningBoard } from './components/MorningBoard';
 import { UserTVPanel } from './components/UserTVPanel';
 import { InkRefillTool } from './components/InkRefillTool';
 import { getVilniusShiftBoundaries } from './lib/utils';
+import { SpringOverlay } from './components/SpringOverlay';
 
 // Inner component to use Auth and Data contexts
 const AppContent: React.FC = () => {
@@ -45,6 +46,7 @@ const AppContent: React.FC = () => {
   const [activePrinterId, setActivePrinterId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<{ id: number, message: string, type: 'success' | 'error' | 'info' }[]>([]);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [isSpringTheme, setIsSpringTheme] = useState(false);
 
   // Automatically handle view switching based on auth, UNLESS it's a live dashboard
   const isLiveView = view === 'LIVE' || view === 'LIVE_MOBILE' || view === 'LIVE_DESKTOP' || view === 'LENTA';
@@ -68,16 +70,19 @@ const AppContent: React.FC = () => {
       if (normalized === 'spring') {
         document.documentElement.classList.add('theme-spring');
         localStorage.setItem('theme', 'spring');
+        setIsSpringTheme(true);
         window.history.replaceState({}, document.title, "/");
       } else if (normalized === 'normal') {
         document.documentElement.classList.remove('theme-spring');
         localStorage.removeItem('theme');
+        setIsSpringTheme(false);
         window.history.replaceState({}, document.title, "/");
       }
     } else {
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme === 'spring') {
         document.documentElement.classList.add('theme-spring');
+        setIsSpringTheme(true);
       }
     }
   }, []);
@@ -279,15 +284,12 @@ const AppContent: React.FC = () => {
   const isLive = currentView === 'LIVE'; // Only TV view uses the dark wrapper, others manage their own
   // Or actually, let's keep it simple. If it's generic live, we might want to let the component handle it?
   // Mobile/Desktop components have full-screen generic classes.
-  // The wrapper div has `min-h-screen relative`. 
-  // Let's just say if it's ANY live view, we might not want the default slate-50.
-  // But wait, App wrapper puts `bg-slate-50` by default.
-  // Mobile wants `bg-slate-50`. Desktop `bg-slate-100`. TV `bg-slate-950`.
-  // TV component has `fixed inset-0` so it covers everything.
-  // Mobile/Desktop are just normal flow.
+  const isLive = currentView === 'LIVE';
 
   return (
-    <div className={`min-h-screen relative ${isLive ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <>
+      {isSpringTheme && <SpringOverlay />}
+      <div className={`min-h-screen relative ${isLive ? 'bg-slate-950' : 'bg-slate-50'}`}>
       {isSyncing && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center">
           <div className="bg-white p-12 rounded-[40px] shadow-2xl flex flex-col items-center">
@@ -403,6 +405,7 @@ const AppContent: React.FC = () => {
         ))}
       </div>
     </div>
+    </>
   );
 };
 
