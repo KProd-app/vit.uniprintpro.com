@@ -284,7 +284,6 @@ const AppContent: React.FC = () => {
   const isLive = currentView === 'LIVE'; // Only TV view uses the dark wrapper, others manage their own
   // Or actually, let's keep it simple. If it's generic live, we might want to let the component handle it?
   // Mobile/Desktop components have full-screen generic classes.
-  const isLive = currentView === 'LIVE';
 
   return (
     <>
