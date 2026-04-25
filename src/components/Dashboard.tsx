@@ -258,24 +258,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </nav>
 
       {/* Main Content */}
-      <div className="p-6 md:p-10 max-w-[1600px] mx-auto">
-        <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-4 sm:p-6 md:p-10 max-w-[1600px] mx-auto">
+        <header className="mb-4 sm:mb-10 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <h1 className="text-4xl font-black text-mimaki-dark tracking-tight uppercase">Gamybos Stotis</h1>
-            <p className="text-slate-500 mt-2 text-lg font-medium">
+            <h1 className="text-2xl sm:text-4xl font-black text-mimaki-dark tracking-tight uppercase">Gamybos Stotis</h1>
+            <p className="text-slate-500 mt-1 sm:mt-2 text-sm sm:text-lg font-medium">
               {myPrinters.length > 0
                 ? `Jūsų aktyvios stotys: ${myPrinters.length}`
                 : 'Valdykite savo įrenginio darbo ciklą'}
             </p>
           </div>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-row flex-wrap gap-2 sm:gap-4">
             <Button
               variant="outline"
               onClick={() => window.open('https://www.notion.so/UV-2ae7012e5e46807d947df474280fcc54', '_blank')}
-              className="h-14 px-8 rounded-2xl font-bold uppercase tracking-widest transition-all bg-white text-slate-800 border border-slate-200 hover:bg-slate-50"
+              className="flex-1 sm:flex-none h-12 sm:h-14 px-3 sm:px-8 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm font-bold uppercase tracking-widest transition-all bg-white text-slate-800 border border-slate-200 hover:bg-slate-50"
             >
-              <BookOpen className="w-5 h-5 mr-2 text-mimaki-blue" />
-              Notion Dokumentacija
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2 text-mimaki-blue shrink-0" />
+              Notion <span className="hidden sm:inline">&nbsp;Dokumentacija</span>
             </Button>
             <Button
               onClick={() => {
@@ -286,17 +286,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   setScanError('');
                 }
               }}
-              className={`h-14 px-8 rounded-2xl font-bold uppercase tracking-widest transition-all ${showScanner ? 'bg-white text-slate-800 border border-slate-200 hover:bg-slate-50' : 'bg-mimaki-blue text-white shadow-lg shadow-mimaki-blue/30'}`}
+              className={`flex-1 sm:flex-none h-12 sm:h-14 px-3 sm:px-8 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm font-bold uppercase tracking-widest transition-all ${showScanner ? 'bg-white text-slate-800 border border-slate-200 hover:bg-slate-50' : 'bg-mimaki-blue text-white shadow-lg shadow-mimaki-blue/30'}`}
             >
               {showScanner ? (
                 <>
-                  <List className="w-5 h-5 mr-2" />
-                  Uždaryti Skanerį
+                  <List className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2 shrink-0" />
+                  Uždaryti <span className="hidden sm:inline">&nbsp;Skanerį</span>
                 </>
               ) : (
                 <>
-                  <QrCode className="w-5 h-5 mr-2" />
-                  Skenuoti Kitą
+                  <QrCode className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2 shrink-0" />
+                  Skenuoti <span className="hidden sm:inline">&nbsp;Kitą</span>
                 </>
               )}
             </Button>
@@ -304,14 +304,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </header>
 
         {showScanner ? (
-          <div className="flex flex-col items-center justify-center py-10 animate-in fade-in zoom-in duration-300">
-            <Card className="w-full max-w-md overflow-hidden bg-slate-900 border-0 shadow-2xl rounded-[3rem]">
-              <CardHeader className="text-center pb-2 pt-8">
-                <CardTitle className="text-white text-2xl uppercase tracking-widest">Skenuokite QR Kodą</CardTitle>
-                <p className="text-slate-400 text-sm font-medium">Nukreipkite kamerą į stoties kodą</p>
+          <div className="flex flex-col items-center justify-center py-2 sm:py-10 animate-in fade-in zoom-in duration-300">
+            <Card className="w-full max-w-xs sm:max-w-md overflow-hidden bg-slate-900 border-0 shadow-2xl rounded-[2rem] sm:rounded-[3rem]">
+              <CardHeader className="text-center pb-2 pt-4 sm:pt-8">
+                <CardTitle className="text-white text-lg sm:text-2xl uppercase tracking-widest">Skenuokite QR</CardTitle>
+                <p className="text-slate-400 text-xs sm:text-sm font-medium">Nukreipkite kamerą į stoties kodą</p>
               </CardHeader>
-              <CardContent className="p-4">
-                <div className="relative rounded-[2rem] overflow-hidden border-4 border-slate-700 bg-black aspect-square">
+              <CardContent className="p-3 sm:p-4">
+                <div className="relative rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden border-2 sm:border-4 border-slate-700 bg-black aspect-square">
                   {scannerEnabled ? (
                     <Scanner
                       onScan={handleScan}
