@@ -69,7 +69,7 @@ const AppContent: React.FC = () => {
         const printerExists = printers.find(p => 
           p.id === stationParam || 
           (p.qrCode && p.qrCode.toLowerCase().trim() === normalizedParam) ||
-          p.name.toLowerCase().replace(/\s+/g, '') === normalizedParam
+          p.name.toLowerCase().replace(/\s+/g, '') === normalizedParam.replace(/\s+/g, '')
         );
         if (printerExists) {
           // Check if already working

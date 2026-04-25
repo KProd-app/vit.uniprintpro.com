@@ -91,7 +91,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const printer = printers.find(p => 
         p.id === parsedStationValue || 
         (p.qrCode && p.qrCode.toLowerCase().trim() === normalizedParam) ||
-        p.name.toLowerCase().replace(/\s+/g, '') === normalizedParam
+        p.name.toLowerCase().replace(/\s+/g, '') === normalizedParam.replace(/\s+/g, '')
       );
       if (printer) {
         if (printer.status === PrinterStatus.WORKING) {
