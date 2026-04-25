@@ -13,6 +13,14 @@
     --radius-5xl: 2.5rem;
 }
 
+/* Spring Theme Overrides */
+.theme-spring {
+    --color-mimaki-blue: #10b981; /* Spring Emerald Green */
+    --color-mimaki-dark: #334155; /* Slate 700 - softer text */
+    --color-mimaki-gray: #f0fdf4; /* Emerald 50 - fresh background */
+    --color-mimaki-surface: #ffffff; /* Clean white */
+}
+
 body {
     background-color: var(--color-mimaki-gray);
     color: var(--color-mimaki-dark);

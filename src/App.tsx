@@ -53,6 +53,35 @@ const AppContent: React.FC = () => {
 
 
 
+  // Theme initialization and URL interceptor
+  useEffect(() => {
+    const path = window.location.pathname;
+    const urlParams = new URLSearchParams(window.location.search);
+    let potentialParam = urlParams.get('station');
+    
+    if (!potentialParam && path.length > 1 && !['/live', '/mlive', '/dlive', '/lenta', '/user'].includes(path)) {
+      potentialParam = decodeURIComponent(path.substring(1));
+    }
+
+    if (potentialParam) {
+      const normalized = potentialParam.toLowerCase().trim();
+      if (normalized === 'spring') {
+        document.documentElement.classList.add('theme-spring');
+        localStorage.setItem('theme', 'spring');
+        window.history.replaceState({}, document.title, "/");
+      } else if (normalized === 'normal') {
+        document.documentElement.classList.remove('theme-spring');
+        localStorage.removeItem('theme');
+        window.history.replaceState({}, document.title, "/");
+      }
+    } else {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'spring') {
+        document.documentElement.classList.add('theme-spring');
+      }
+    }
+  }, []);
+
   // Auto-route to station setup if logged in, parameter is present, and we're currently on DASHBOARD
   useEffect(() => {
     if (user && printers.length > 0 && currentView === 'DASHBOARD') {
