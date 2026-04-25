@@ -3,7 +3,7 @@ import { PrinterData, PrinterStatus, User, UserRole } from '../types';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Button } from './ui/button';
 import { StatusBadge } from './ui/badge';
-import { LogOut, Settings, RotateCcw, FileText, Play, CheckCircle, Square, QrCode, List } from 'lucide-react';
+import { LogOut, Settings, RotateCcw, FileText, Play, CheckCircle, Square, QrCode, List, BookOpen } from 'lucide-react';
 import { Timer } from './Timer';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { usePrinters } from '../contexts/DataContext';
@@ -268,7 +268,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 : 'Valdykite savo įrenginio darbo ciklą'}
             </p>
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
+            <Button
+              variant="outline"
+              onClick={() => window.open('https://www.notion.so/UV-2ae7012e5e46807d947df474280fcc54', '_blank')}
+              className="h-14 px-8 rounded-2xl font-bold uppercase tracking-widest transition-all bg-white text-slate-800 border border-slate-200 hover:bg-slate-50"
+            >
+              <BookOpen className="w-5 h-5 mr-2 text-mimaki-blue" />
+              Notion Dokumentacija
+            </Button>
             <Button
               onClick={() => {
                 setShowScanner(!showScanner);
