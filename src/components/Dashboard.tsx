@@ -87,12 +87,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
          return;
       }
 
-      // Find printer by ID OR mapping fields
-      const printer = printers.find(p => 
+      // 1. Try exact match by ID OR mapping fields
+      let printer = printers.find(p => 
         p.id === parsedStationValue || 
         (p.qrCode && p.qrCode.toLowerCase().trim() === normalizedParam) ||
         p.name.toLowerCase().replace(/\s+/g, '') === normalizedParam.replace(/\s+/g, '')
       );
+      
+      // 2. Fallback to prefix match (e.g., MimakiMirror matches Mimaki Mirror Plate)
+      if (!printer) {
+        printer = printers.find(p => 
+          normalizedParam.length >= 5 && 
+          p.name.toLowerCase().replace(/\s+/g, '').startsWith(normalizedParam.replace(/\s+/g, ''))
+        );
+      }
       if (printer) {
         if (printer.status === PrinterStatus.WORKING) {
           // If scanning a working printer, maybe they want to join it or finish it? 

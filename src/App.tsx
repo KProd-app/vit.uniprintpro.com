@@ -66,11 +66,18 @@ const AppContent: React.FC = () => {
 
       if (stationParam) {
         const normalizedParam = stationParam.toLowerCase().trim();
-        const printerExists = printers.find(p => 
+        let printerExists = printers.find(p => 
           p.id === stationParam || 
           (p.qrCode && p.qrCode.toLowerCase().trim() === normalizedParam) ||
           p.name.toLowerCase().replace(/\s+/g, '') === normalizedParam.replace(/\s+/g, '')
         );
+
+        if (!printerExists) {
+          printerExists = printers.find(p => 
+            normalizedParam.length >= 5 && 
+            p.name.toLowerCase().replace(/\s+/g, '').startsWith(normalizedParam.replace(/\s+/g, ''))
+          );
+        }
         if (printerExists) {
           // Check if already working
           if (printerExists.status === PrinterStatus.READY_TO_WORK || printerExists.status === PrinterStatus.NOT_STARTED) {
