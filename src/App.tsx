@@ -17,10 +17,10 @@ import { LiveDashboard } from './components/LiveDashboard';
 import { MobileLiveDashboard } from './components/MobileLiveDashboard';
 import { DesktopLiveDashboard } from './components/DesktopLiveDashboard';
 import { MorningBoard } from './components/MorningBoard';
-import { UserTVPanel } from './components/UserTVPanel';
 import { InkRefillTool } from './components/InkRefillTool';
 import { getVilniusShiftBoundaries } from './lib/utils';
 import { SpringOverlay } from './components/SpringOverlay';
+import { PrideOverlay } from './components/PrideOverlay';
 
 // Inner component to use Auth and Data contexts
 const AppContent: React.FC = () => {
@@ -47,6 +47,7 @@ const AppContent: React.FC = () => {
   const [toasts, setToasts] = useState<{ id: number, message: string, type: 'success' | 'error' | 'info' }[]>([]);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isSpringTheme, setIsSpringTheme] = useState(false);
+  const [isPrideTheme, setIsPrideTheme] = useState(false);
 
   // Automatically handle view switching based on auth, UNLESS it's a live dashboard
   const isLiveView = view === 'LIVE' || view === 'LIVE_MOBILE' || view === 'LIVE_DESKTOP' || view === 'LENTA';
@@ -69,13 +70,24 @@ const AppContent: React.FC = () => {
       const normalized = potentialParam.toLowerCase().trim();
       if (normalized === 'spring') {
         document.documentElement.classList.add('theme-spring');
+        document.documentElement.classList.remove('theme-pride');
         localStorage.setItem('theme', 'spring');
         setIsSpringTheme(true);
+        setIsPrideTheme(false);
+        window.history.replaceState({}, document.title, "/");
+      } else if (normalized === 'pride') {
+        document.documentElement.classList.add('theme-pride');
+        document.documentElement.classList.remove('theme-spring');
+        localStorage.setItem('theme', 'pride');
+        setIsPrideTheme(true);
+        setIsSpringTheme(false);
         window.history.replaceState({}, document.title, "/");
       } else if (normalized === 'normal') {
         document.documentElement.classList.remove('theme-spring');
+        document.documentElement.classList.remove('theme-pride');
         localStorage.removeItem('theme');
         setIsSpringTheme(false);
+        setIsPrideTheme(false);
         window.history.replaceState({}, document.title, "/");
       }
     } else {
@@ -83,6 +95,9 @@ const AppContent: React.FC = () => {
       if (savedTheme === 'spring') {
         document.documentElement.classList.add('theme-spring');
         setIsSpringTheme(true);
+      } else if (savedTheme === 'pride') {
+        document.documentElement.classList.add('theme-pride');
+        setIsPrideTheme(true);
       }
     }
   }, []);
@@ -288,6 +303,7 @@ const AppContent: React.FC = () => {
   return (
     <>
       {isSpringTheme && <SpringOverlay />}
+      {isPrideTheme && <PrideOverlay />}
       <div className={`min-h-screen relative ${isLive ? 'bg-slate-950' : 'bg-slate-50'}`}>
       {isSyncing && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center">

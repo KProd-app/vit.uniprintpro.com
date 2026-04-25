@@ -21,6 +21,14 @@
     --color-mimaki-surface: #ffffff; /* Clean white */
 }
 
+/* Pride Theme Overrides */
+.theme-pride {
+    --color-mimaki-blue: #8b5cf6; /* Vibrant Purple */
+    --color-mimaki-dark: #1e1b4b; /* Deep Indigo */
+    --color-mimaki-gray: #f8fafc; /* Clean Light Gray */
+    --color-mimaki-surface: #ffffff; /* Clean white */
+}
+
 body {
     background-color: var(--color-mimaki-gray);
     color: var(--color-mimaki-dark);
