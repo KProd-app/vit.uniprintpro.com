@@ -133,191 +133,188 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-300 relative">
+    <div className="space-y-6 animate-in fade-in duration-300 relative">
       
       {/* INK EDITOR MODAL */}
       {selectedPrinter && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-white rounded-[32px] p-8 w-full max-w-3xl shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6">
-               <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">
-                 {selectedPrinter.name} Dažų Valdymas
-               </h3>
-               <Button variant="ghost" onClick={() => setSelectedPrinter(null)} className="text-slate-400 hover:text-slate-600 rounded-full h-10 w-10 p-0">
+          <div className="bg-white rounded-[32px] p-6 md:p-8 w-full max-w-4xl shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-4 mb-6 shrink-0">
+               <div>
+                 <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-3">
+                   <Droplet className="w-6 h-6 text-emerald-500" />
+                   {selectedPrinter.name}
+                 </h3>
+                 <p className="text-sm font-medium text-slate-500 mt-1">Pridėkite arba redaguokite priskirtas dažų rūšis</p>
+               </div>
+               <Button variant="ghost" onClick={() => setSelectedPrinter(null)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full h-12 w-12 p-0">
                   ✕
                </Button>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-6 mb-8 border border-slate-100">
-               <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-4">Pridėti Naują Dažą</h4>
-               <div className="flex flex-wrap gap-4 items-end">
-                  <div className="flex-1 min-w-[200px]">
-                     <label className="text-[10px] font-bold uppercase text-slate-400">Pavadinimas (pvz. Cyan)</label>
-                     <input type="text" value={newInkName} onChange={e => setNewInkName(e.target.value)} className="w-full h-12 rounded-xl border border-slate-200 px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-mimaki-blue/50" />
+            <div className="bg-emerald-50/50 rounded-2xl p-5 mb-6 border border-emerald-100 shrink-0">
+               <h4 className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                 <Plus className="w-4 h-4" /> Pridėti Naują Dažą
+               </h4>
+               <div className="flex flex-col md:flex-row gap-4 items-end">
+                  <div className="flex-1 w-full">
+                     <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Pavadinimas (pvz. Cyan)</label>
+                     <input type="text" value={newInkName} onChange={e => setNewInkName(e.target.value)} placeholder="Įveskite pavadinimą" className="w-full h-11 rounded-xl border border-slate-200 px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow bg-white" />
                   </div>
-                  <div className="flex-1 min-w-[200px]">
-                     <label className="text-[10px] font-bold uppercase text-slate-400">QR Kodas / Barkodas</label>
-                     <input type="text" value={newInkQr} onChange={e => setNewInkQr(e.target.value)} className="w-full h-12 rounded-xl border border-slate-200 px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-mimaki-blue/50" />
+                  <div className="flex-1 w-full">
+                     <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">QR Kodas / Barkodas</label>
+                     <input type="text" value={newInkQr} onChange={e => setNewInkQr(e.target.value)} placeholder="Skenuokite kodą" className="w-full h-11 rounded-xl border border-slate-200 px-4 font-mono font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow bg-white" />
                   </div>
-                  <div className="w-24">
-                     <label className="text-[10px] font-bold uppercase text-slate-400">Likutis</label>
-                     <input type="number" value={newInkInv} onChange={e => setNewInkInv(e.target.value ? Number(e.target.value) : '')} className="w-full h-12 rounded-xl border border-slate-200 px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-mimaki-blue/50" />
+                  <div className="w-full md:w-32">
+                     <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Likutis (Vnt.)</label>
+                     <input type="number" value={newInkInv} onChange={e => setNewInkInv(e.target.value ? Number(e.target.value) : '')} placeholder="0" className="w-full h-11 rounded-xl border border-slate-200 px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow bg-white" />
                   </div>
-                  <Button onClick={handleAddInk} disabled={!newInkName} className="h-12 bg-mimaki-blue hover:bg-blue-600 px-6 rounded-xl font-bold uppercase text-xs">
-                     <Plus className="w-4 h-4 mr-2" /> Pridėti
+                  <Button onClick={handleAddInk} disabled={!newInkName} className="w-full md:w-auto h-11 bg-emerald-500 hover:bg-emerald-600 px-8 rounded-xl font-bold uppercase text-xs shadow-md shadow-emerald-500/20 transition-all active:scale-95">
+                     Pridėti
                   </Button>
                </div>
             </div>
 
-            <div className="overflow-x-auto max-h-[400px]">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 sticky top-0 border-b border-slate-100">
-                  <tr>
-                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Pavadinimas</th>
-                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">QR Kodas</th>
-                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Likutis</th>
-                    <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Veiksmai</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {(!selectedPrinter.inks || selectedPrinter.inks.length === 0) ? (
-                    <tr><td colSpan={4} className="p-8 text-center text-slate-400 italic font-medium">Nėra priskirtų dažų</td></tr>
-                  ) : (
-                    selectedPrinter.inks.map(ink => (
-                      <tr key={ink.id} className="hover:bg-slate-50/50">
-                        <td className="p-4 font-bold text-slate-700">{ink.name}</td>
-                        <td className="p-4 text-slate-500 text-sm font-mono">{ink.qrCode || '—'}</td>
-                        <td className="p-4">
+            <div className="flex-1 overflow-y-auto min-h-0 pr-2 custom-scrollbar">
+              <div className="space-y-3">
+                {(!selectedPrinter.inks || selectedPrinter.inks.length === 0) ? (
+                  <div className="py-12 flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-100 border-dashed">
+                    <Droplet className="w-8 h-8 mb-3 opacity-20" />
+                    <span className="text-sm font-bold uppercase tracking-wider">Nėra priskirtų dažų</span>
+                  </div>
+                ) : (
+                  selectedPrinter.inks.map(ink => (
+                    <div key={ink.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl hover:border-emerald-300 hover:shadow-sm transition-all gap-4">
+                      <div className="flex-1">
+                        <div className="font-black text-slate-800 text-lg mb-1">{ink.name}</div>
+                        <div className="text-slate-400 text-xs font-mono bg-slate-100 inline-block px-2 py-0.5 rounded-md">{ink.qrCode || 'Barkodas nepriskirtas'}</div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end">
+                           <label className="text-[10px] font-bold uppercase text-slate-400 mb-1">Likutis</label>
                            <input 
                              type="number" 
                              value={ink.inventory} 
                              onChange={(e) => handleUpdateInkInv(ink.id, Number(e.target.value))}
-                             className={`w-20 rounded-lg px-2 py-1 font-bold outline-none border ${ink.inventory <= 0 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-50 text-emerald-600 border-slate-200 focus:ring-2 focus:ring-emerald-500'}`}
+                             className={`w-24 h-10 rounded-xl px-3 font-black text-lg outline-none border text-center transition-all ${ink.inventory <= 0 ? 'bg-red-50 text-red-600 border-red-200 focus:ring-red-500/50' : 'bg-slate-50 text-emerald-700 border-slate-200 focus:ring-2 focus:ring-emerald-500/50'}`}
                            />
-                        </td>
-                        <td className="p-4 text-right">
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteInk(ink.id)} className="text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteInk(ink.id)} className="text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl h-10 w-10 mt-5">
+                          <Trash2 className="w-5 h-5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Nustatymai */}
-        <Card className="col-span-1 border-mimaki-blue/20 shadow-md">
-          <CardHeader className="bg-blue-50/50 rounded-t-xl pb-4 border-b border-blue-100">
-            <CardTitle className="flex items-center gap-2 text-mimaki-blue">
-              <QrCode className="w-5 h-5" /> Pagrindinis Įrankio Kodas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <label className="text-xs font-bold uppercase text-slate-400 tracking-wider">Bendras Dažų Įrankio QR</label>
-            <div className="flex gap-2 mt-2">
-              <input
-                type="text"
-                value={qrCode}
-                onChange={e => setQrCode(e.target.value)}
-                placeholder="Skaitmeninis kodas..."
-                className="flex-1 rounded-xl border-slate-200 bg-slate-50 px-4 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-mimaki-blue/50"
-              />
-              <Button onClick={handleSaveQr} disabled={isSavingQr} className="bg-mimaki-blue hover:bg-blue-600 px-4">
-                <Save className="w-4 h-4" />
-              </Button>
-            </div>
-            <p className="text-xs text-slate-400 mt-3 leading-relaxed">Naudojamas norint atidaryti įrankį ir pasirinkti spausdintuvą.</p>
-          </CardContent>
-        </Card>
+      {/* HEADER & SETTINGS */}
+      <div className="flex flex-col xl:flex-row gap-6 items-start justify-between bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+        <div className="flex-1">
+           <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3 mb-2">
+             <Droplet className="w-8 h-8 text-emerald-500" /> Dažų Valdymas
+           </h2>
+           <p className="text-sm font-medium text-slate-500 max-w-xl leading-relaxed">
+             Priskirkite dažų rūšis įrenginiams, priskirkite barkodus nuskaitymui ir stebėkite likučius.
+           </p>
+        </div>
 
-        {/* Spausdintuvai */}
-        <Card className="col-span-1 lg:col-span-2 border-emerald-500/20 shadow-md overflow-hidden">
-          <CardHeader className="bg-emerald-50/50 rounded-t-xl pb-4 border-b border-emerald-100">
-            <CardTitle className="flex items-center gap-2 text-emerald-600">
-              <Droplet className="w-5 h-5" /> Spausdintuvų Dažų Valdymas
-            </CardTitle>
-          </CardHeader>
-          <div className="p-0 overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-100">
-                <tr>
-                  <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Spausdintuvas</th>
-                  <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dažų Rūšys</th>
-                  <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Veiksmai</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {groupedPrinters.map(printer => {
-                  const inksCount = printer.inks?.length || 0;
-                  const hasZeroInventory = printer.inks?.some(i => i.inventory <= 0);
-
-                  return (
-                    <tr key={printer.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-4 font-bold text-slate-700 text-sm">{printer.name}</td>
-                      <td className="p-4">
-                        {inksCount === 0 ? (
-                           <span className="text-xs font-bold text-slate-300">Nepriskirta</span>
-                        ) : (
-                           <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${hasZeroInventory ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                             {inksCount} rūšys
-                           </span>
-                        )}
-                      </td>
-                      <td className="p-4 text-right">
-                        <Button 
-                          onClick={() => setSelectedPrinter(printer)}
-                          variant="outline"
-                          className="h-8 px-4 border-slate-200 text-slate-600 hover:text-mimaki-blue hover:border-mimaki-blue/30 rounded-xl"
-                        >
-                          <Settings2 className="w-3 h-3 mr-2" /> Valdyti Dažus
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <div className="w-full xl:w-auto flex flex-col sm:flex-row items-center gap-3 bg-slate-50 p-2 pl-4 rounded-2xl border border-slate-200">
+           <div className="flex items-center gap-2 text-slate-600 font-bold text-sm uppercase tracking-wide">
+             <QrCode className="w-4 h-4 text-mimaki-blue" /> Įrankio QR
+           </div>
+           <div className="flex items-center gap-2 w-full sm:w-auto">
+            <input
+              type="text"
+              value={qrCode}
+              onChange={e => setQrCode(e.target.value)}
+              placeholder="Kodas..."
+              className="w-full sm:w-48 rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono font-bold text-slate-700 outline-none focus:ring-2 focus:ring-mimaki-blue/50 text-sm shadow-sm"
+            />
+            <Button onClick={handleSaveQr} disabled={isSavingQr} className="bg-mimaki-blue hover:bg-blue-600 px-4 h-[38px] rounded-xl shadow-md shadow-blue-500/20">
+              IŠSAUGOTI
+            </Button>
+           </div>
+        </div>
       </div>
 
-      {/* Žurnalas */}
-      <Card className="border-slate-200 shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between bg-slate-50/50 rounded-t-xl pb-4 border-b border-slate-100">
-          <CardTitle className="flex items-center gap-2 text-slate-700">
-            <History className="w-5 h-5" /> Dažų Naudojimo Žurnalas
+      {/* PRINTER GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {groupedPrinters.map(printer => {
+          const inksCount = printer.inks?.length || 0;
+          const hasZeroInventory = printer.inks?.some(i => i.inventory <= 0);
+
+          return (
+            <div 
+              key={printer.id} 
+              onClick={() => setSelectedPrinter(printer)}
+              className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all cursor-pointer group flex flex-col justify-between h-36 relative overflow-hidden"
+            >
+               {/* Decorative background element */}
+               <div className="absolute -right-6 -top-6 w-24 h-24 bg-slate-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-500 ease-out z-0" />
+               
+               <div className="flex justify-between items-start relative z-10">
+                  <h3 className="font-black text-slate-800 text-xl group-hover:text-emerald-600 transition-colors line-clamp-1 pr-4">{printer.name}</h3>
+                  <div className={`w-3 h-3 rounded-full mt-2 shrink-0 shadow-inner ${inksCount > 0 ? (hasZeroInventory ? 'bg-red-500 shadow-red-500/50' : 'bg-emerald-500 shadow-emerald-500/50') : 'bg-slate-300'}`} />
+               </div>
+               
+               <div className="flex justify-between items-end mt-auto relative z-10">
+                 <div className="flex flex-col">
+                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Dažų rūšys</span>
+                   <span className={`font-black text-sm px-3 py-1 rounded-lg ${inksCount > 0 ? (hasZeroInventory ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700') : 'bg-slate-100 text-slate-500'}`}>
+                     {inksCount > 0 ? `${inksCount} VNT.` : 'NEPRISKIRTA'}
+                   </span>
+                 </div>
+                 <div className="text-emerald-500 bg-emerald-50 p-3 rounded-xl group-hover:bg-emerald-500 group-hover:text-white transition-all shadow-sm">
+                    <Settings2 className="w-5 h-5" />
+                 </div>
+               </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ŽURNALAS */}
+      <Card className="border-slate-200 shadow-sm rounded-[32px] overflow-hidden">
+        <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between bg-slate-50/80 pb-5 border-b border-slate-100 gap-4">
+          <CardTitle className="flex items-center gap-3 text-slate-800 font-black text-xl">
+            <History className="w-6 h-6 text-slate-400" /> Dažų Žurnalas
           </CardTitle>
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="relative">
+          
+          <div className="flex flex-wrap gap-3 w-full md:w-auto items-center bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Ieškoti žurnale..."
+                placeholder="Ieškoti pagal operatorių, dažą..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-mimaki-blue/50 w-full md:w-64"
+                className="pl-9 pr-4 py-2 w-full rounded-xl bg-transparent text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-mimaki-blue/20 transition-shadow"
               />
             </div>
+            
+            <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
             
             <input
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-mimaki-blue focus:border-mimaki-blue block p-2 py-2 font-bold uppercase min-w-[140px]"
+              className="bg-transparent text-slate-700 text-sm px-3 py-2 font-bold uppercase outline-none focus:ring-2 focus:ring-mimaki-blue/20 rounded-xl cursor-pointer"
             />
+
+            <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
 
             <select
               value={shiftFilter}
               onChange={(e) => setShiftFilter(e.target.value)}
-              className="bg-white border border-slate-200 text-slate-700 text-sm rounded-xl focus:ring-mimaki-blue focus:border-mimaki-blue block p-2 py-2 font-bold uppercase min-w-[130px]"
+              className="bg-transparent text-slate-700 text-sm px-3 py-2 pr-8 font-bold uppercase outline-none focus:ring-2 focus:ring-mimaki-blue/20 rounded-xl cursor-pointer"
             >
-              <option value="All">Visos</option>
+              <option value="All">Visos Pamainos</option>
               <option value="Dieninė">Dieninė (06-18)</option>
               <option value="Naktinė">Naktinė (18-06)</option>
             </select>
@@ -327,54 +324,86 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
           <table className="w-full text-left">
             <thead className="bg-white border-b border-slate-100">
               <tr>
-                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Data</th>
-                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Operatorius</th>
-                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Spausdintuvas</th>
-                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Spalva</th>
-                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Veiksmas</th>
-                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Pokytis</th>
-                <th className="p-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Nuotrauka</th>
+                <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Data / Laikas</th>
+                <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Operatorius</th>
+                <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Įrenginys</th>
+                <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Dažas</th>
+                <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Veiksmas</th>
+                <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Pokytis</th>
+                <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Nuotrauka</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400 italic font-medium">Nėra įrašų</td>
+                  <td colSpan={7} className="py-16 text-center">
+                     <div className="flex flex-col items-center justify-center opacity-50">
+                        <History className="w-10 h-10 mb-4 text-slate-300" />
+                        <span className="text-sm font-bold uppercase tracking-widest text-slate-400">Nėra įrašų pagal filtrus</span>
+                     </div>
+                  </td>
                 </tr>
               ) : (
-                filteredLogs.map(log => (
-                  <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-4 text-xs font-bold text-slate-500 whitespace-nowrap">
-                      {new Date(log.createdAt).toLocaleString('lt-LT')}
-                    </td>
-                    <td className="p-4 text-sm font-bold text-slate-700">{log.operatorName}</td>
-                    <td className="p-4 text-sm text-slate-600">{log.printerName}</td>
-                    <td className="p-4 text-sm font-bold text-mimaki-blue">{log.inkName || '—'}</td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        log.action === 'NEW_BOTTLE' ? 'bg-mimaki-blue/10 text-mimaki-blue' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {log.action === 'NEW_BOTTLE' ? 'Naujas Butelis' : 'Pradėtas Butelis'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      {log.quantityChange !== 0 ? (
-                        <span className="text-red-500 font-bold text-sm">{log.quantityChange}</span>
-                      ) : (
-                        <span className="text-slate-300 font-medium text-sm">0</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-right">
-                      {log.photoUrl ? (
-                        <a href={log.photoUrl} target="_blank" rel="noreferrer" className="inline-block relative group">
-                          <img src={log.photoUrl} alt="Ink" className="w-12 h-12 rounded-lg object-cover border border-slate-200 shadow-sm transition-transform group-hover:scale-150 group-hover:-translate-x-2 group-hover:-translate-y-2 group-hover:z-10 relative" />
-                        </a>
-                      ) : (
-                        <span className="text-slate-300 text-xs">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                filteredLogs.map(log => {
+                  // Generate a subtle color based on ink name (e.g. Cyan -> cyan, Magenta -> fuchsia, Yellow -> yellow, Black -> slate)
+                  const lowerName = (log.inkName || '').toLowerCase();
+                  let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+                  if (lowerName.includes('cyan') || lowerName.includes('c')) badgeColor = 'bg-cyan-50 text-cyan-700 border-cyan-200';
+                  if (lowerName.includes('magenta') || lowerName.includes('m')) badgeColor = 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200';
+                  if (lowerName.includes('yellow') || lowerName.includes('y')) badgeColor = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+                  if (lowerName.includes('black') || lowerName.includes('k')) badgeColor = 'bg-slate-800 text-white border-slate-900';
+                  if (lowerName.includes('white') || lowerName.includes('w')) badgeColor = 'bg-white text-slate-800 border-slate-300 shadow-sm';
+                  if (lowerName.includes('varnish') || lowerName.includes('v')) badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-50/80 transition-colors group">
+                      <td className="p-5 text-xs font-bold text-slate-500 whitespace-nowrap">
+                        <div className="flex flex-col">
+                           <span className="text-slate-700">{new Date(log.createdAt).toLocaleDateString('lt-LT')}</span>
+                           <span className="text-[10px] text-slate-400">{new Date(log.createdAt).toLocaleTimeString('lt-LT')}</span>
+                        </div>
+                      </td>
+                      <td className="p-5">
+                        <div className="inline-flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700">
+                          {log.operatorName}
+                        </div>
+                      </td>
+                      <td className="p-5 text-sm font-bold text-slate-600">{log.printerName}</td>
+                      <td className="p-5">
+                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase border ${badgeColor}`}>
+                          {log.inkName || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="p-5 text-center">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          log.action === 'NEW_BOTTLE' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {log.action === 'NEW_BOTTLE' ? 'Naujas Butelis' : 'Pradėtas'}
+                        </span>
+                      </td>
+                      <td className="p-5 text-center">
+                        {log.quantityChange !== 0 ? (
+                          <span className={`font-black text-sm px-2 py-1 rounded-md ${log.quantityChange < 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                             {log.quantityChange > 0 ? '+' : ''}{log.quantityChange}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 font-medium text-sm">—</span>
+                        )}
+                      </td>
+                      <td className="p-5 text-right">
+                        {log.photoUrl ? (
+                          <div className="flex justify-end">
+                            <a href={log.photoUrl} target="_blank" rel="noreferrer" className="inline-block relative">
+                              <img src={log.photoUrl} alt="Ink" className="w-10 h-10 rounded-xl object-cover border-2 border-white shadow-sm transition-all hover:scale-150 hover:-translate-x-4 hover:z-20 relative" />
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="text-slate-300 text-xs font-bold">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
