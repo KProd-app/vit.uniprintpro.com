@@ -14,6 +14,7 @@ import { supabase } from '../lib/supabase';
 import { AdminInstructions } from './AdminInstructions';
 import { AdminJournalTab } from './AdminJournalTab';
 import { AdminInkTab } from './AdminInkTab';
+import { getAdminInkPrinters } from '../lib/inkGrouping';
 
 // ... (existing code)
 
@@ -60,11 +61,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
   const [showLowInkModal, setShowLowInkModal] = useState(false);
   const [lowInks, setLowInks] = useState<{ printerId: string, printerName: string; ink: PrinterInk, updatedInv?: number }[]>([]);
   const [isRefillingLowInks, setIsRefillingLowInks] = useState(false);
+  const [hasCheckedLowInk, setHasCheckedLowInk] = useState(false);
 
   useEffect(() => {
-    if (!sessionStorage.getItem('lowInkAlertDismissed')) {
+    if (!hasCheckedLowInk && printers.length > 0) {
       const low: { printerId: string, printerName: string; ink: PrinterInk }[] = [];
-      printers.forEach(p => {
+      const groupedPrinters = getAdminInkPrinters(printers);
+      groupedPrinters.forEach(p => {
         if (p.inks) {
           p.inks.forEach(ink => {
             // Check if minQuantity is set, and if inventory is at or below it
@@ -81,11 +84,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
         setLowInks(low);
         setShowLowInkModal(true);
       }
+      setHasCheckedLowInk(true);
     }
-  }, [printers]);
+  }, [printers, hasCheckedLowInk]);
 
   const handleDismissLowInkModal = () => {
-    sessionStorage.setItem('lowInkAlertDismissed', 'true');
     setShowLowInkModal(false);
     setIsRefillingLowInks(false);
   };
@@ -641,247 +644,205 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
           </div>
         </div>
       ) : viewMode === 'PRINTERS' ? (
-        <div className="space-y-10">
-          <div className="flex justify-between items-center bg-white p-8 rounded-[40px] shadow-sm border border-slate-200">
-            <h3 className="text-xl font-black text-slate-800 uppercase">Stationų Sąrašas</h3>
-            <div className="flex gap-4">
-              <Button onClick={() => setSelectedInstructionPrinters(printers)} className="bg-mimaki-blue hover:bg-blue-600 text-white rounded-xl h-10 px-4 font-bold uppercase text-xs shadow-lg">
-                <Printer className="w-4 h-4 mr-2" /> Visos Instrukcijos
+        <div className="space-y-8 animate-in fade-in duration-300">
+          <div className="flex justify-between items-center bg-white p-6 rounded-[32px] shadow-sm border border-slate-200">
+            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Stationų Sąrašas</h3>
+            <div className="flex gap-3">
+              <Button onClick={() => setSelectedInstructionPrinters(printers)} className="bg-mimaki-blue hover:bg-blue-600 text-white rounded-xl h-10 px-4 font-bold uppercase text-[10px] sm:text-xs shadow-md">
+                <Printer className="w-4 h-4 mr-2" /> Instrukcijos
               </Button>
-              <Button onClick={() => setEditingTemplate('NEW_STATION')} className="bg-slate-900 text-white rounded-xl h-10 px-4 font-bold uppercase text-xs">
-                <Plus className="w-4 h-4 mr-2" /> Pridėti Stationą
+              <Button onClick={() => setEditingTemplate('NEW_STATION')} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-10 px-4 font-bold uppercase text-[10px] sm:text-xs shadow-md shadow-emerald-500/20">
+                <Plus className="w-4 h-4 mr-2" /> Naujas Stationas
               </Button>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {printers.map((printer) => (
-              <div key={printer.id} className="bg-white rounded-[40px] shadow-sm border border-slate-200 overflow-hidden flex flex-col md:flex-row relative group">
-
-                {/* Edit Button */}
-                {/* Action Buttons */}
-                <div className="absolute top-6 right-6 z-10 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white shadow-sm hover:bg-slate-100 rounded-full h-10 w-10 text-slate-400 hover:text-red-500"
-                    title="Nunulinti (Reset)"
-                    onClick={async () => {
-                      if (confirm(`Ar tikrai norite pilnai nunulinti ${printer.name}? Tai ištrins visą šios pamainos progresą.`)) {
-                        try {
-                          await resetPrinter(printer.id);
-                          addToast?.("Stationas sėkmingai nunulintas", "success");
-                        } catch (e) {
-                          console.error(e);
-                          addToast?.("Klaida nunulinant", "error");
-                        }
-                      }
-                    }}
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white shadow-sm hover:bg-slate-100 rounded-full h-10 w-10 text-slate-400 hover:text-mimaki-blue"
-                    title="Atsisiųsti Instrukciją (QR)"
-                    onClick={() => setSelectedInstructionPrinters([printer])}
-                  >
-                    <QrCode className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white shadow-sm hover:bg-slate-100 rounded-full h-10 w-10 text-slate-400 hover:text-mimaki-blue"
-                    onClick={() => setEditingTemplate(printer as any)}
-                  >
-                    <Edit className="w-5 h-5" />
-                  </Button>
-                </div>
-
-                <div className="flex-1 p-10 border-r border-slate-100">
-                  <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">{printer.name}</h3>
-                    <span className={`px-4 py-2 rounded-xl text-xs font-black border uppercase ${printer.status === PrinterStatus.WORKING ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-400'
-                      }`}>
+              <div key={printer.id} className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col relative transition-all hover:border-emerald-200 hover:shadow-md">
+                {/* Header Section */}
+                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2 truncate max-w-[200px]" title={printer.name}>{printer.name}</h3>
+                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black border uppercase ${printer.status === PrinterStatus.WORKING ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-white text-slate-400 border-slate-200 shadow-sm'}`}>
                       {printer.status}
                     </span>
                   </div>
+                  
+                  {/* Action Buttons always visible but compact */}
+                  <div className="flex gap-1 bg-white p-1 rounded-2xl shadow-sm border border-slate-100">
+                    <Button
+                      variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-slate-400 hover:text-mimaki-blue hover:bg-blue-50"
+                      title="Instrukcija" onClick={() => setSelectedInstructionPrinters([printer])}
+                    >
+                      <QrCode className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-slate-400 hover:text-amber-500 hover:bg-amber-50"
+                      title="Redaguoti" onClick={() => setEditingTemplate(printer as any)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost" size="icon" className="h-8 w-8 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50"
+                      title="Nunulinti" onClick={async () => {
+                        if (confirm(`Ar tikrai norite pilnai nunulinti ${printer.name}? Tai ištrins visą šios pamainos progresą.`)) {
+                          try { await resetPrinter(printer.id); addToast?.("Stationas nunulintas", "success"); } 
+                          catch (e) { addToast?.("Klaida nunulinant", "error"); }
+                        }
+                      }}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div className="bg-slate-50 p-4 rounded-2xl">
-                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Operatorius</p>
-                      <p className="font-bold text-slate-800 truncate text-sm">{printer.operatorName || '—'}</p>
+                <div className="p-5 flex-1 flex flex-col gap-5">
+                  {/* Operator & Metrics Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 flex justify-between items-center">
+                      <span className="text-[10px] font-black text-slate-400 uppercase">Operatorius</span>
+                      <span className="font-bold text-slate-800 text-sm truncate max-w-[150px]">{printer.operatorName || '—'}</span>
                     </div>
+
                     {printer.name.toLowerCase().includes('pakavimas') ? (
                       <>
-                        <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100">
-                          <p className="text-[10px] font-black text-amber-500 uppercase mb-1">Roboto Brokas</p>
-                          <input
-                            type="number"
-                            className="bg-transparent font-black text-xl text-amber-700 w-full focus:outline-none"
-                            value={printer.robotDefects ?? ''}
-                            placeholder="0"
-                            onChange={(e) => updatePrinter(printer.id, { robotDefects: parseInt(e.target.value) || 0 })}
-                          />
+                        <div className="bg-amber-50 p-3 rounded-2xl border border-amber-100">
+                          <p className="text-[10px] font-black text-amber-500 uppercase mb-1">Roboto Brok.</p>
+                          <input type="number" className="bg-transparent font-black text-lg text-amber-700 w-full outline-none" value={printer.robotDefects ?? ''} placeholder="0" onChange={(e) => updatePrinter(printer.id, { robotDefects: parseInt(e.target.value) || 0 })} />
                         </div>
-                        <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
-                          <p className="text-[10px] font-black text-red-500 uppercase mb-1">Spaudos Brokas</p>
-                          <input
-                            type="number"
-                            className="bg-transparent font-black text-xl text-red-700 w-full focus:outline-none"
-                            value={printer.printingDefects ?? ''}
-                            placeholder="0"
-                            onChange={(e) => updatePrinter(printer.id, { printingDefects: parseInt(e.target.value) || 0 })}
-                          />
+                        <div className="bg-red-50 p-3 rounded-2xl border border-red-100">
+                          <p className="text-[10px] font-black text-red-500 uppercase mb-1">Spaudos Brok.</p>
+                          <input type="number" className="bg-transparent font-black text-lg text-red-700 w-full outline-none" value={printer.printingDefects ?? ''} placeholder="0" onChange={(e) => updatePrinter(printer.id, { printingDefects: parseInt(e.target.value) || 0 })} />
                         </div>
                       </>
                     ) : (
                       <>
-                        <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
+                        <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-100">
                           <p className="text-[10px] font-black text-emerald-500 uppercase mb-1">Pagamino</p>
-                          <input
-                            type="number"
-                            className="bg-transparent font-black text-xl text-emerald-700 w-full focus:outline-none"
-                            value={printer.productionAmount ?? ''}
-                            placeholder="0"
-                            onChange={(e) => updatePrinter(printer.id, { productionAmount: parseInt(e.target.value) || 0 })}
-                          />
+                          <input type="number" className="bg-transparent font-black text-lg text-emerald-700 w-full outline-none" value={printer.productionAmount ?? ''} placeholder="0" onChange={(e) => updatePrinter(printer.id, { productionAmount: parseInt(e.target.value) || 0 })} />
                         </div>
-                        <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+                        <div className="bg-red-50 p-3 rounded-2xl border border-red-100">
                           <p className="text-[10px] font-black text-red-500 uppercase mb-1">Brokas</p>
-                          <input
-                            type="number"
-                            className="bg-transparent font-black text-xl text-red-700 w-full focus:outline-none"
-                            value={printer.defectsAmount ?? ''}
-                            placeholder="0"
-                            onChange={(e) => updatePrinter(printer.id, { defectsAmount: parseInt(e.target.value) || 0 })}
-                          />
+                          <input type="number" className="bg-transparent font-black text-lg text-red-700 w-full outline-none" value={printer.defectsAmount ?? ''} placeholder="0" onChange={(e) => updatePrinter(printer.id, { defectsAmount: parseInt(e.target.value) || 0 })} />
                         </div>
                       </>
                     )}
-                    <div className="bg-slate-50 p-4 rounded-2xl flex flex-col justify-center border border-slate-100">
-                      {printer.name.toLowerCase().includes('pakavimas') ? null : (
-                        <div className="mb-2">
-                          <p className="text-[9px] font-black text-orange-500 uppercase mb-0.5">Atsilikimas</p>
-                          <input
-                            type="number"
-                            className="bg-transparent font-black text-sm text-orange-700 w-full focus:outline-none"
-                            value={printer.backlog ?? ''}
-                            placeholder="0"
-                            onChange={(e) => updatePrinter(printer.id, { backlog: parseInt(e.target.value) || 0 })}
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-[9px] font-black text-blue-500 uppercase mb-0.5">Liko</p>
-                        <input
-                          type="number"
-                          className="bg-transparent font-black text-sm text-blue-700 w-full focus:outline-none"
-                          value={printer.remainingAmount ?? ''}
-                          placeholder="0"
-                          onChange={(e) => updatePrinter(printer.id, { remainingAmount: parseInt(e.target.value) || 0 })}
-                        />
+
+                    {!printer.name.toLowerCase().includes('pakavimas') && (
+                      <div className="bg-orange-50 p-3 rounded-2xl border border-orange-100">
+                        <p className="text-[9px] font-black text-orange-500 uppercase mb-0.5">Atsilikimas</p>
+                        <input type="number" className="bg-transparent font-black text-lg text-orange-700 w-full outline-none" value={printer.backlog ?? ''} placeholder="0" onChange={(e) => updatePrinter(printer.id, { backlog: parseInt(e.target.value) || 0 })} />
                       </div>
+                    )}
+                    
+                    <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100">
+                      <p className="text-[9px] font-black text-blue-500 uppercase mb-0.5">Liko</p>
+                      <input type="number" className="bg-transparent font-black text-lg text-blue-700 w-full outline-none" value={printer.remainingAmount ?? ''} placeholder="0" onChange={(e) => updatePrinter(printer.id, { remainingAmount: parseInt(e.target.value) || 0 })} />
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase">Pradžios Checklistas</label>
+                  {/* Settings & Checklists */}
+                  <div className="space-y-3 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">Pradžia</label>
                       <select
-                        className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-mimaki-blue/50"
-                        value={printer.checklistTemplateId || ''}
-                        onChange={(e) => updatePrinter(printer.id, { checklistTemplateId: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 text-xs focus:ring-2 outline-none focus:border-emerald-500"
+                        value={printer.checklistTemplateId || ''} onChange={(e) => updatePrinter(printer.id, { checklistTemplateId: e.target.value })}
                       >
                         <option value="">-- Nėra --</option>
-                        {checklistTemplates.filter(t => !t.type || t.type === 'START').map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
+                        {checklistTemplates.filter(t => !t.type || t.type === 'START').map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                       </select>
                     </div>
-
-                    <div className="mt-4">
-                      <label className="text-[10px] font-black text-slate-400 uppercase">Pabaigos Checklistas</label>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">Pabaiga</label>
                       <select
-                        className="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-mimaki-blue/50"
-                        value={printer.endShiftChecklistId || ''}
-                        onChange={(e) => updatePrinter(printer.id, { endShiftChecklistId: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 text-xs focus:ring-2 outline-none focus:border-emerald-500"
+                        value={printer.endShiftChecklistId || ''} onChange={(e) => updatePrinter(printer.id, { endShiftChecklistId: e.target.value })}
                       >
                         <option value="">-- Nėra --</option>
-                        {checklistTemplates.filter(t => t.type === 'END').map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
+                        {checklistTemplates.filter(t => t.type === 'END').map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                       </select>
                     </div>
-
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-3 h-3 rounded-full ${printer.maintenanceDone ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
-                      <span className="font-bold text-slate-600 text-sm">Priežiūra atlikta</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-3 h-3 rounded-full ${printer.vit.confirmed ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
-                      <span className="font-bold text-slate-600 text-sm">VIT Forma patvirtinta</span>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${printer.maintenanceDone ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
+                        <span className="font-bold text-slate-500 text-[10px] uppercase">Priežiūra</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${printer.vit.confirmed ? 'bg-emerald-500' : 'bg-slate-200'}`}></div>
+                        <span className="font-bold text-slate-500 text-[10px] uppercase">VIT</span>
+                      </div>
                     </div>
                   </div>
 
                   {printer.nextOperatorMessage && (
-                    <div className="mt-8 p-6 bg-amber-50 rounded-3xl text-amber-800 text-sm italic font-medium border border-amber-100">
-                      <span className="block text-[10px] font-black uppercase mb-1 opacity-50">Žinutė kitai pamainai:</span>
-                      "{printer.nextOperatorMessage}"
+                    <div className="p-3 bg-amber-50 rounded-2xl text-amber-800 text-xs italic font-medium border border-amber-100 flex gap-2 items-start">
+                      <MessageSquare className="w-4 h-4 shrink-0 mt-0.5 opacity-50" />
+                      <div>
+                        <span className="block text-[9px] font-black uppercase mb-0.5 opacity-50 not-italic">Žinutė kitai pamainai:</span>
+                        {printer.nextOperatorMessage}
+                      </div>
                     </div>
                   )}
                 </div>
 
-                <div className="w-full md:w-[400px] p-10 bg-slate-50 flex flex-col items-center justify-center">
-                  <p className="text-sm font-black text-slate-400 uppercase mb-6 tracking-widest text-center">Nozzle Check Foto</p>
+                {/* Nozzle Checks (Thumbnails at bottom) */}
+                <div className="bg-slate-50 border-t border-slate-100 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <QrCode className="w-3 h-3" /> Nozzle Check Foto
+                    </p>
+                  </div>
+                  
                   {printer.isMimaki ? (
-                    <div className="grid grid-cols-2 gap-4 w-full">
-                      {(printer.selectedMimakiUnits || []).map(unit => (
-                        <div key={unit} className="relative group cursor-zoom-in" onClick={() => setSelectedImg(printer.mimakiNozzleFiles?.[unit]?.url || null)}>
-                          <div className="mb-2 flex justify-between items-center">
-                            <span className="text-[10px] font-black uppercase text-slate-400">Blokas {unit}</span>
-                            {printer.mimakiNozzleFiles?.[unit] ? (
-                              <span className="text-[10px] font-bold text-emerald-500">Yra</span>
-                            ) : (
-                              <span className="text-[10px] font-bold text-red-400">Nėra</span>
-                            )}
-                          </div>
-                          {printer.mimakiNozzleFiles?.[unit] ? (
-                            <img
-                              src={printer.mimakiNozzleFiles[unit].url}
-                              className="rounded-xl shadow-sm border-2 border-white w-full h-24 object-cover transition-transform group-hover:scale-105"
-                              alt={`Nozzle ${unit}`}
-                            />
-                          ) : (
-                            <div className="w-full h-24 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center bg-slate-100">
-                              <span className="text-slate-300 text-[10px] font-bold">---</span>
+                    <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+                      {(printer.selectedMimakiUnits || []).length > 0 ? (
+                        (printer.selectedMimakiUnits || []).map(unit => {
+                          const file = printer.mimakiNozzleFiles?.[unit];
+                          return (
+                            <div 
+                              key={unit} 
+                              className={`relative shrink-0 w-16 h-16 rounded-xl border-2 overflow-hidden flex flex-col justify-end ${file ? 'border-emerald-200 cursor-zoom-in group' : 'border-slate-200 border-dashed bg-white'}`}
+                              onClick={() => file && setSelectedImg(file.url)}
+                            >
+                              {file ? (
+                                <>
+                                  <img src={file.url} alt={`Unit ${unit}`} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                  <span className="relative z-10 text-[9px] font-black text-white px-1 text-center mb-1">BL. {unit}</span>
+                                </>
+                              ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center">
+                                  <span className="text-[9px] font-black text-slate-300">BL. {unit}</span>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      ))}
-                      {(!printer.selectedMimakiUnits || printer.selectedMimakiUnits.length === 0) && (
-                        <div className="col-span-2 text-center py-4 text-slate-400 text-xs italic">Nėra pasirinktų blokų</div>
+                          );
+                        })
+                      ) : (
+                        <div className="text-slate-400 text-xs italic py-2">Nėra pasirinktų blokų</div>
                       )}
                     </div>
                   ) : (
-                    printer.nozzleFile ? (
-                      <div className="relative group cursor-zoom-in w-full text-center" onClick={() => setSelectedImg(printer.nozzleFile?.url || null)}>
-                        <img
-                          src={printer.nozzleFile.url}
-                          className="rounded-3xl shadow-xl border-4 border-white max-h-60 mx-auto transition-transform group-hover:scale-105"
-                          alt="Nozzle"
-                        />
-                        <div className="mt-4">
-                          <p className="text-[10px] font-bold text-slate-500">{printer.nozzleFile.timestamp}</p>
+                    <div 
+                      className={`relative w-20 h-20 rounded-2xl border-2 overflow-hidden flex items-end ${printer.nozzleFile ? 'border-emerald-200 cursor-zoom-in group' : 'border-slate-200 border-dashed bg-white'}`}
+                      onClick={() => printer.nozzleFile && setSelectedImg(printer.nozzleFile.url)}
+                    >
+                      {printer.nozzleFile ? (
+                        <>
+                          <img src={printer.nozzleFile.url} alt="Nozzle" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                          <span className="relative z-10 text-[10px] font-black text-white w-full text-center pb-1">Yra</span>
+                        </>
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-[10px] font-black text-slate-300 uppercase">Nėra</span>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="w-full h-48 border-4 border-dashed border-slate-200 rounded-[32px] flex items-center justify-center">
-                        <span className="text-slate-300 font-bold uppercase text-xs">Nuotraukos nėra</span>
-                      </div>
-                    )
+                      )}
+                    </div>
                   )}
                 </div>
+
               </div>
             ))}
           </div>
