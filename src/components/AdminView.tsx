@@ -141,39 +141,39 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
       {/* Low Ink Alert Modal */}
       {showLowInkModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[300] flex items-center justify-center p-4">
-          <div className={`bg-white rounded-[32px] p-6 md:p-8 w-full ${isRefillingLowInks ? 'max-w-2xl' : 'max-w-md'} shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]`}>
+          <div className={`bg-white rounded-[32px] p-5 sm:p-8 w-full ${isRefillingLowInks ? 'max-w-2xl' : 'max-w-md'} shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]`}>
             
-            <div className="flex flex-col items-center text-center mb-6">
-               <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
-                 <Droplet className="w-8 h-8" />
+            <div className="flex flex-col items-center text-center mb-4 sm:mb-6 shrink-0">
+               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-3 sm:mb-4">
+                 <Droplet className="w-6 h-6 sm:w-8 sm:h-8" />
                </div>
-               <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Trūksta Dažų!</h2>
-               <p className="text-slate-500 text-sm mt-2">
+               <h2 className="text-xl sm:text-2xl font-black text-slate-800 uppercase tracking-tight">Trūksta Dažų!</h2>
+               <p className="text-slate-500 text-xs sm:text-sm mt-1 sm:mt-2">
                  Šių dažų likutis pasiekė arba nukrito žemiau minimalios leistinos ribos:
                </p>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-4 mb-6 overflow-y-auto custom-scrollbar max-h-64 border border-slate-100">
+            <div className="bg-slate-50 rounded-2xl p-3 sm:p-4 mb-4 sm:mb-6 overflow-y-auto custom-scrollbar flex-1 min-h-0 border border-slate-100">
                <div className="space-y-3">
                  {lowInks.map((item, idx) => (
-                   <div key={`${item.printerId}-${item.ink.id}-${idx}`} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-                      <div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">{item.printerName}</div>
-                        <div className="font-black text-slate-800">{item.ink.name}</div>
+                   <div key={`${item.printerId}-${item.ink.id}-${idx}`} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase truncate">{item.printerName}</div>
+                        <div className="font-black text-slate-800 text-sm sm:text-base truncate">{item.ink.name}</div>
                       </div>
                       
                       {!isRefillingLowInks ? (
-                        <div className="flex items-center gap-2">
-                          <div className="text-xs font-bold text-slate-500">
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-[10px] sm:text-xs font-bold text-slate-500 whitespace-nowrap">
                             Min: {item.ink.minQuantity || 0}
                           </div>
-                          <div className="bg-red-100 text-red-600 px-3 py-1 rounded-lg font-black text-lg min-w-[3rem] text-center">
+                          <div className="bg-red-100 text-red-600 px-2 sm:px-3 py-1 rounded-lg font-black text-sm sm:text-lg min-w-[2.5rem] sm:min-w-[3rem] text-center">
                             {item.ink.inventory}
                           </div>
                         </div>
                       ) : (
-                        <div className="flex flex-col items-end">
-                           <label className="text-[10px] font-bold uppercase text-slate-400 mb-1">Naujas Likutis</label>
+                        <div className="flex flex-col items-end shrink-0">
+                           <label className="text-[9px] sm:text-[10px] font-bold uppercase text-slate-400 mb-1">Naujas Likutis</label>
                            <input 
                              type="number" 
                              value={item.updatedInv !== undefined ? item.updatedInv : item.ink.inventory} 
@@ -182,7 +182,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                                newLowInks[idx].updatedInv = Number(e.target.value);
                                setLowInks(newLowInks);
                              }}
-                             className="w-24 h-10 rounded-xl px-3 font-black text-lg outline-none border border-slate-200 focus:ring-2 focus:ring-emerald-500/50 text-center"
+                             className="w-16 sm:w-24 h-8 sm:h-10 rounded-xl px-2 sm:px-3 font-black text-sm sm:text-lg outline-none border border-slate-200 focus:ring-2 focus:ring-emerald-500/50 text-center"
                            />
                         </div>
                       )}
@@ -191,19 +191,19 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 mt-auto">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 shrink-0">
                {!isRefillingLowInks ? (
                  <>
                    <Button 
                      variant="outline" 
                      onClick={handleDismissLowInkModal} 
-                     className="flex-1 h-12 rounded-xl font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
+                     className="flex-1 h-10 sm:h-12 rounded-xl font-bold border-slate-200 text-slate-600 hover:bg-slate-50 text-xs sm:text-sm"
                    >
-                     Uždaryti, dar keliauja
+                     Uždaryti, keliauja
                    </Button>
                    <Button 
                      onClick={() => setIsRefillingLowInks(true)} 
-                     className="flex-1 h-12 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
+                     className="flex-1 h-10 sm:h-12 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20 text-xs sm:text-sm"
                    >
                      Papildyti Dabar
                    </Button>
@@ -213,13 +213,13 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                    <Button 
                      variant="ghost" 
                      onClick={() => setIsRefillingLowInks(false)} 
-                     className="flex-1 h-12 rounded-xl font-bold text-slate-500 hover:bg-slate-100"
+                     className="flex-1 h-10 sm:h-12 rounded-xl font-bold text-slate-500 hover:bg-slate-100 text-xs sm:text-sm"
                    >
                      Atšaukti
                    </Button>
                    <Button 
                      onClick={handleSaveLowInks} 
-                     className="flex-1 h-12 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
+                     className="flex-1 h-10 sm:h-12 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20 text-xs sm:text-sm"
                    >
                      Išsaugoti Likučius
                    </Button>
