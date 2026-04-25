@@ -23,10 +23,16 @@
 
 /* Pride Theme Overrides */
 .theme-pride {
-    --color-mimaki-blue: #8b5cf6; /* Vibrant Purple */
+    --color-mimaki-blue: #db2777; /* Strong Pink/Magenta */
     --color-mimaki-dark: #1e1b4b; /* Deep Indigo */
-    --color-mimaki-gray: #f8fafc; /* Clean Light Gray */
+    --color-mimaki-gray: #fdf4ff; /* Fuchsia 50 */
     --color-mimaki-surface: #ffffff; /* Clean white */
+}
+
+@keyframes rainbow-bg { 
+    0%{background-position:0% 82%}
+    50%{background-position:100% 19%}
+    100%{background-position:0% 82%}
 }
 
 body {

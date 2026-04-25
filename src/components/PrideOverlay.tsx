@@ -3,12 +3,12 @@ import React, { useEffect, useState } from 'react';
 const random = (min: number, max: number) => Math.random() * (max - min) + min;
 
 const PRIDE_COLORS = [
-  '#FF0018', // Red
-  '#FFA52C', // Orange
-  '#FFFF41', // Yellow
-  '#008018', // Green
-  '#0000F9', // Blue
-  '#86007D'  // Purple
+  '#E40303', // Red
+  '#FF8C00', // Orange
+  '#FFED00', // Yellow
+  '#008026', // Green
+  '#004DFF', // Blue
+  '#732982'  // Purple
 ];
 
 interface Particle {
@@ -21,66 +21,70 @@ interface Particle {
   rotationDuration: string;
   rotationDirection: string;
   color: string;
-  type: 'star' | 'circle';
 }
 
 export const PrideOverlay: React.FC = () => {
   const [particles, setParticles] = useState<Particle[]>([]);
 
   useEffect(() => {
-    // Generate 40 particles
-    const newParticles: Particle[] = Array.from({ length: 40 }).map((_, i) => ({
+    // Generate 50 heart particles
+    const newParticles: Particle[] = Array.from({ length: 50 }).map((_, i) => ({
       id: i,
       left: `${random(-10, 100)}vw`,
-      animationDuration: `${random(15, 25)}s`, // Falling speed
+      animationDuration: `${random(10, 20)}s`, // Falling speed
       animationDelay: `-${random(0, 25)}s`,
-      scale: random(0.3, 1.0),
+      scale: random(0.5, 1.5),
       opacity: random(0.6, 1),
       rotationDuration: `${random(3, 8)}s`,
       rotationDirection: Math.random() > 0.5 ? 'normal' : 'reverse',
-      color: PRIDE_COLORS[Math.floor(Math.random() * PRIDE_COLORS.length)],
-      type: Math.random() > 0.5 ? 'star' : 'circle'
+      color: PRIDE_COLORS[Math.floor(Math.random() * PRIDE_COLORS.length)]
     }));
     setParticles(newParticles);
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 pointer-events-none overflow-hidden" aria-hidden="true">
-      {/* Subtle animated rainbow glow at the bottom */}
-      <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-r from-red-500/10 via-yellow-500/10 to-purple-500/10 blur-2xl animate-pulse"></div>
+    <>
+      {/* Full screen animated rainbow background with glassmorphism overlay */}
+      <div 
+        className="fixed inset-0 z-0 pointer-events-none opacity-20"
+        style={{
+          background: 'linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3)',
+          backgroundSize: '1800% 1800%',
+          animation: 'rainbow-bg 15s ease infinite'
+        }}
+      />
       
-      {particles.map((p) => (
-        <div
-          key={p.id}
-          className="absolute -top-[50px] animate-fall"
-          style={{
-            left: p.left,
-            animationDuration: p.animationDuration,
-            animationDelay: p.animationDelay,
-            opacity: p.opacity,
-            transform: `scale(${p.scale})`,
-          }}
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill={p.color}
-            xmlns="http://www.w3.org/2000/svg"
-            className="animate-sway drop-shadow-md"
+      <div className="fixed inset-0 z-50 pointer-events-none overflow-hidden" aria-hidden="true">
+        {particles.map((p) => (
+          <div
+            key={p.id}
+            className="absolute -top-[50px] animate-fall"
             style={{
-              animationDuration: p.rotationDuration,
-              animationDirection: p.rotationDirection as any,
+              left: p.left,
+              animationDuration: p.animationDuration,
+              animationDelay: p.animationDelay,
+              opacity: p.opacity,
+              transform: `scale(${p.scale})`,
             }}
           >
-            {p.type === 'star' ? (
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-            ) : (
-              <circle cx="12" cy="12" r="10" />
-            )}
-          </svg>
-        </div>
-      ))}
-    </div>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill={p.color}
+              xmlns="http://www.w3.org/2000/svg"
+              className="animate-sway drop-shadow-lg"
+              style={{
+                animationDuration: p.rotationDuration,
+                animationDirection: p.rotationDirection as any,
+              }}
+            >
+               {/* Heart SVG */}
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </div>
+        ))}
+      </div>
+    </>
   );
 };
