@@ -49,6 +49,7 @@ export interface PrinterInk {
   name: string; // Pavadinimas, pvz., "Cyan", "Magenta"
   qrCode: string; // Barkodas/QR kodas, kuris skenuojamas imant naują butelį
   inventory: number; // Likutis buteliais
+  minQuantity?: number; // Minimalus leistinas kiekis (iki įspėjimo)
 }
 
 // Static configuration that doesn't change during operation

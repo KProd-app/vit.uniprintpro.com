@@ -56,6 +56,64 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
 
+  // Low Ink Modal State
+  const [showLowInkModal, setShowLowInkModal] = useState(false);
+  const [lowInks, setLowInks] = useState<{ printerId: string, printerName: string; ink: PrinterInk, updatedInv?: number }[]>([]);
+  const [isRefillingLowInks, setIsRefillingLowInks] = useState(false);
+
+  useEffect(() => {
+    if (!sessionStorage.getItem('lowInkAlertDismissed')) {
+      const low: { printerId: string, printerName: string; ink: PrinterInk }[] = [];
+      printers.forEach(p => {
+        if (p.inks) {
+          p.inks.forEach(ink => {
+            // Check if minQuantity is set, and if inventory is at or below it
+            if (ink.minQuantity !== undefined && ink.minQuantity > 0 && ink.inventory <= ink.minQuantity) {
+              low.push({ printerId: p.id, printerName: p.name, ink });
+            } else if ((ink.minQuantity === undefined || ink.minQuantity === 0) && ink.inventory <= 0) {
+              // Fallback for default behaviour (zero inventory)
+              low.push({ printerId: p.id, printerName: p.name, ink });
+            }
+          });
+        }
+      });
+      if (low.length > 0) {
+        setLowInks(low);
+        setShowLowInkModal(true);
+      }
+    }
+  }, [printers]);
+
+  const handleDismissLowInkModal = () => {
+    sessionStorage.setItem('lowInkAlertDismissed', 'true');
+    setShowLowInkModal(false);
+    setIsRefillingLowInks(false);
+  };
+
+  const handleSaveLowInks = async () => {
+     const grouped = lowInks.reduce((acc, curr) => {
+        if (!acc[curr.printerId]) acc[curr.printerId] = [];
+        acc[curr.printerId].push(curr);
+        return acc;
+     }, {} as Record<string, typeof lowInks>);
+     
+     for (const printerId of Object.keys(grouped)) {
+        const printer = printers.find(p => p.id === printerId);
+        if (printer) {
+           let updatedInks = [...(printer.inks || [])];
+           for (const change of grouped[printerId]) {
+              if (change.updatedInv !== undefined) {
+                 updatedInks = updatedInks.map(i => i.id === change.ink.id ? { ...i, inventory: change.updatedInv! } : i);
+              }
+           }
+           await updatePrinter(printerId, { inks: updatedInks });
+        }
+     }
+     
+     addToast?.('Dažų likučiai atnaujinti!', 'success');
+     handleDismissLowInkModal();
+  };
+
   useEffect(() => {
     getUsers().then(setUsers);
   }, [getUsers]);
@@ -76,6 +134,98 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
 
   return (
     <div className={`p-6 md:p-10 max-w-7xl mx-auto ${selectedInstructionPrinters.length > 0 ? 'print:p-0 print:max-w-none print:m-0' : ''}`}>
+
+      {/* Low Ink Alert Modal */}
+      {showLowInkModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[300] flex items-center justify-center p-4">
+          <div className={`bg-white rounded-[32px] p-6 md:p-8 w-full ${isRefillingLowInks ? 'max-w-2xl' : 'max-w-md'} shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]`}>
+            
+            <div className="flex flex-col items-center text-center mb-6">
+               <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-4">
+                 <Droplet className="w-8 h-8" />
+               </div>
+               <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Trūksta Dažų!</h2>
+               <p className="text-slate-500 text-sm mt-2">
+                 Šių dažų likutis pasiekė arba nukrito žemiau minimalios leistinos ribos:
+               </p>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-4 mb-6 overflow-y-auto custom-scrollbar max-h-64 border border-slate-100">
+               <div className="space-y-3">
+                 {lowInks.map((item, idx) => (
+                   <div key={`${item.printerId}-${item.ink.id}-${idx}`} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                      <div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">{item.printerName}</div>
+                        <div className="font-black text-slate-800">{item.ink.name}</div>
+                      </div>
+                      
+                      {!isRefillingLowInks ? (
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs font-bold text-slate-500">
+                            Min: {item.ink.minQuantity || 0}
+                          </div>
+                          <div className="bg-red-100 text-red-600 px-3 py-1 rounded-lg font-black text-lg min-w-[3rem] text-center">
+                            {item.ink.inventory}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-end">
+                           <label className="text-[10px] font-bold uppercase text-slate-400 mb-1">Naujas Likutis</label>
+                           <input 
+                             type="number" 
+                             value={item.updatedInv !== undefined ? item.updatedInv : item.ink.inventory} 
+                             onChange={(e) => {
+                               const newLowInks = [...lowInks];
+                               newLowInks[idx].updatedInv = Number(e.target.value);
+                               setLowInks(newLowInks);
+                             }}
+                             className="w-24 h-10 rounded-xl px-3 font-black text-lg outline-none border border-slate-200 focus:ring-2 focus:ring-emerald-500/50 text-center"
+                           />
+                        </div>
+                      )}
+                   </div>
+                 ))}
+               </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-auto">
+               {!isRefillingLowInks ? (
+                 <>
+                   <Button 
+                     variant="outline" 
+                     onClick={handleDismissLowInkModal} 
+                     className="flex-1 h-12 rounded-xl font-bold border-slate-200 text-slate-600 hover:bg-slate-50"
+                   >
+                     Uždaryti, dar keliauja
+                   </Button>
+                   <Button 
+                     onClick={() => setIsRefillingLowInks(true)} 
+                     className="flex-1 h-12 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
+                   >
+                     Papildyti Dabar
+                   </Button>
+                 </>
+               ) : (
+                 <>
+                   <Button 
+                     variant="ghost" 
+                     onClick={() => setIsRefillingLowInks(false)} 
+                     className="flex-1 h-12 rounded-xl font-bold text-slate-500 hover:bg-slate-100"
+                   >
+                     Atšaukti
+                   </Button>
+                   <Button 
+                     onClick={handleSaveLowInks} 
+                     className="flex-1 h-12 rounded-xl font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
+                   >
+                     Išsaugoti Likučius
+                   </Button>
+                 </>
+               )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Image Lightbox */}
       {selectedImg && (

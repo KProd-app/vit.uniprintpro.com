@@ -26,6 +26,7 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
   const [newInkName, setNewInkName] = useState('');
   const [newInkQr, setNewInkQr] = useState('');
   const [newInkInv, setNewInkInv] = useState<number | ''>('');
+  const [newInkMinInv, setNewInkMinInv] = useState<number | ''>('');
 
   useEffect(() => {
     loadSettings();
@@ -78,7 +79,8 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
       id: crypto.randomUUID(),
       name: newInkName,
       qrCode: newInkQr,
-      inventory: Number(newInkInv) || 0
+      inventory: Number(newInkInv) || 0,
+      minQuantity: Number(newInkMinInv) || 0
     };
 
     const currentInks = selectedPrinter.inks || [];
@@ -92,6 +94,7 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
       setNewInkName('');
       setNewInkQr('');
       setNewInkInv('');
+      setNewInkMinInv('');
     } catch (e) {
       addToast?.('Klaida pridedant dažą', 'error');
     }
@@ -123,6 +126,19 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
        setSelectedPrinter({ ...selectedPrinter, inks: updatedInks });
      } catch(e) {
        addToast?.('Klaida atnaujinant likutį', 'error');
+     }
+  };
+
+  const handleUpdateInkMinInv = async (inkId: string, newValue: number) => {
+     if (!selectedPrinter) return;
+     const currentInks = selectedPrinter.inks || [];
+     const updatedInks = currentInks.map(i => i.id === inkId ? { ...i, minQuantity: newValue } : i);
+
+     try {
+       await syncGroupedInks(selectedPrinter.id, updatedInks, printers, updatePrinter);
+       setSelectedPrinter({ ...selectedPrinter, inks: updatedInks });
+     } catch(e) {
+       addToast?.('Klaida atnaujinant minimalų likutį', 'error');
      }
   };
 
@@ -165,7 +181,11 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
                      <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">QR Kodas / Barkodas</label>
                      <input type="text" value={newInkQr} onChange={e => setNewInkQr(e.target.value)} placeholder="Skenuokite kodą" className="w-full h-11 rounded-xl border border-slate-200 px-4 font-mono font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow bg-white" />
                   </div>
-                  <div className="w-full md:w-32">
+                  <div className="w-full md:w-24">
+                     <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Min. Likutis</label>
+                     <input type="number" value={newInkMinInv} onChange={e => setNewInkMinInv(e.target.value ? Number(e.target.value) : '')} placeholder="0" className="w-full h-11 rounded-xl border border-slate-200 px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow bg-white" />
+                  </div>
+                  <div className="w-full md:w-28">
                      <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Likutis (Vnt.)</label>
                      <input type="number" value={newInkInv} onChange={e => setNewInkInv(e.target.value ? Number(e.target.value) : '')} placeholder="0" className="w-full h-11 rounded-xl border border-slate-200 px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow bg-white" />
                   </div>
@@ -183,21 +203,35 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
                     <span className="text-sm font-bold uppercase tracking-wider">Nėra priskirtų dažų</span>
                   </div>
                 ) : (
-                  selectedPrinter.inks.map(ink => (
-                    <div key={ink.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl hover:border-emerald-300 hover:shadow-sm transition-all gap-4">
+                  selectedPrinter.inks.map(ink => {
+                    const isLow = ink.inventory <= (ink.minQuantity || 0);
+                    return (
+                    <div key={ink.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white border ${isLow ? 'border-red-300 shadow-sm' : 'border-slate-200'} rounded-2xl hover:border-emerald-300 hover:shadow-sm transition-all gap-4`}>
                       <div className="flex-1">
-                        <div className="font-black text-slate-800 text-lg mb-1">{ink.name}</div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className={`font-black text-lg ${isLow ? 'text-red-600' : 'text-slate-800'}`}>{ink.name}</div>
+                          {isLow && <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Trūksta</span>}
+                        </div>
                         <div className="text-slate-400 text-xs font-mono bg-slate-100 inline-block px-2 py-0.5 rounded-md">{ink.qrCode || 'Barkodas nepriskirtas'}</div>
                       </div>
                       
                       <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end">
+                           <label className="text-[10px] font-bold uppercase text-slate-400 mb-1" title="Minimalus leistinas kiekis">Min. Likutis</label>
+                           <input 
+                             type="number" 
+                             value={ink.minQuantity || 0} 
+                             onChange={(e) => handleUpdateInkMinInv(ink.id, Number(e.target.value))}
+                             className="w-20 h-10 rounded-xl px-3 font-bold text-sm outline-none border text-center transition-all bg-slate-50 text-slate-600 border-slate-200 focus:ring-2 focus:ring-emerald-500/50"
+                           />
+                        </div>
                         <div className="flex flex-col items-end">
                            <label className="text-[10px] font-bold uppercase text-slate-400 mb-1">Likutis</label>
                            <input 
                              type="number" 
                              value={ink.inventory} 
                              onChange={(e) => handleUpdateInkInv(ink.id, Number(e.target.value))}
-                             className={`w-24 h-10 rounded-xl px-3 font-black text-lg outline-none border text-center transition-all ${ink.inventory <= 0 ? 'bg-red-50 text-red-600 border-red-200 focus:ring-red-500/50' : 'bg-slate-50 text-emerald-700 border-slate-200 focus:ring-2 focus:ring-emerald-500/50'}`}
+                             className={`w-24 h-10 rounded-xl px-3 font-black text-lg outline-none border text-center transition-all ${isLow ? 'bg-red-50 text-red-600 border-red-200 focus:ring-red-500/50 ring-2 ring-red-500/20' : 'bg-slate-50 text-emerald-700 border-slate-200 focus:ring-2 focus:ring-emerald-500/50'}`}
                            />
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteInk(ink.id)} className="text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl h-10 w-10 mt-5">
@@ -205,7 +239,7 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
                         </Button>
                       </div>
                     </div>
-                  ))
+                  )})
                 )}
               </div>
             </div>
