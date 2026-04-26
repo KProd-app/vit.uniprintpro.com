@@ -29,6 +29,27 @@
     --color-mimaki-surface: #ffffff; /* Clean white */
 }
 
+.theme-pride .bg-mimaki-blue,
+.theme-pride .text-mimaki-blue {
+    background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #ff2400) !important;
+    background-size: 300% 300% !important;
+    animation: rainbow-bg 3s ease infinite !important;
+    color: white !important;
+    border: none !important;
+    -webkit-background-clip: padding-box;
+}
+
+.theme-pride .text-mimaki-blue {
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+}
+
+.theme-pride .bg-mimaki-blue:hover {
+    background-size: 150% 150% !important;
+    animation-duration: 1s !important;
+}
+
 @keyframes rainbow-bg { 
     0%{background-position:0% 82%}
     50%{background-position:100% 19%}
