@@ -515,7 +515,8 @@ export class SupabaseRepository implements StorageRepository {
                 email: row.email, // Add email mapping
                 name: row.name || row.email?.split('@')[0] || 'User',
                 role: role,
-                pin: row.pin_code || ''
+                pin: row.pin_code || '',
+                theme: row.theme
             };
         });
     }
@@ -524,7 +525,8 @@ export class SupabaseRepository implements StorageRepository {
         const updates: any = {};
         if (data.name) updates.name = data.name;
         if (data.role) updates.role = data.role.toLowerCase(); // 'Admin' -> 'admin'
-        if (data.pin) updates.pin_code = data.pin;
+        if (data.pin !== undefined) updates.pin_code = data.pin;
+        if (data.theme !== undefined) updates.theme = data.theme;
 
         const { error } = await supabase
             .from('profiles')
