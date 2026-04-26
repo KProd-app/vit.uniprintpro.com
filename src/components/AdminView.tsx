@@ -635,7 +635,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                           className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-mimaki-blue cursor-pointer hover:border-slate-300"
                           value={user.theme || 'normal'}
                           onChange={(e) => {
-                            const newTheme = e.target.value as 'normal' | 'spring' | 'pride';
+                            const newTheme = e.target.value as 'normal' | 'spring' | 'pride' | 'kebab';
                             const previousUsers = [...users];
                             // Optimistically update UI
                             setUsers(users.map(u => u.id === user.id ? { ...u, theme: newTheme } : u));
@@ -652,6 +652,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                           <option value="normal">Standartinė</option>
                           <option value="spring">Pavasario (🌸)</option>
                           <option value="pride">Pride (🌈)</option>
+                          <option value="kebab">Kebabų (🌯)</option>
                         </select>
                       </td>
                     )}

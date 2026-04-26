@@ -21,6 +21,7 @@ import { InkRefillTool } from './components/InkRefillTool';
 import { getVilniusShiftBoundaries } from './lib/utils';
 import { SpringOverlay } from './components/SpringOverlay';
 import { PrideOverlay } from './components/PrideOverlay';
+import { KebabOverlay } from './components/KebabOverlay';
 
 // Inner component to use Auth and Data contexts
 const AppContent: React.FC = () => {
@@ -48,6 +49,7 @@ const AppContent: React.FC = () => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isSpringTheme, setIsSpringTheme] = useState(false);
   const [isPrideTheme, setIsPrideTheme] = useState(false);
+  const [isKebabTheme, setIsKebabTheme] = useState(false);
 
   // Automatically handle view switching based on auth, UNLESS it's a live dashboard
   const isLiveView = view === 'LIVE' || view === 'LIVE_MOBILE' || view === 'LIVE_DESKTOP' || view === 'LENTA';
@@ -70,24 +72,34 @@ const AppContent: React.FC = () => {
       const normalized = potentialParam.toLowerCase().trim();
       if (normalized === 'spring') {
         document.documentElement.classList.add('theme-spring');
-        document.documentElement.classList.remove('theme-pride');
+        document.documentElement.classList.remove('theme-pride', 'theme-kebab');
         localStorage.setItem('theme', 'spring');
         setIsSpringTheme(true);
         setIsPrideTheme(false);
+        setIsKebabTheme(false);
         window.history.replaceState({}, document.title, "/");
       } else if (normalized === 'pride') {
         document.documentElement.classList.add('theme-pride');
-        document.documentElement.classList.remove('theme-spring');
+        document.documentElement.classList.remove('theme-spring', 'theme-kebab');
         localStorage.setItem('theme', 'pride');
         setIsPrideTheme(true);
         setIsSpringTheme(false);
+        setIsKebabTheme(false);
+        window.history.replaceState({}, document.title, "/");
+      } else if (normalized === 'kebab') {
+        document.documentElement.classList.add('theme-kebab');
+        document.documentElement.classList.remove('theme-spring', 'theme-pride');
+        localStorage.setItem('theme', 'kebab');
+        setIsKebabTheme(true);
+        setIsPrideTheme(false);
+        setIsSpringTheme(false);
         window.history.replaceState({}, document.title, "/");
       } else if (normalized === 'normal') {
-        document.documentElement.classList.remove('theme-spring');
-        document.documentElement.classList.remove('theme-pride');
+        document.documentElement.classList.remove('theme-spring', 'theme-pride', 'theme-kebab');
         localStorage.removeItem('theme');
         setIsSpringTheme(false);
         setIsPrideTheme(false);
+        setIsKebabTheme(false);
         window.history.replaceState({}, document.title, "/");
       }
     } else {
@@ -98,6 +110,9 @@ const AppContent: React.FC = () => {
       } else if (savedTheme === 'pride') {
         document.documentElement.classList.add('theme-pride');
         setIsPrideTheme(true);
+      } else if (savedTheme === 'kebab') {
+        document.documentElement.classList.add('theme-kebab');
+        setIsKebabTheme(true);
       }
     }
   }, []);
@@ -107,31 +122,47 @@ const AppContent: React.FC = () => {
     if (user && user.theme) {
       if (user.theme === 'spring') {
         document.documentElement.classList.add('theme-spring');
-        document.documentElement.classList.remove('theme-pride');
+        document.documentElement.classList.remove('theme-pride', 'theme-kebab');
         setIsSpringTheme(true);
         setIsPrideTheme(false);
+        setIsKebabTheme(false);
       } else if (user.theme === 'pride') {
         document.documentElement.classList.add('theme-pride');
-        document.documentElement.classList.remove('theme-spring');
+        document.documentElement.classList.remove('theme-spring', 'theme-kebab');
         setIsPrideTheme(true);
+        setIsSpringTheme(false);
+        setIsKebabTheme(false);
+      } else if (user.theme === 'kebab') {
+        document.documentElement.classList.add('theme-kebab');
+        document.documentElement.classList.remove('theme-spring', 'theme-pride');
+        setIsKebabTheme(true);
+        setIsPrideTheme(false);
         setIsSpringTheme(false);
       } else if (user.theme === 'normal') {
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'spring') {
           document.documentElement.classList.add('theme-spring');
-          document.documentElement.classList.remove('theme-pride');
+          document.documentElement.classList.remove('theme-pride', 'theme-kebab');
           setIsSpringTheme(true);
           setIsPrideTheme(false);
+          setIsKebabTheme(false);
         } else if (savedTheme === 'pride') {
           document.documentElement.classList.add('theme-pride');
-          document.documentElement.classList.remove('theme-spring');
+          document.documentElement.classList.remove('theme-spring', 'theme-kebab');
           setIsPrideTheme(true);
           setIsSpringTheme(false);
+          setIsKebabTheme(false);
+        } else if (savedTheme === 'kebab') {
+          document.documentElement.classList.add('theme-kebab');
+          document.documentElement.classList.remove('theme-spring', 'theme-pride');
+          setIsKebabTheme(true);
+          setIsPrideTheme(false);
+          setIsSpringTheme(false);
         } else {
-          document.documentElement.classList.remove('theme-spring');
-          document.documentElement.classList.remove('theme-pride');
+          document.documentElement.classList.remove('theme-spring', 'theme-pride', 'theme-kebab');
           setIsSpringTheme(false);
           setIsPrideTheme(false);
+          setIsKebabTheme(false);
         }
       }
     }
@@ -339,6 +370,7 @@ const AppContent: React.FC = () => {
     <>
       {isSpringTheme && <SpringOverlay />}
       {isPrideTheme && <PrideOverlay />}
+      {isKebabTheme && <KebabOverlay />}
       <div className={`min-h-screen relative ${isLive ? 'bg-slate-950' : 'bg-slate-50'}`}>
       {isSyncing && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center">

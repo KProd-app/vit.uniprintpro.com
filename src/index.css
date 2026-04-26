@@ -56,6 +56,41 @@
     100%{background-position:0% 82%}
 }
 
+/* Kebab Theme Overrides */
+.theme-kebab {
+    --color-mimaki-blue: #ea580c; /* Spicy orange/red */
+    --color-mimaki-dark: #431407; /* Deep brown / grilled meat color */
+    --color-mimaki-gray: #ffedd5; /* Pita bread background */
+    --color-mimaki-surface: #ffffff; /* Clean white */
+}
+
+.theme-kebab .bg-mimaki-blue,
+.theme-kebab .text-mimaki-blue {
+    background: linear-gradient(124deg, #ea580c, #c2410c, #f59e0b) !important;
+    background-size: 200% 200% !important;
+    animation: spicy-bg 4s ease infinite !important;
+    color: white !important;
+    border: none !important;
+    -webkit-background-clip: padding-box;
+}
+
+.theme-kebab .text-mimaki-blue {
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    color: transparent !important;
+}
+
+.theme-kebab .bg-mimaki-blue:hover {
+    background-size: 100% 100% !important;
+    animation-duration: 2s !important;
+}
+
+@keyframes spicy-bg { 
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+
 body {
     background-color: var(--color-mimaki-gray);
     color: var(--color-mimaki-dark);
