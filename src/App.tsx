@@ -116,10 +116,23 @@ const AppContent: React.FC = () => {
         setIsPrideTheme(true);
         setIsSpringTheme(false);
       } else if (user.theme === 'normal') {
-        document.documentElement.classList.remove('theme-spring');
-        document.documentElement.classList.remove('theme-pride');
-        setIsSpringTheme(false);
-        setIsPrideTheme(false);
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'spring') {
+          document.documentElement.classList.add('theme-spring');
+          document.documentElement.classList.remove('theme-pride');
+          setIsSpringTheme(true);
+          setIsPrideTheme(false);
+        } else if (savedTheme === 'pride') {
+          document.documentElement.classList.add('theme-pride');
+          document.documentElement.classList.remove('theme-spring');
+          setIsPrideTheme(true);
+          setIsSpringTheme(false);
+        } else {
+          document.documentElement.classList.remove('theme-spring');
+          document.documentElement.classList.remove('theme-pride');
+          setIsSpringTheme(false);
+          setIsPrideTheme(false);
+        }
       }
     }
   }, [user?.theme]);
