@@ -33,6 +33,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
     updatePrinter,
     getShiftLogs,
     getUsers,
+    updateUser,
     deleteUser,
     createUser,
     createPrinter,
