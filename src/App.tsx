@@ -102,6 +102,28 @@ const AppContent: React.FC = () => {
     }
   }, []);
 
+  // Override theme based on authenticated user's setting
+  useEffect(() => {
+    if (user && user.theme) {
+      if (user.theme === 'spring') {
+        document.documentElement.classList.add('theme-spring');
+        document.documentElement.classList.remove('theme-pride');
+        setIsSpringTheme(true);
+        setIsPrideTheme(false);
+      } else if (user.theme === 'pride') {
+        document.documentElement.classList.add('theme-pride');
+        document.documentElement.classList.remove('theme-spring');
+        setIsPrideTheme(true);
+        setIsSpringTheme(false);
+      } else if (user.theme === 'normal') {
+        document.documentElement.classList.remove('theme-spring');
+        document.documentElement.classList.remove('theme-pride');
+        setIsSpringTheme(false);
+        setIsPrideTheme(false);
+      }
+    }
+  }, [user?.theme]);
+
   // Auto-route to station setup if logged in, parameter is present, and we're currently on DASHBOARD
   useEffect(() => {
     if (user && printers.length > 0 && currentView === 'DASHBOARD') {

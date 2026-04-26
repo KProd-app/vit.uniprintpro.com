@@ -29,6 +29,7 @@ export interface User {
   name: string;
   role: UserRole;
   pin?: string;
+  theme?: 'normal' | 'spring' | 'pride';
 }
 
 export interface VITData {

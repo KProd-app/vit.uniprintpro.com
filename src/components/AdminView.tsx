@@ -612,6 +612,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                 <tr>
                   <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Vardas</th>
                   <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Rolė</th>
+                  {isUniprintProUser && (
+                    <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Tema</th>
+                  )}
                   <th className="p-6 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Veiksmai</th>
                 </tr>
               </thead>
@@ -625,6 +628,25 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                         {user.role}
                       </span>
                     </td>
+                    {isUniprintProUser && (
+                      <td className="p-6">
+                        <select
+                          className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-mimaki-blue cursor-pointer hover:border-slate-300"
+                          value={user.theme || 'normal'}
+                          onChange={(e) => {
+                            const newTheme = e.target.value as 'normal' | 'spring' | 'pride';
+                            updateUser(user.id, { theme: newTheme }).then(() => {
+                              getUsers().then(setUsers);
+                              addToast('Tema sėkmingai priskirta', 'success');
+                            });
+                          }}
+                        >
+                          <option value="normal">Standartinė</option>
+                          <option value="spring">Pavasario (🌸)</option>
+                          <option value="pride">Pride (🌈)</option>
+                        </select>
+                      </td>
+                    )}
                     <td className="p-6 text-right">
                       <Button
                         variant="ghost"

@@ -68,7 +68,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 id: sbUser.id,
                 name: name,
                 role: role,
-                pin: data?.pin_code || '' // Optional mapping
+                pin: data?.pin_code || '',
+                theme: data?.theme
             });
         } catch (e) {
             console.error("Auth profile fetch error", e);
