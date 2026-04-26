@@ -636,9 +636,16 @@ export const AdminView: React.FC<AdminViewProps> = ({ printers, onBack, addToast
                           value={user.theme || 'normal'}
                           onChange={(e) => {
                             const newTheme = e.target.value as 'normal' | 'spring' | 'pride';
+                            const previousUsers = [...users];
+                            // Optimistically update UI
+                            setUsers(users.map(u => u.id === user.id ? { ...u, theme: newTheme } : u));
+                            
                             updateUser(user.id, { theme: newTheme }).then(() => {
-                              getUsers().then(setUsers);
                               addToast('Tema sėkmingai priskirta', 'success');
+                            }).catch(() => {
+                              // Revert on failure
+                              setUsers(previousUsers);
+                              addToast('Nepavyko išsaugoti temos pakeitimo', 'error');
                             });
                           }}
                         >
