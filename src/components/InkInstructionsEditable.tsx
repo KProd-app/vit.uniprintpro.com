@@ -107,43 +107,27 @@ export const InkInstructionsEditable: React.FC = () => {
                     </header>
 
                     {/* Main Content */}
-                    <main className="flex-grow flex flex-col gap-3">
+                    <main className="flex-grow flex flex-col gap-5">
 
                         {/* Step 1: Open System */}
-                        <section className="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border-2 border-slate-900 relative">
+                        <section className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border-2 border-slate-900 relative">
                             <div className="absolute -top-3 -left-3 w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-lg font-black uppercase shadow-lg z-10">1</div>
                             <div className="bg-white p-2 rounded-xl flex-shrink-0 border border-slate-200 shadow-sm">
-                                <div className="w-[80px] h-[80px]">
-                                    <QRCode value="https://vit.uniprintpro.com" size={80} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
-                                </div>
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-black mb-1 text-slate-900 uppercase tracking-tight focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors inline-block" contentEditable suppressContentEditableWarning>Atsidaryti Sistemą</h2>
-                                <p className="text-slate-600 text-base leading-snug font-medium focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
-                                    Nuskenuokite šį QR kodą, kad atidarytumėte UniprintPro sistemą naršyklėje.
-                                </p>
-                            </div>
-                        </section>
-
-                        {/* Step 2: Open Tool */}
-                        <section className="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border-2 border-slate-900 relative">
-                            <div className="absolute -top-3 -left-3 w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-lg font-black uppercase shadow-lg z-10">2</div>
-                            <div className="bg-white p-2 rounded-xl flex-shrink-0 border border-slate-200 shadow-sm">
-                                <div className="w-[80px] h-[80px]">
-                                    <QRCode value={qrValue} size={80} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                                <div className="w-[100px] h-[100px]">
+                                    <QRCode value="https://vit.uniprintpro.com/dazaiop" size={100} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
                                 </div>
                             </div>
                             <div>
                                 <h2 className="text-xl font-black mb-1 text-slate-900 uppercase tracking-tight focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors inline-block" contentEditable suppressContentEditableWarning>Atidaryti Įrankį</h2>
                                 <p className="text-slate-600 text-base leading-snug font-medium focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
-                                    Tuomet nuskenuokite šį antrą QR kodą, kad atidarytumėte patį dažų pildymo langą.
+                                    Nuskenuokite šį QR kodą, kad iškart atidarytumėte Dažų Inventorizacijos langą.
                                 </p>
                             </div>
                         </section>
 
-                        {/* Step 3: Select Printer */}
-                        <section className="flex items-center justify-between gap-4 bg-blue-50/50 p-3 rounded-2xl border-2 border-mimaki-blue relative">
-                            <div className="absolute -top-3 -left-3 w-8 h-8 bg-mimaki-blue text-white rounded-full flex items-center justify-center text-lg font-black uppercase shadow-lg shadow-mimaki-blue/30 z-10">3</div>
+                        {/* Step 2: Select Printer */}
+                        <section className="flex items-center justify-between gap-4 bg-blue-50/50 p-4 rounded-2xl border-2 border-mimaki-blue relative">
+                            <div className="absolute -top-3 -left-3 w-8 h-8 bg-mimaki-blue text-white rounded-full flex items-center justify-center text-lg font-black uppercase shadow-lg shadow-mimaki-blue/30 z-10">2</div>
                             <div>
                                 <h2 className="text-xl font-black mb-1 text-slate-900 uppercase tracking-tight focus:outline-none focus:bg-blue-200/50 rounded-lg px-2 -ml-2 transition-colors inline-block" contentEditable suppressContentEditableWarning>Pasirinkti Įrenginį</h2>
                                 <p className="text-slate-600 text-base leading-snug font-medium focus:outline-none focus:bg-blue-200/50 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
@@ -152,10 +136,10 @@ export const InkInstructionsEditable: React.FC = () => {
                             </div>
                         </section>
 
-                        {/* Step 4: Scan Bottle */}
+                        {/* Step 3: Scan Bottle */}
                         <section className="pl-4 border-l-4 border-slate-300 ml-3 py-1">
                             <h2 className="text-lg font-black mb-2 uppercase text-slate-800 tracking-tight flex items-center gap-3 focus:outline-none focus:bg-slate-100 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
-                                <div className="w-6 h-6 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-sm font-bold" contentEditable={false}>4</div>
+                                <div className="w-6 h-6 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-sm font-bold" contentEditable={false}>3</div>
                                 Registruoti Dažų Butelį
                             </h2>
                             <ul className="text-slate-600 text-base space-y-1 font-medium ml-8 focus:outline-none focus:bg-slate-100 rounded-lg p-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
@@ -165,8 +149,8 @@ export const InkInstructionsEditable: React.FC = () => {
                             </ul>
                         </section>
 
-                        {/* Step 5: Finish */}
-                        <section className="bg-slate-100 border-2 border-slate-900 p-4 rounded-2xl mt-auto relative overflow-hidden">
+                        {/* Step 4: Finish */}
+                        <section className="bg-slate-100 border-2 border-slate-900 p-5 rounded-2xl mt-auto relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-20 h-20 bg-slate-200 rounded-bl-[60px] -z-0 opacity-50"></div>
                             <div className="flex items-start gap-4 relative z-10">
                                 <div className="bg-slate-900 p-2 rounded-xl shrink-0 text-white shadow-lg">

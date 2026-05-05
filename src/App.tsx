@@ -41,6 +41,7 @@ const AppContent: React.FC = () => {
     if (path === '/lenta') return 'LENTA';
     if (path === '/user') return 'USER_TV';
     if (path === '/dazuinstrukcija') return 'INK_INSTRUCTIONS';
+    if (path === '/dazaiop') return 'INK_REFILL';
 
     // Default dashboard
     return 'DASHBOARD';
