@@ -143,9 +143,9 @@ export const InkInstructionsEditable: React.FC = () => {
                                 Registruoti Dažų Butelį
                             </h2>
                             <ul className="text-slate-600 text-lg space-y-2 font-medium ml-10 focus:outline-none focus:bg-slate-100 rounded-lg p-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
-                                <li className="flex items-center"><span className="mr-3 font-bold text-xl text-mimaki-blue">□</span> Sąraše suraskite dažą, kurį norite papildyti.</li>
-                                <li className="flex items-center"><span className="mr-3 font-bold text-xl text-mimaki-blue">□</span> Paspauskite „NAUJAS“ ir skenuokite butelio barkodą.</li>
-                                <li className="flex items-center"><span className="mr-3 font-bold text-xl text-mimaki-blue">□</span> Nufotografuokite butelį paspausdami kameros ikoną.</li>
+                                <li className="flex items-start"><span className="mr-3 font-bold text-xl text-mimaki-blue">□</span> <div>Sąraše suraskite dažą, kurį norite papildyti.</div></li>
+                                <li className="flex items-start"><span className="mr-3 font-bold text-xl text-mimaki-blue">□</span> <div>Pasirinkite <strong>„NAUJAS“</strong> (jei imsite naują butelį ir skenuosite barkodą) arba <strong>„PRADĖTAS“</strong> (jei naudosite jau pradėtą).</div></li>
+                                <li className="flex items-start"><span className="mr-3 font-bold text-xl text-mimaki-blue">□</span> <div>Būtinai <strong>nufotografuokite butelį</strong>, kurį paėmėte, paspausdami kameros ikoną!</div></li>
                             </ul>
                         </section>
 
