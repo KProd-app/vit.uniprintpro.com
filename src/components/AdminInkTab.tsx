@@ -142,6 +142,19 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
      }
   };
 
+  const handleUpdateInkQr = async (inkId: string, newQr: string) => {
+     if (!selectedPrinter) return;
+     const currentInks = selectedPrinter.inks || [];
+     const updatedInks = currentInks.map(i => i.id === inkId ? { ...i, qrCode: newQr } : i);
+
+     try {
+       await syncGroupedInks(selectedPrinter.id, updatedInks, printers, updatePrinter);
+       setSelectedPrinter({ ...selectedPrinter, inks: updatedInks });
+     } catch(e) {
+       addToast?.('Klaida atnaujinant QR kodą', 'error');
+     }
+  };
+
   const filteredLogs = logs.filter(l => 
     l.printerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
     l.operatorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -212,7 +225,16 @@ export const AdminInkTab: React.FC<{ printers: PrinterData[], addToast?: (m: str
                           <div className={`font-black text-lg ${isLow ? 'text-red-600' : 'text-slate-800'}`}>{ink.name}</div>
                           {isLow && <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Trūksta</span>}
                         </div>
-                        <div className="text-slate-400 text-xs font-mono bg-slate-100 inline-block px-2 py-0.5 rounded-md">{ink.qrCode || 'Barkodas nepriskirtas'}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] font-bold uppercase text-slate-400">QR/Barkodas:</span>
+                          <input 
+                            type="text" 
+                            value={ink.qrCode || ''} 
+                            onChange={(e) => handleUpdateInkQr(ink.id, e.target.value)}
+                            placeholder="Nepriskirtas"
+                            className="w-40 h-7 rounded-md px-2 font-mono text-xs outline-none border transition-all bg-slate-50 text-slate-600 border-slate-200 focus:ring-2 focus:ring-emerald-500/50"
+                          />
+                        </div>
                       </div>
                       
                       <div className="flex items-center gap-4">
