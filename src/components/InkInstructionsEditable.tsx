@@ -107,61 +107,77 @@ export const InkInstructionsEditable: React.FC = () => {
                     </header>
 
                     {/* Main Content */}
-                    <main className="flex-grow flex flex-col gap-6">
+                    <main className="flex-grow flex flex-col gap-3">
 
-                        {/* Step 1: Open Tool */}
-                        <section className="flex items-center gap-6 bg-slate-50 p-5 rounded-3xl border-2 border-slate-900 relative">
-                            <div className="absolute -top-3 -left-3 w-10 h-10 bg-slate-900 text-white rounded-full flex items-center justify-center text-xl font-black uppercase shadow-lg z-10">1</div>
-                            <div className="bg-white p-2 rounded-xl flex-shrink-0 border border-slate-200 shadow-md">
-                                <div className="w-[120px] h-[120px]">
-                                    <QRCode value={qrValue} size={120} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                        {/* Step 1: Open System */}
+                        <section className="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border-2 border-slate-900 relative">
+                            <div className="absolute -top-3 -left-3 w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-lg font-black uppercase shadow-lg z-10">1</div>
+                            <div className="bg-white p-2 rounded-xl flex-shrink-0 border border-slate-200 shadow-sm">
+                                <div className="w-[80px] h-[80px]">
+                                    <QRCode value="https://vit.uniprintpro.com" size={80} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
                                 </div>
                             </div>
                             <div>
-                                <h2 className="text-2xl font-black mb-1 text-slate-900 uppercase tracking-tight focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors inline-block" contentEditable suppressContentEditableWarning>Atidaryti Įrankį</h2>
-                                <p className="text-slate-600 text-lg leading-relaxed font-medium focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
-                                    Nuskenuokite šį QR kodą su planšete arba telefonu, kad atidarytumėte dažų papildymo langą.
+                                <h2 className="text-xl font-black mb-1 text-slate-900 uppercase tracking-tight focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors inline-block" contentEditable suppressContentEditableWarning>Atsidaryti Sistemą</h2>
+                                <p className="text-slate-600 text-base leading-snug font-medium focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
+                                    Nuskenuokite šį QR kodą, kad atidarytumėte UniprintPro sistemą naršyklėje.
                                 </p>
                             </div>
                         </section>
 
-                        {/* Step 2: Select Printer */}
-                        <section className="flex items-center justify-between gap-6 bg-blue-50/50 p-5 rounded-3xl border-2 border-mimaki-blue relative">
-                            <div className="absolute -top-3 -left-3 w-10 h-10 bg-mimaki-blue text-white rounded-full flex items-center justify-center text-xl font-black uppercase shadow-lg shadow-mimaki-blue/30 z-10">2</div>
+                        {/* Step 2: Open Tool */}
+                        <section className="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border-2 border-slate-900 relative">
+                            <div className="absolute -top-3 -left-3 w-8 h-8 bg-slate-900 text-white rounded-full flex items-center justify-center text-lg font-black uppercase shadow-lg z-10">2</div>
+                            <div className="bg-white p-2 rounded-xl flex-shrink-0 border border-slate-200 shadow-sm">
+                                <div className="w-[80px] h-[80px]">
+                                    <QRCode value={qrValue} size={80} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                                </div>
+                            </div>
                             <div>
-                                <h2 className="text-2xl font-black mb-1 text-slate-900 uppercase tracking-tight focus:outline-none focus:bg-blue-200/50 rounded-lg px-2 -ml-2 transition-colors inline-block" contentEditable suppressContentEditableWarning>Pasirinkti Įrenginį</h2>
-                                <p className="text-slate-600 text-lg leading-relaxed font-medium focus:outline-none focus:bg-blue-200/50 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
+                                <h2 className="text-xl font-black mb-1 text-slate-900 uppercase tracking-tight focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors inline-block" contentEditable suppressContentEditableWarning>Atidaryti Įrankį</h2>
+                                <p className="text-slate-600 text-base leading-snug font-medium focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
+                                    Tuomet nuskenuokite šį antrą QR kodą, kad atidarytumėte patį dažų pildymo langą.
+                                </p>
+                            </div>
+                        </section>
+
+                        {/* Step 3: Select Printer */}
+                        <section className="flex items-center justify-between gap-4 bg-blue-50/50 p-3 rounded-2xl border-2 border-mimaki-blue relative">
+                            <div className="absolute -top-3 -left-3 w-8 h-8 bg-mimaki-blue text-white rounded-full flex items-center justify-center text-lg font-black uppercase shadow-lg shadow-mimaki-blue/30 z-10">3</div>
+                            <div>
+                                <h2 className="text-xl font-black mb-1 text-slate-900 uppercase tracking-tight focus:outline-none focus:bg-blue-200/50 rounded-lg px-2 -ml-2 transition-colors inline-block" contentEditable suppressContentEditableWarning>Pasirinkti Įrenginį</h2>
+                                <p className="text-slate-600 text-base leading-snug font-medium focus:outline-none focus:bg-blue-200/50 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
                                     Atsidariusiame ekrane paspauskite ant įrenginio, kuriam norite papildyti dažus.
                                 </p>
                             </div>
                         </section>
 
-                        {/* Step 3: Scan Bottle */}
-                        <section className="pl-4 border-l-4 border-slate-300 ml-4 py-1">
-                            <h2 className="text-xl font-black mb-3 uppercase text-slate-800 tracking-tight flex items-center gap-3 focus:outline-none focus:bg-slate-100 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
-                                <div className="w-7 h-7 bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center text-base" contentEditable={false}>3</div>
+                        {/* Step 4: Scan Bottle */}
+                        <section className="pl-4 border-l-4 border-slate-300 ml-3 py-1">
+                            <h2 className="text-lg font-black mb-2 uppercase text-slate-800 tracking-tight flex items-center gap-3 focus:outline-none focus:bg-slate-100 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
+                                <div className="w-6 h-6 bg-slate-200 text-slate-600 rounded flex items-center justify-center text-sm font-bold" contentEditable={false}>4</div>
                                 Registruoti Dažų Butelį
                             </h2>
-                            <ul className="text-slate-600 text-lg space-y-2 font-medium ml-10 focus:outline-none focus:bg-slate-100 rounded-lg p-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
-                                <li className="flex items-start"><span className="mr-3 font-bold text-xl text-mimaki-blue">□</span> <div>Sąraše suraskite dažą, kurį norite papildyti.</div></li>
-                                <li className="flex items-start"><span className="mr-3 font-bold text-xl text-mimaki-blue">□</span> <div>Pasirinkite <strong>„NAUJAS“</strong> (jei imsite naują butelį ir skenuosite barkodą) arba <strong>„PRADĖTAS“</strong> (jei naudosite jau pradėtą).</div></li>
-                                <li className="flex items-start"><span className="mr-3 font-bold text-xl text-mimaki-blue">□</span> <div>Būtinai <strong>nufotografuokite butelį</strong>, kurį paėmėte, paspausdami kameros ikoną!</div></li>
+                            <ul className="text-slate-600 text-base space-y-1 font-medium ml-8 focus:outline-none focus:bg-slate-100 rounded-lg p-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
+                                <li className="flex items-start"><span className="mr-2 font-bold text-lg text-mimaki-blue">□</span> <div>Sąraše suraskite dažą, kurį norite papildyti.</div></li>
+                                <li className="flex items-start"><span className="mr-2 font-bold text-lg text-mimaki-blue">□</span> <div>Pasirinkite <strong>„NAUJAS“</strong> (naujam buteliui) arba <strong>„PRADĖTAS“</strong> (jau naudotam).</div></li>
+                                <li className="flex items-start"><span className="mr-2 font-bold text-lg text-mimaki-blue">□</span> <div>Būtinai <strong>nufotografuokite butelį</strong>, kurį paėmėte, paspausdami kameros ikoną!</div></li>
                             </ul>
                         </section>
 
-                        {/* Step 4: Finish */}
-                        <section className="bg-slate-100 border-2 border-slate-900 p-6 rounded-3xl mt-auto relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-slate-200 rounded-bl-[80px] -z-0 opacity-50"></div>
-                            <div className="flex items-start gap-5 relative z-10">
-                                <div className="bg-slate-900 p-3 rounded-2xl shrink-0 text-white shadow-lg">
-                                    <Info className="w-8 h-8" />
+                        {/* Step 5: Finish */}
+                        <section className="bg-slate-100 border-2 border-slate-900 p-4 rounded-2xl mt-auto relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-20 h-20 bg-slate-200 rounded-bl-[60px] -z-0 opacity-50"></div>
+                            <div className="flex items-start gap-4 relative z-10">
+                                <div className="bg-slate-900 p-2 rounded-xl shrink-0 text-white shadow-lg">
+                                    <Info className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-black uppercase text-slate-900 mb-2 tracking-tight focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors inline-block" contentEditable suppressContentEditableWarning>Svarbu: Patvirtinimas</h2>
-                                    <p className="text-slate-700 text-lg mb-3 font-semibold focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
+                                    <h2 className="text-xl font-black uppercase text-slate-900 mb-1 tracking-tight focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors inline-block" contentEditable suppressContentEditableWarning>Svarbu: Patvirtinimas</h2>
+                                    <p className="text-slate-700 text-base mb-2 font-semibold focus:outline-none focus:bg-slate-200 rounded-lg px-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
                                         Norint užbaigti procesą ir išsaugoti duomenis:
                                     </p>
-                                    <ol className="list-decimal list-inside text-slate-800 space-y-2 font-bold text-lg ml-1 focus:outline-none focus:bg-slate-200 rounded-lg p-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
+                                    <ol className="list-decimal list-inside text-slate-800 space-y-1 font-bold text-base ml-1 focus:outline-none focus:bg-slate-200 rounded-lg p-2 -ml-2 transition-colors" contentEditable suppressContentEditableWarning>
                                         <li>Įsitikinkite, kad priskirti visi reikalingi dažai.</li>
                                         <li>Spauskite žalią mygtuką: <strong>PATVIRTINTI PILDYMĄ</strong>.</li>
                                     </ol>
