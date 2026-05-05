@@ -123,7 +123,7 @@ export interface ChecklistTemplate {
   items: string[];
 }
 
-export type ViewType = 'LOGIN' | 'DASHBOARD' | 'SETUP' | 'SUMMARY' | 'ADMIN' | 'END_SHIFT' | 'LIVE' | 'LIVE_MOBILE' | 'LIVE_DESKTOP' | 'LENTA' | 'USER_TV' | 'INK_REFILL';
+export type ViewType = 'LOGIN' | 'DASHBOARD' | 'SETUP' | 'SUMMARY' | 'ADMIN' | 'END_SHIFT' | 'LIVE' | 'LIVE_MOBILE' | 'LIVE_DESKTOP' | 'LENTA' | 'USER_TV' | 'INK_REFILL' | 'INK_INSTRUCTIONS';
 
 
 export interface PrinterLog {

@@ -22,6 +22,7 @@ import { getVilniusShiftBoundaries } from './lib/utils';
 import { SpringOverlay } from './components/SpringOverlay';
 import { PrideOverlay } from './components/PrideOverlay';
 import { KebabOverlay } from './components/KebabOverlay';
+import { InkInstructionsEditable } from './components/InkInstructionsEditable';
 
 // Inner component to use Auth and Data contexts
 const AppContent: React.FC = () => {
@@ -39,6 +40,7 @@ const AppContent: React.FC = () => {
     if (path === '/dlive') return 'LIVE_DESKTOP';
     if (path === '/lenta') return 'LENTA';
     if (path === '/user') return 'USER_TV';
+    if (path === '/dazuinstrukcija') return 'INK_INSTRUCTIONS';
 
     // Default dashboard
     return 'DASHBOARD';
@@ -52,7 +54,7 @@ const AppContent: React.FC = () => {
   const [isKebabTheme, setIsKebabTheme] = useState(false);
 
   // Automatically handle view switching based on auth, UNLESS it's a live dashboard
-  const isLiveView = view === 'LIVE' || view === 'LIVE_MOBILE' || view === 'LIVE_DESKTOP' || view === 'LENTA';
+  const isLiveView = view === 'LIVE' || view === 'LIVE_MOBILE' || view === 'LIVE_DESKTOP' || view === 'LENTA' || view === 'INK_INSTRUCTIONS';
   // If not logged in and not a live viewer, enforce login
   let currentView = isLiveView ? view : (!user ? 'LOGIN' : view);
 
@@ -460,6 +462,10 @@ const AppContent: React.FC = () => {
           // Just refresh or clear param
           window.location.href = '/';
         }} addToast={addToast} />
+      )}
+
+      {currentView === 'INK_INSTRUCTIONS' && (
+        <InkInstructionsEditable />
       )}
 
       {/* Feedback Button - Always visible if logged in */}
