@@ -98,7 +98,16 @@ export const InkRefillTool: React.FC<InkRefillToolProps> = ({ printers, onClose,
   const handleScanSuccess = (text: string) => {
     if (!scanningInk) return;
     
-    if (text === scanningInk.qrCode) {
+    const expectedQr = (scanningInk.qrCode || '').trim().toLowerCase();
+    const scannedQr = text.trim().toLowerCase();
+
+    if (!expectedQr) {
+      addToast(`Šiam dažui nepriskirtas joks QR/barkodas sistemoje. Susisiekite su administratoriumi.`, 'error');
+      setScanningInk(null);
+      return;
+    }
+
+    if (scannedQr === expectedQr) {
       // Remove addToast to avoid blocking the bottom of the screen on mobile
       setInkStates(prev => ({ ...prev, [scanningInk.id]: { ...prev[scanningInk.id], qrVerified: true }}));
       setScanningInk(null);
