@@ -6,9 +6,9 @@ export const WorkflowEditable: React.FC = () => {
     const [isSaved, setIsSaved] = useState(true);
 
     useEffect(() => {
-        const saved = localStorage.getItem('workflow_content');
-        if (saved && contentRef.current) {
-            contentRef.current.innerHTML = saved;
+        if (contentRef.current) {
+            const saved = localStorage.getItem('workflow_content');
+            contentRef.current.innerHTML = saved || defaultHTML;
         }
     }, []);
 
@@ -165,10 +165,9 @@ export const WorkflowEditable: React.FC = () => {
             <div className="bg-white p-8 sm:p-12 rounded-3xl shadow-xl max-w-4xl w-full mx-auto border border-slate-200">
                 <div 
                     ref={contentRef}
-                    contentEditable
-                    suppressContentEditableWarning
+                    contentEditable={true}
+                    suppressContentEditableWarning={true}
                     onInput={handleInput}
-                    dangerouslySetInnerHTML={{ __html: defaultHTML }}
                     className="focus:outline-none"
                     style={{ minHeight: '500px' }}
                 />
