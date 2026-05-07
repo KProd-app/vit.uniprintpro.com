@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, RefreshCcw, Download } from 'lucide-react';
+import { Save, RefreshCcw, Download, ImagePlus, Loader2 } from 'lucide-react';
 import { usePrinters } from '../contexts/DataContext';
 
 export const WorkflowEditable: React.FC = () => {
     const contentRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [isSaved, setIsSaved] = useState(true);
 
-    const { getSettings, updateSetting } = usePrinters();
+    const { getSettings, updateSetting, uploadFile } = usePrinters();
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [savedRange, setSavedRange] = useState<Range | null>(null);
 
     useEffect(() => {
         const loadContent = async () => {
@@ -65,6 +68,49 @@ export const WorkflowEditable: React.FC = () => {
             } finally {
                 setIsSaving(false);
             }
+        }
+    };
+
+    const saveSelection = () => {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+            setSavedRange(selection.getRangeAt(0));
+        }
+    };
+
+    const triggerImageUpload = () => {
+        saveSelection();
+        fileInputRef.current?.click();
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const url = await uploadFile(file, `workflow/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`);
+            
+            // Restore selection
+            if (contentRef.current) {
+                contentRef.current.focus();
+                const selection = window.getSelection();
+                if (selection && savedRange) {
+                    selection.removeAllRanges();
+                    selection.addRange(savedRange);
+                }
+            }
+
+            // Create image with Tailwind classes
+            const imgHTML = `<img src="${url}" alt="Workflow Image" class="max-w-full rounded-xl shadow-md my-6" />`;
+            document.execCommand('insertHTML', false, imgHTML);
+            setIsSaved(false);
+        } catch (error) {
+            console.error("Failed to upload image:", error);
+            alert("Nepavyko įkelti nuotraukos.");
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
@@ -223,6 +269,21 @@ export const WorkflowEditable: React.FC = () => {
                     </a>
                 </div>
                 <div className="flex gap-3">
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleImageUpload} 
+                        accept="image/*" 
+                        className="hidden" 
+                    />
+                    <button
+                        onClick={triggerImageUpload}
+                        disabled={isUploading}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded-xl font-bold uppercase tracking-wider transition-colors shadow-sm text-sm"
+                    >
+                        {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+                        {isUploading ? 'Keliama...' : 'Pridėti Nuotrauką'}
+                    </button>
                     <button
                         onClick={exportToWord}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-xl font-bold uppercase tracking-wider transition-colors shadow-sm text-sm"
@@ -254,7 +315,10 @@ export const WorkflowEditable: React.FC = () => {
                     contentEditable={true}
                     suppressContentEditableWarning={true}
                     onInput={handleInput}
-                    className="focus:outline-none"
+                    onBlur={saveSelection}
+                    onKeyUp={saveSelection}
+                    onMouseUp={saveSelection}
+                    className="focus:outline-none prose max-w-none prose-slate"
                     style={{ minHeight: '500px' }}
                 />
             </div>
