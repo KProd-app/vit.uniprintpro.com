@@ -1,32 +1,70 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Save, RefreshCcw, Download } from 'lucide-react';
+import { usePrinters } from '../contexts/DataContext';
 
 export const WorkflowEditable: React.FC = () => {
     const contentRef = useRef<HTMLDivElement>(null);
     const [isSaved, setIsSaved] = useState(true);
 
+    const { getSettings, updateSetting } = usePrinters();
+    const [isSaving, setIsSaving] = useState(false);
+
     useEffect(() => {
-        if (contentRef.current) {
-            const saved = localStorage.getItem('workflow_content');
-            contentRef.current.innerHTML = saved || defaultHTML;
-        }
-    }, []);
+        const loadContent = async () => {
+            try {
+                const settings = await getSettings();
+                const dbContent = settings.find(s => s.key === 'workflow_content');
+                if (contentRef.current) {
+                    contentRef.current.innerHTML = dbContent?.value || defaultHTML;
+                }
+            } catch (error) {
+                console.error("Failed to load from DB:", error);
+                const local = localStorage.getItem('workflow_content');
+                if (contentRef.current) {
+                    contentRef.current.innerHTML = local || defaultHTML;
+                }
+            }
+        };
+        loadContent();
+    }, [getSettings]);
 
     const handleInput = () => {
         setIsSaved(false);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (contentRef.current) {
-            localStorage.setItem('workflow_content', contentRef.current.innerHTML);
-            setIsSaved(true);
+            setIsSaving(true);
+            const html = contentRef.current.innerHTML;
+            try {
+                await updateSetting('workflow_content', html);
+                localStorage.setItem('workflow_content', html);
+                setIsSaved(true);
+            } catch (error) {
+                console.error("Failed to save to DB:", error);
+                alert("Nepavyko išsaugoti į duombazę! Patikrinkite ryšį.");
+            } finally {
+                setIsSaving(false);
+            }
         }
     };
 
-    const handleReset = () => {
+    const handleReset = async () => {
         if (window.confirm("Ar tikrai norite atstatyti į pradinį tekstą? Visi jūsų pakeitimai bus prarasti.")) {
-            localStorage.removeItem('workflow_content');
-            window.location.reload();
+            setIsSaving(true);
+            try {
+                await updateSetting('workflow_content', defaultHTML);
+                localStorage.removeItem('workflow_content');
+                if (contentRef.current) {
+                    contentRef.current.innerHTML = defaultHTML;
+                }
+                setIsSaved(true);
+            } catch (error) {
+                console.error("Failed to reset in DB:", error);
+                alert("Nepavyko atstatyti duombazėje!");
+            } finally {
+                setIsSaving(false);
+            }
         }
     };
 
@@ -154,10 +192,11 @@ export const WorkflowEditable: React.FC = () => {
                     </button>
                     <button
                         onClick={handleSave}
-                        className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold uppercase tracking-wider transition-all shadow-md text-sm ${isSaved ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-mimaki-blue hover:bg-blue-600 text-white animate-pulse'}`}
+                        disabled={isSaving}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold uppercase tracking-wider transition-all shadow-md text-sm ${isSaving ? 'bg-slate-400 cursor-not-allowed' : isSaved ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-mimaki-blue hover:bg-blue-600 text-white animate-pulse'}`}
                     >
                         <Save className="w-4 h-4" />
-                        {isSaved ? 'Išsaugota' : 'Išsaugoti'}
+                        {isSaving ? 'Saugoma...' : isSaved ? 'Išsaugota' : 'Išsaugoti'}
                     </button>
                 </div>
             </div>
