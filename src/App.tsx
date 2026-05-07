@@ -23,6 +23,7 @@ import { SpringOverlay } from './components/SpringOverlay';
 import { PrideOverlay } from './components/PrideOverlay';
 import { KebabOverlay } from './components/KebabOverlay';
 import { InkInstructionsEditable } from './components/InkInstructionsEditable';
+import { WorkflowEditable } from './components/WorkflowEditable';
 
 // Inner component to use Auth and Data contexts
 const AppContent: React.FC = () => {
@@ -42,6 +43,7 @@ const AppContent: React.FC = () => {
     if (path === '/user') return 'USER_TV';
     if (path === '/dazuinstrukcija') return 'INK_INSTRUCTIONS';
     if (path === '/dazaiop') return 'INK_REFILL';
+    if (path === '/workflow') return 'WORKFLOW';
 
     // Default dashboard
     return 'DASHBOARD';
@@ -467,6 +469,10 @@ const AppContent: React.FC = () => {
 
       {currentView === 'INK_INSTRUCTIONS' && (
         <InkInstructionsEditable />
+      )}
+
+      {currentView === 'WORKFLOW' && (
+        <WorkflowEditable />
       )}
 
       {/* Feedback Button - Always visible if logged in */}
