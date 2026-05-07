@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Save, RefreshCcw, Download, ImagePlus, Loader2 } from 'lucide-react';
+import { Save, RefreshCcw, Download, ImagePlus, Loader2, ZoomIn, ZoomOut, AlignLeft, AlignCenter, AlignRight, Trash2 } from 'lucide-react';
 import { usePrinters } from '../contexts/DataContext';
 
 export const WorkflowEditable: React.FC = () => {
@@ -11,6 +11,9 @@ export const WorkflowEditable: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [savedRange, setSavedRange] = useState<Range | null>(null);
+
+    const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
+    const [forceRender, setForceRender] = useState(0);
 
     useEffect(() => {
         const loadContent = async () => {
@@ -32,6 +35,48 @@ export const WorkflowEditable: React.FC = () => {
     }, [getSettings]);
 
     const handleInput = () => {
+        setIsSaved(false);
+        // Update toolbar position if text changes above image
+        if (selectedImage) setForceRender(f => f + 1);
+    };
+
+    const handleContentClick = (e: React.MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'IMG') {
+            setSelectedImage(target as HTMLImageElement);
+        } else {
+            setSelectedImage(null);
+        }
+    };
+
+    const changeImageWidth = (amount: number) => {
+        if (!selectedImage) return;
+        const currentWidth = selectedImage.offsetWidth;
+        selectedImage.style.width = \`\${Math.max(100, currentWidth + amount)}px\`;
+        selectedImage.style.maxWidth = '100%';
+        selectedImage.style.height = 'auto';
+        setIsSaved(false);
+        setForceRender(f => f + 1);
+    };
+
+    const setImageFloat = (floatType: 'left' | 'right' | 'none') => {
+        if (!selectedImage) return;
+        selectedImage.style.float = floatType;
+        if (floatType === 'none') {
+            selectedImage.style.display = 'block';
+            selectedImage.style.margin = '1rem auto';
+        } else {
+            selectedImage.style.display = 'inline-block';
+            selectedImage.style.margin = floatType === 'left' ? '1rem 1rem 1rem 0' : '1rem 0 1rem 1rem';
+        }
+        setIsSaved(false);
+        setForceRender(f => f + 1);
+    };
+
+    const deleteImage = () => {
+        if (!selectedImage) return;
+        selectedImage.remove();
+        setSelectedImage(null);
         setIsSaved(false);
     };
 
@@ -101,8 +146,8 @@ export const WorkflowEditable: React.FC = () => {
                 }
             }
 
-            // Create image with Tailwind classes
-            const imgHTML = `<img src="${url}" alt="Workflow Image" class="max-w-full rounded-xl shadow-md my-6" />`;
+            // Create image with inline styles for default width and block display
+            const imgHTML = `<img src="${url}" alt="Workflow Image" class="max-w-full rounded-xl shadow-md my-6 cursor-pointer hover:ring-4 ring-blue-400 transition-all" style="display: block; margin: 1rem auto; width: 400px; height: auto;" />&nbsp;`;
             document.execCommand('insertHTML', false, imgHTML);
             setIsSaved(false);
         } catch (error) {
@@ -309,12 +354,36 @@ export const WorkflowEditable: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-white p-8 sm:p-12 rounded-3xl shadow-xl max-w-4xl w-full mx-auto border border-slate-200">
+            <div className="bg-white p-8 sm:p-12 rounded-3xl shadow-xl max-w-4xl w-full mx-auto border border-slate-200 relative">
+                
+                {/* Floating Image Toolbar */}
+                {selectedImage && (
+                    <div 
+                        className="absolute z-50 bg-slate-800 text-white p-1.5 rounded-xl shadow-2xl flex items-center gap-1 transform -translate-x-1/2 -translate-y-full mb-2"
+                        style={{ 
+                            top: \`\${selectedImage.offsetTop - 10}px\`, 
+                            left: \`\${selectedImage.offsetLeft + (selectedImage.offsetWidth / 2)}px\` 
+                        }}
+                        contentEditable={false}
+                    >
+                        <div className="text-xs font-semibold px-2 text-slate-400 border-r border-slate-600 mr-1">Tampykite nuotrauką pele</div>
+                        <button onClick={() => changeImageWidth(50)} className="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Padidinti"><ZoomIn size={18} /></button>
+                        <button onClick={() => changeImageWidth(-50)} className="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Sumažinti"><ZoomOut size={18} /></button>
+                        <div className="w-px h-5 bg-slate-600 mx-1"></div>
+                        <button onClick={() => setImageFloat('left')} className="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Kairėje"><AlignLeft size={18} /></button>
+                        <button onClick={() => setImageFloat('none')} className="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Viduryje"><AlignCenter size={18} /></button>
+                        <button onClick={() => setImageFloat('right')} className="p-2 hover:bg-slate-700 rounded-lg transition-colors" title="Dešinėje"><AlignRight size={18} /></button>
+                        <div className="w-px h-5 bg-slate-600 mx-1"></div>
+                        <button onClick={deleteImage} className="p-2 hover:bg-red-500 rounded-lg text-red-300 hover:text-white transition-colors" title="Ištrinti"><Trash2 size={18} /></button>
+                    </div>
+                )}
+
                 <div 
                     ref={contentRef}
                     contentEditable={true}
                     suppressContentEditableWarning={true}
                     onInput={handleInput}
+                    onClick={handleContentClick}
                     onBlur={saveSelection}
                     onKeyUp={saveSelection}
                     onMouseUp={saveSelection}
