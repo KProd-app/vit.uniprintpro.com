@@ -98,49 +98,68 @@ export const WorkflowEditable: React.FC = () => {
 
 
     const defaultHTML = `
-        <h1 class="text-4xl font-black mb-6 text-slate-900 border-b pb-4">Sistemos „UniprintPro“ Veikimo Logika ir Architektūra (Workflow)</h1>
-        <p class="text-xl mb-8 text-slate-600 font-medium">Šis dokumentas aprašo esamos aplikacijos (React/Vite/Supabase) veikimo procesus, skirtas komandai, kuri planuoja šią sistemą perdaryti arba integruoti į savo esamą sistemą.</p>
+        <h1 class="text-4xl font-black mb-6 text-slate-900 border-b pb-4">Gamybos Proceso Valdymas: „UniprintPro“ Naudotojo Kelias</h1>
+        <p class="text-xl mb-8 text-slate-600 font-medium">Šis dokumentas detaliai aprašo, kaip gamykloje vyksta realus operatorių ir administracijos darbas naudojantis „UniprintPro“ sistema (be jokių programinių ar duomenų bazių pavyzdžių).</p>
 
-        <h2 class="text-2xl font-bold mt-10 mb-4 text-mimaki-blue">1. Techninė Architektūra (Programinė Pusė)</h2>
+        <h2 class="text-2xl font-bold mt-10 mb-4 text-mimaki-blue">1. Prisijungimas prie sistemos (Login)</h2>
+        <p class="text-slate-700 mb-4">
+            Darbo dieną ar naktinę pamainą operatorius pradeda prie savo darbo vietos priskirtos planšetės arba kompiuterio.
+            Prisijungimo lange jis mato visų darbuotojų sąrašą. Pasirinkęs savo vardą, operatorius privalo suvesti jam priskirtą asmeninį 4 skaitmenų PIN kodą.
+            Sėkmingai prisijungus, sistema atpažįsta darbuotoją ir nukreipia į pagrindinį valdymo ekraną.
+        </p>
+
+        <h2 class="text-2xl font-bold mt-10 mb-4 text-mimaki-blue">2. Darbo vietos (Stoties) Pasirinkimas</h2>
+        <p class="text-slate-700 mb-4">
+            Pagrindiniame ekrane operatorius mato visus gamyklos įrenginius (stotis), atvaizduotus kvadratėliais. 
+            Kiekvienas įrenginys turi spalvinį indikatorių:
+        </p>
         <ul class="list-disc pl-6 space-y-2 text-slate-700 mb-8">
-            <li><strong>Frontend:</strong> React 19, TypeScript, Vite, Tailwind CSS.</li>
-            <li><strong>Backend / DB:</strong> Supabase (PostgreSQL duomenų bazė, Authentication, Storage failams/nuotraukoms).</li>
-            <li><strong>Būsenų valdymas (State):</strong> Realaus laiko (Realtime) sinchronizacija per Supabase prenumeratas (Realtime channels). Naudojami React Context API (<code>DataContext</code>, <code>AuthContext</code>). Visur atnaujinama iškart, be puslapio perkrovimo.</li>
+            <li><strong>Raudona spalva:</strong> Įrenginys laisvas, niekas su juo nedirba.</li>
+            <li><strong>Žalia spalva:</strong> Įrenginys užimtas, prie jo rodomas kito dirbančio operatoriaus vardas.</li>
         </ul>
+        <p class="text-slate-700 mb-4">
+            Operatorius paspaudžia ant jam priskirto laisvo (raudono) įrenginio, kurį ruošiasi aptarnauti.
+        </p>
 
-        <h2 class="text-2xl font-bold mt-10 mb-4 text-mimaki-blue">2. Duomenų Modelis (Esminės JSON/DB struktūros)</h2>
-        <ul class="list-disc pl-6 space-y-2 text-slate-700 mb-8">
-            <li><strong>Printers (Stotys):</strong>
-<pre class="bg-slate-800 text-green-400 p-4 rounded-lg text-sm overflow-x-auto mt-2 font-mono">
-{
-  "id": "kingt", // Unikalus stoties ID: kingt, dlican, flora1 ir t.t.
-  "name": "Kingt",
-  "status": "NOT_STARTED | SETUP | WORKING",
-  "isMimaki": false, // Jei tiesa, stotis naudoja specifinę Mimaki logiką (padėklai/units)
-  "operatorName": "Jonas",
-  "workStartedAt": "2026-05-07T06:00:00Z",
-  "vit": {
-     "shift": "Dieninė",
-     "checklist": { "q1": true, "q2": true },
-     "notes": "Viskas tvarkoje"
-  }
-}
-</pre>
-            </li>
-            <li><strong>Pamainų Ataskaitos (Shift Logs):</strong> Saugomi duomenys po <em>End Shift</em>. Laukai: <code>productionAmount</code>, <code>defectsAmount</code>, atskirai išskaidyta <code>robotDefects</code>, <code>printingDefects</code>, <code>glueDefects</code> bei prisegamos purkštukų nuotraukos.</li>
+        <h2 class="text-2xl font-bold mt-10 mb-4 text-mimaki-blue">3. Darbo Pradžia ir Rytinė Patikra (Start Shift)</h2>
+        <p class="text-slate-700 mb-4">
+            Pasirinkus įrenginį, prieš pradedant gamybą, operatoriui atidaromas privalomas „Pradžios klausimynas“ (Start Shift Checklist).
+            Šis klausimynas yra unikalus ir priklauso nuo pasirinkto įrenginio tipo (skirtingas spausdintuvams, robotams ar pakavimo stotims).
+            Operatorius privalo fiziškai patikrinti kiekvieną punktą ir sistemoje uždėti varnelę, patvirtindamas, kad:
+        </p>
+        <ul class="list-disc pl-6 space-y-2 text-slate-700 mb-4">
+            <li>Įrenginys yra švarus ir paruoštas darbui.</li>
+            <li>Yra pakankamas dažų, lako ar kitų eksploatacinių medžiagų kiekis.</li>
+            <li>Atliktas purkštukų testas (Nozzle check) ar kiti būtini įrenginio testai.</li>
         </ul>
+        <p class="text-slate-700 mb-8">
+            Tik pažymėjęs visus punktus, operatorius gali paspausti mygtuką <strong>„Pradėti darbą“</strong>. Tuo momentu įrenginys planšetėje ir visuose gamyklos TV ekranuose užsidega žaliai, o laikas pradedamas skaičiuoti.
+        </p>
 
-        <h2 class="text-2xl font-bold mt-10 mb-4 text-mimaki-blue">3. Naudotojo Kelias (Operator Workflow)</h2>
-        <ol class="list-decimal pl-6 space-y-4 text-slate-700 mb-8 font-medium">
-            <li><strong>Prisijungimas:</strong> Vartotojas pasirenka savo vardą ir suveda PIN kodą. (Role: <code>WORKER</code> arba <code>ADMIN</code>).</li>
-            <li><strong>Įrenginio pasirinkimas:</strong> Pasirenkama laisva stotis. Statusas pasikeičia į <code>SETUP</code>.</li>
-            <li><strong>Start Shift Checklist:</strong> Privaloma užpildyti rytinę patikrą (kiekvienai stočiai skirtinga – žr. žemiau).</li>
-            <li><strong>Darbas:</strong> Statusas <code>WORKING</code>. Gyvai matoma visuose cecho ekranuose.</li>
-            <li><strong>End Shift:</strong> Įvedamas pagamintas kiekis, brokas, paliekamas komentaras, užpildomas pabaigos checklist'as ir padaroma nuotrauka. Statusas grįžta į <code>NOT_STARTED</code>.</li>
+        <h2 class="text-2xl font-bold mt-10 mb-4 text-mimaki-blue">4. Darbo Procesas ir Stebėsena</h2>
+        <p class="text-slate-700 mb-8">
+            Viso darbo metu operatorius atlieka gamybos užduotis, o administracija ar kiti darbuotojai gamykloje pakabintuose ekranuose (Live TV Dashboard) realiu laiku mato, kokie įrenginiai veikia, kas prie jų dirba ir kiek laiko trunka jų pamaina. 
+            Jei operatoriui reikia trumpam atsitraukti, sistema lieka aktyvi, priskirta jam.
+        </p>
+
+        <h2 class="text-2xl font-bold mt-10 mb-4 text-mimaki-blue">5. Darbo Pabaiga ir Duomenų Įvedimas (End Shift)</h2>
+        <p class="text-slate-700 mb-4">
+            Pamainos ar gamybos užduoties pabaigoje operatorius planšetėje spaudžia mygtuką <strong>„Baigti darbą“</strong>.
+            Prieš atlaisvinant įrenginį, sistema reikalauja užpildyti ataskaitą apie atliktą darbą:
+        </p>
+        <ol class="list-decimal pl-6 space-y-3 text-slate-700 mb-8">
+            <li><strong>Pagamintas kiekis:</strong> Operatorius įveda tikslų kokybiškai pagamintų vienetų skaičių.</li>
+            <li><strong>Brokas:</strong> Įvedamas broko kiekis. Brokas išskaidomas į tris kategorijas (Roboto klaida, Spausdinimo klaida, Klijų/lako klaida), kad vadovai žinotų problemos šaltinį.</li>
+            <li><strong>Pabaigos patikra:</strong> Operatorius atžymi „Pabaigos klausimyną“ (pvz., kad įrenginys išvalytas, atliekos išneštos, UV lempos nuvalytos).</li>
+            <li><strong>Nuotrauka:</strong> Spausdintuvų atveju, operatorius turi planšete nufotografuoti baigiamąjį „Nozzle check“ testą ir įkelti jį į sistemą kaip įrodymą, kad įrenginys paliekamas tvarkingas.</li>
+            <li><strong>Žinutė kitai pamainai:</strong> Paliekamas tekstinis komentaras sekančiam žmogui (pvz., „Liko mažai balto dažo“ arba „Stringa kairysis laikiklis“).</li>
         </ol>
+        <p class="text-slate-700 mb-8">
+            Patvirtinus šiuos duomenis, ataskaita išsiunčiama administracijai, o įrenginys vėl užsidega raudonai – jis paruoštas kitam darbuotojui.
+        </p>
 
-        <h2 class="text-2xl font-bold mt-10 mb-4 text-mimaki-blue">4. Stotys (Stations) ir priskirti Checklist'ai</h2>
-        <p class="text-slate-700 mb-4">Sistemoje yra šios pagrindinės darbo stotys bei joms priskirti privalomi klausimynai (Checklists) pamainos pradžiai (START) ir pabaigai (END):</p>
+        <h2 class="text-2xl font-bold mt-10 mb-4 text-mimaki-blue">6. Darbo Vietų Tipai ir Jų Patikros (Checklists)</h2>
+        <p class="text-slate-700 mb-6">Siekiant užtikrinti kokybę, kiekvienas įrenginių tipas turi griežtai apibrėžtus ir unikalius klausimynus:</p>
         
         <div class="space-y-6">
             <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
@@ -154,7 +173,7 @@ export const WorkflowEditable: React.FC = () => {
             <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
                 <h3 class="font-bold text-lg mb-2">2. Didieji Spausdintuvai (FLORA1, FLORA2, KINGT)</h3>
                 <ul class="list-disc pl-6 text-sm text-slate-600 space-y-1 mb-3">
-                    <li><strong>FLORA1 / FLORA2:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti dažų kiekį bakeliuose, nuvalyti spausdinimo galvą, nusivalyti UV lempas, patikrinti enkoderio juostą, patikrinti apsaugos barjerus, atlikti nozzle check, patikrinti temperatūrą, patikrinti UV nustatymus, nuvalyti optinius daviklius, atlikti testinį spausdinimą.<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Pašalinti susikaupusį rašalą, nusivalyti UV lempas, išvalyti įrenginio vidų IPA, ištuštinti atliekų bakelį, nuvalyti galvos dalis, nuvalyti rėmus, užpildyti žurnalą.</li>
+                    <li><strong>FLORA1 / FLORA2:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti dažų kiekį bakeliuose, nuvalyti spausdinimo galvą, nusivalyti UV lempas, patikrinti enkoderio juostą, patikrinti apsaugos barjerus, atlikti nozzle check, patikrinti temperatūrą, patikrinti UV nustatymus, nuvalyti optinius daviklius, atlikti testinį spausdinimą.<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Pašalinti susikaupusį rašalą, nusivalyti UV lempas, išvalyti įrenginio vidų (su IPA), ištuštinti atliekų bakelį, nuvalyti galvos dalis, nuvalyti rėmus, užpildyti fizinį žurnalą.</li>
                     <li class="mt-2"><strong>KINGT:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti dažus, nuvalyti galvą, patikrinti UV lempas, Nozzle check, patikrinti temperatūrą, patikrinti atstumus, atlikti test print.<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Nuvalyti UV lempas, išvalyti įrenginio vidų, nuleisti galvą, išvalyti galvos dalis, užpildyti žurnalą.</li>
                 </ul>
             </div>
@@ -162,22 +181,22 @@ export const WorkflowEditable: React.FC = () => {
             <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
                 <h3 class="font-bold text-lg mb-2">3. DLICAN Stotys (Flatbed, 360)</h3>
                 <ul class="list-disc pl-6 text-sm text-slate-600 space-y-1 mb-3">
-                    <li><strong>DLICAN FLATBED:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti dažų lygį, nuvalyti galvą, Nozzle check, patikrinti vandens lygį, nuvalyti jig’us.<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Išvalyti įrenginio vidų, ištuštinti atliekų bakelį, nuvalyti galvos dalis.</li>
+                    <li><strong>DLICAN FLATBED:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti dažų lygį, nuvalyti galvą, Nozzle check, patikrinti vandens lygį, nuvalyti padėklus (jig’us).<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Išvalyti įrenginio vidų, ištuštinti atliekų bakelį, nuvalyti galvos dalis.</li>
                     <li class="mt-2"><strong>DLICAN 360:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti dažus, nuvalyti galvą, Nozzle check, patikrinti atstumus.<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Išvalyti įrenginį, nuvalyti galvos dalis.</li>
                 </ul>
             </div>
 
             <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
-                <h3 class="font-bold text-lg mb-2">4. DACEN Tumbler/Bottle ir Amica</h3>
+                <h3 class="font-bold text-lg mb-2">4. Grotelinės Stotys (DACEN Tumbler/Bottle ir Amica)</h3>
                 <ul class="list-disc pl-6 text-sm text-slate-600 space-y-1 mb-3">
-                    <li><strong>DACEN tumbler / DACEN bottle / Amika:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti darbo vietos švarą, patikrinti įrenginio būklę, paruošti jig’us.<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Nuvalyti įrenginį, išvalyti darbo zoną, sudėti priemones.</li>
+                    <li><strong>DACEN tumbler / DACEN bottle / Amika:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti darbo vietos švarą, patikrinti įrenginio būklę, paruošti padėklus (jig’us).<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Nuvalyti įrenginį, išvalyti darbo zoną, sudėti priemones.</li>
                 </ul>
             </div>
 
             <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
-                <h3 class="font-bold text-lg mb-2">5. Robotai (Klijų ir Suvirinimo)</h3>
+                <h3 class="font-bold text-lg mb-2">5. Robotizuotos Stotys (Klijų ir Suvirinimo)</h3>
                 <ul class="list-disc pl-6 text-sm text-slate-600 space-y-1 mb-3">
-                    <li><strong>Klijų robotas:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti dispenserio slėgį, pakeisti klijų adatą, nuvalyti padelius, patikrinti nustatymus.<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Roboto vidų nuvalyti, sudėti padelius į vietą.</li>
+                    <li><strong>Klijų robotas:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti klijų slėgį, pakeisti adatą, nuvalyti padelius, patikrinti veikimo nustatymus.<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Išvalyti roboto vidų, sudėti padelius į jų vietas.</li>
                     <li class="mt-2"><strong>Suvirinimo robotas:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Nuvalyti elektrodus, nuvalyti džigą, patikrinti nustatymus.<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Roboto vidų nuvalyti, pakeisti filtrus.</li>
                 </ul>
             </div>
@@ -185,13 +204,13 @@ export const WorkflowEditable: React.FC = () => {
             <div class="bg-slate-50 p-4 border border-slate-200 rounded-xl">
                 <h3 class="font-bold text-lg mb-2">6. Mimaki Stotys (Powerbank, Mirror, Podbase)</h3>
                 <ul class="list-disc pl-6 text-sm text-slate-600 space-y-1 mb-3">
-                    <li><strong>Sistemos specifika:</strong> Skirtingai nei kiti, Mimaki spausdintuvai turi "Units" (padėklus/stalčius pvz. Unit 1, Unit 2). Operatorius prieš pradėdamas darbą privalo pasirinkti, su kuriais unit'ais jis dirbs. Pabaigus darbą, kiekvienam "unit'ui" galima atskirai prisegti "nozzle check" nuotrauką.</li>
-                    <li class="mt-2"><strong>Checklist (Mimaki bendra):</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti dažus, Nozzle check, nusivalyti UV lempas, Autocleaning.<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Nuvalyti UV lempas, išvalyti vidų, užpildyti žurnalą.</li>
+                    <li><strong>Sistemos specifika:</strong> Mimaki spausdintuvai dirba atskirais blokais/padėklais (Units). Operatorius prieš pradėdamas darbą planšetėje pažymi, su kuriais konkrečiais blokais jis šiuo metu dirbs. Užbaigiant darbą, sistema reikalauja prisegti "nozzle check" testo nuotrauką kiekvienam atskiram blokui.</li>
+                    <li class="mt-2"><strong>Klausimynas:</strong><br/><span class="text-mimaki-blue font-semibold">Pradžia:</span> Patikrinti dažus, Nozzle check, nusivalyti UV lempas, atlikti automatinį galvos valymą (Autocleaning).<br/><span class="text-mimaki-blue font-semibold">Pabaiga:</span> Nuvalyti UV lempas, išvalyti įrenginio vidų, užpildyti fizinį žurnalą.</li>
                 </ul>
             </div>
         </div>
 
-        <p class="text-sm text-slate-400 mt-10 border-t pt-4">Dokumentas sugeneruotas sistemoje. Spauskite ant bet kurios vietos dokumente ir galėsite laisvai redaguoti tekstą.</p>
+        <p class="text-sm text-slate-400 mt-10 border-t pt-4">Šis procesų aprašas skirtas sistemų projektuotojams. Jį galite bet kada redaguoti spustelėję bet kurioje vietoje.</p>
     `;
 
     return (
