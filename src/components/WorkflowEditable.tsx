@@ -118,7 +118,7 @@ export const WorkflowEditable: React.FC = () => {
                     </button>
                     <button
                         onClick={handleSave}
-                        className={\`flex items-center gap-2 px-6 py-2 rounded-xl font-bold uppercase tracking-wider transition-all shadow-md text-sm \${isSaved ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-mimaki-blue hover:bg-blue-600 text-white animate-pulse'}\`}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold uppercase tracking-wider transition-all shadow-md text-sm ${isSaved ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-mimaki-blue hover:bg-blue-600 text-white animate-pulse'}`}
                     >
                         <Save className="w-4 h-4" />
                         {isSaved ? 'Išsaugota' : 'Išsaugoti pakeitimus'}
