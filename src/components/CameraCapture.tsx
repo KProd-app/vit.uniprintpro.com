@@ -51,6 +51,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [flashOn, setFlashOn] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
 
   const stopStream = useCallback(() => {
     if (streamRef.current) {
@@ -74,12 +75,14 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
 
   const startCamera = useCallback(async () => {
     setHasPermission(null);
+    setCameraReady(false);
     stopStream();
     setFlashOn(false);
 
     const videoConstraints: MediaTrackConstraints[] = [
-      { facingMode: { exact: 'environment' } },
-      { facingMode: { ideal: 'environment' } },
+      { facingMode: { exact: 'environment' }, width: { ideal: 4096 }, height: { ideal: 2160 } },
+      { facingMode: { ideal: 'environment' }, width: { ideal: 4096 }, height: { ideal: 2160 } },
+      { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
       { facingMode: 'environment' },
       true
     ];
@@ -94,6 +97,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
         streamRef.current = mediaStream;
         await attachStreamToVideo(mediaStream);
         setHasPermission(true);
+        setTimeout(() => setCameraReady(true), 1200);
         return;
       } catch (err) {
         console.warn('Camera attempt failed, trying fallback.', err);
@@ -134,7 +138,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
       context.font = 'bold 20px Inter, Arial';
       context.fillText(`${timestamp} | Op: ${formattedUserName}`, 20, canvas.height - 25);
 
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
       setPreviewImage(dataUrl);
     }
   };
@@ -240,9 +244,13 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, userNam
 
             <button
               onClick={takePhoto}
-              className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform group"
+              disabled={!cameraReady}
+              className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform group disabled:opacity-50 disabled:scale-100"
             >
-              <div className="w-16 h-16 border-4 border-slate-900 rounded-full group-hover:bg-slate-100 transition-colors"></div>
+              {cameraReady
+                ? <div className="w-16 h-16 border-4 border-slate-900 rounded-full group-hover:bg-slate-100 transition-colors"></div>
+                : <div className="w-8 h-8 border-4 border-slate-400 border-t-slate-900 rounded-full animate-spin"></div>
+              }
             </button>
 
             <div className="w-24"></div>
