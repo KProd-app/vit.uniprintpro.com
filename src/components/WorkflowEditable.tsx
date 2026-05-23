@@ -52,7 +52,7 @@ export const WorkflowEditable: React.FC = () => {
     const changeImageWidth = (amount: number) => {
         if (!selectedImage) return;
         const currentWidth = selectedImage.offsetWidth;
-        selectedImage.style.width = \`\${Math.max(100, currentWidth + amount)}px\`;
+        selectedImage.style.width = `${Math.max(100, currentWidth + amount)}px`;
         selectedImage.style.maxWidth = '100%';
         selectedImage.style.height = 'auto';
         setIsSaved(false);
@@ -360,9 +360,9 @@ export const WorkflowEditable: React.FC = () => {
                 {selectedImage && (
                     <div 
                         className="absolute z-50 bg-slate-800 text-white p-1.5 rounded-xl shadow-2xl flex items-center gap-1 transform -translate-x-1/2 -translate-y-full mb-2"
-                        style={{ 
-                            top: \`\${selectedImage.offsetTop - 10}px\`, 
-                            left: \`\${selectedImage.offsetLeft + (selectedImage.offsetWidth / 2)}px\` 
+                        style={{
+                            top: `${selectedImage.offsetTop - 10}px`,
+                            left: `${selectedImage.offsetLeft + (selectedImage.offsetWidth / 2)}px`
                         }}
                         contentEditable={false}
                     >
