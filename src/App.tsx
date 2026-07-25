@@ -24,6 +24,7 @@ import { PrideOverlay } from './components/PrideOverlay';
 import { KebabOverlay } from './components/KebabOverlay';
 import { InkInstructionsEditable } from './components/InkInstructionsEditable';
 import { WorkflowEditable } from './components/WorkflowEditable';
+import { KokybeView } from './components/KokybeView';
 
 // Inner component to use Auth and Data contexts
 const AppContent: React.FC = () => {
@@ -44,6 +45,7 @@ const AppContent: React.FC = () => {
     if (path === '/dazuinstrukcija') return 'INK_INSTRUCTIONS';
     if (path === '/dazaiop') return 'INK_REFILL';
     if (path === '/workflow') return 'WORKFLOW';
+    if (path === '/kokybe') return 'KOKYBE';
 
     // Default dashboard
     return 'DASHBOARD';
@@ -57,7 +59,7 @@ const AppContent: React.FC = () => {
   const [isKebabTheme, setIsKebabTheme] = useState(false);
 
   // Automatically handle view switching based on auth, UNLESS it's a live dashboard
-  const isLiveView = view === 'LIVE' || view === 'LIVE_MOBILE' || view === 'LIVE_DESKTOP' || view === 'LENTA' || view === 'INK_INSTRUCTIONS';
+  const isLiveView = view === 'LIVE' || view === 'LIVE_MOBILE' || view === 'LIVE_DESKTOP' || view === 'LENTA' || view === 'INK_INSTRUCTIONS' || view === 'KOKYBE';
   // If not logged in and not a live viewer, enforce login
   let currentView = isLiveView ? view : (!user ? 'LOGIN' : view);
 
@@ -473,6 +475,10 @@ const AppContent: React.FC = () => {
 
       {currentView === 'WORKFLOW' && (
         <WorkflowEditable />
+      )}
+
+      {currentView === 'KOKYBE' && (
+        <KokybeView />
       )}
 
       {/* Feedback Button - Always visible if logged in */}
