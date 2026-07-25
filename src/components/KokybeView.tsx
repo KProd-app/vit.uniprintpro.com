@@ -36,13 +36,21 @@ const PhotoLightbox: React.FC<PhotoLightboxProps> = ({ url, label, onClose }) =>
     className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4"
     onClick={onClose}
   >
-    <p className="text-white text-sm font-bold mb-3 opacity-70">{label} — spustelėkite norėdami uždaryti</p>
+    <button
+      onClick={onClose}
+      className="absolute top-4 right-4 w-11 h-11 bg-white/10 hover:bg-white/25 active:bg-white/40 text-white rounded-full flex items-center justify-center text-xl font-black transition-all"
+      aria-label="Uždaryti"
+    >
+      ✕
+    </button>
+    <p className="text-white text-sm font-semibold mb-3 opacity-50">{label}</p>
     <img
       src={url}
       alt={label}
       className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain"
       onClick={e => e.stopPropagation()}
     />
+    <p className="text-white/30 text-xs mt-3">Spustelėkite foną arba ✕ norėdami uždaryti</p>
   </div>
 );
 
@@ -148,15 +156,15 @@ const NozzlePhotos: React.FC<NozzleSection> = ({ log }) => {
           <button
             key={p.url}
             onClick={() => setLightbox(p)}
-            className="relative group"
+            className="relative group active:scale-95 transition-transform"
           >
             <img
               src={p.url}
               alt={p.label}
               className="w-28 h-20 object-cover rounded-xl border-2 border-slate-200 group-hover:border-mimaki-blue transition-all shadow-sm"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-xl transition-all flex items-center justify-center">
-              <span className="text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-all">Peržiūrėti</span>
+            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 rounded-xl transition-all flex items-center justify-center">
+              <span className="text-white text-xs font-black drop-shadow">🔍 Atidaryti</span>
             </div>
           </button>
         ))}
